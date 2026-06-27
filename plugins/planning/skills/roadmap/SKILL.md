@@ -1,7 +1,7 @@
 ---
 name: roadmap
 description: Turn a large goal — or a set of existing planning/spec docs, or an already-approved plan — into a phased, multi-session build plan where each session fits one fresh context window. Triggers on "break this into sessions", "make a multi-session plan", "roadmap this", "scaffold a phased plan". Produces .planning/<slug>/ with PLAN.md, TRACKER.md, and one kickoff prompt per session.
-allowed-tools: [Read, Write, Glob, Grep, Bash, Edit, Agent, AskUserQuestion]
+allowed-tools: [Read, Write, Glob, Grep, Bash, Agent, AskUserQuestion]
 user-invocable: true
 ---
 
@@ -9,7 +9,7 @@ user-invocable: true
 
 When the user invokes `/roadmap`, turn a big goal into a phased plan that runs **one session per fresh context window**, then run each session with `/session`.
 
-> **See also:** `/session` runs the next pending session of a roadmap; `/wrapup` and `/next` handle single-session housekeeping. This family shares one session-summary format (defined in the `wrapup` skill).
+> **See also:** `/session` runs the next pending session of a roadmap; `/wrapup` and `/handoff` handle single-session housekeeping. This family shares one session-summary format (defined in the `wrapup` skill).
 
 ## When to use this vs plan mode
 

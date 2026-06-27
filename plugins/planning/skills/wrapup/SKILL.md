@@ -1,7 +1,7 @@
 ---
 name: wrapup
 description: Commit all changes and write a session summary to .planning/sessions/ for context continuity across conversations.
-allowed-tools: [Bash, Write, Read, Glob, Grep, Edit]
+allowed-tools: [Bash, Write]
 user-invocable: true
 ---
 
@@ -19,10 +19,10 @@ When the user invokes `/wrapup`, perform these steps in order:
 Create the directory `.planning/sessions/` if it doesn't exist.
 
 Create a file named `.planning/sessions/YYYY-MM-DD-<short-slug>.md` where:
-- `YYYY-MM-DD` is today's date
+- `YYYY-MM-DD` is today's date — get it by running `date +%F` via Bash; **do not guess it** (you have no reliable clock, and a wrong date silently misfiles the chronological session log).
 - `<short-slug>` is a 2-4 word kebab-case description of the work (e.g. `add-travel-wizard`, `fix-auth-bugs`)
 
-If a file with the same name already exists, append a numeric suffix (e.g. `-2`).
+Before writing, check whether the path already exists (`test -e` via Bash). If it does, append a numeric suffix and re-check — `-2`, `-3`, … — until the name is free.
 
 The file must contain these sections:
 

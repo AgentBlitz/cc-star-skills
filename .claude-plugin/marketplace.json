@@ -6,7 +6,8 @@
       "name": "planning",
       "source": "./plugins/planning",
       "version": "1.0.0",
-      "description": "Multi-session build planning skills (roadmap, session, wrapup, next).",
+      "license": "MIT",
+      "description": "Multi-session build planning skills (roadmap, session, wrapup, handoff).",
       "author": { "name": "Kam Star" }
     }
   ]

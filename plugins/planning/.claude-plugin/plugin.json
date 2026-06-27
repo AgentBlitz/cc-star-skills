@@ -1,6 +1,10 @@
 {
   "name": "planning",
   "version": "1.0.0",
-  "description": "Multi-session build planning skills: roadmap scaffolds a phased plan, session runs each phase, wrapup/next handle single-session housekeeping.",
-  "author": { "name": "Kam Star", "email": "kam@kamstar.net" }
+  "license": "MIT",
+  "description": "Multi-session build planning skills: roadmap scaffolds a phased plan, session runs each phase, wrapup/handoff handle single-session housekeeping.",
+  "author": { "name": "Kam Star", "email": "kam@kamstar.net" },
+  "homepage": "https://github.com/AgentBlitz/cc-star-skills",
+  "repository": "https://github.com/AgentBlitz/cc-star-skills",
+  "keywords": ["planning", "multi-session", "roadmap", "session-summary", "context-handoff", "workflow"]
 }

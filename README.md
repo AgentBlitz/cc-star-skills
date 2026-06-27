@@ -10,9 +10,13 @@ skills.
 | `/roadmap`  | Turn a large goal (or spec docs, or an approved plan) into a phased, multi-session build plan where each session fits one fresh context window. Produces `.planning/<slug>/` with `PLAN.md`, `TRACKER.md`, and one kickoff prompt per session. |
 | `/session`  | Execute the next pending session of a roadmap end to end — re-establish context, do the work, run the verification gate, write the session summary, update the tracker, commit, and surface the next kickoff prompt. |
 | `/wrapup`   | Commit all changes and write a session summary to `.planning/sessions/` for context continuity across conversations. |
-| `/next`     | Like `/wrapup`, plus generate a ready-to-paste continuation prompt for a fresh Claude context. |
+| `/handoff` | Like `/wrapup`, plus generate a ready-to-paste continuation prompt for a fresh Claude context (formerly `/next`). |
 
 The four skills share one session-summary format, defined in the `wrapup` skill.
+
+**Which one?** `/wrapup` = save + commit · `/handoff` = same, plus a paste-ready
+prompt to resume in a fresh chat · `/session` = advance a `/roadmap` plan by
+exactly one phase (it includes its own wrapup).
 
 ## Install
 
@@ -25,7 +29,7 @@ The four skills share one session-summary format, defined in the `wrapup` skill.
 the `owner/repo` shorthand, with git credentials configured via `gh auth login`
 or `ssh-agent`.)
 
-After installing, `/roadmap`, `/session`, `/wrapup`, and `/next` are available in
+After installing, `/roadmap`, `/session`, `/wrapup`, and `/handoff` are available in
 every project.
 
 ## Updating
