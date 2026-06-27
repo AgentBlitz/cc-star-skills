@@ -1,11 +1,10 @@
 {
   "name": "cc-star-skills",
   "owner": { "name": "Kam Star", "email": "kam@kamstar.net" },
-  "metadata": { "pluginRoot": "./plugins" },
   "plugins": [
     {
       "name": "planning",
-      "source": "planning",
+      "source": "./plugins/planning",
       "version": "1.0.0",
       "description": "Multi-session build planning skills (roadmap, session, wrapup, next).",
       "author": { "name": "Kam Star" }
