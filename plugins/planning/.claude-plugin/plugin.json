@@ -1,6 +1,6 @@
 {
   "name": "planning",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "description": "Multi-session build planning skills: roadmap scaffolds a phased plan, session runs each phase, wrapup/handoff handle single-session housekeeping.",
   "author": { "name": "Kam Star", "email": "kam@kamstar.net" },
