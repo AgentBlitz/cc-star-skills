@@ -27,20 +27,60 @@ to the end of the roadmap without you.
 bash <plugin-path>/scripts/autopilot.sh --plan .planning/<slug> [--model sonnet] [--max 5]
 ```
 
-Run `/autopilot` inside Claude to get this command with the paths filled in.
-Each iteration launches `claude -p "/planning:session <plan-dir>"` with a fresh
-context, then re-reads `TRACKER.md`: it stops cleanly when no ⬜/🟡 rows remain,
-hard-stops on a ⛔ row (failed verification gate), aborts after two consecutive
-runs that make no tracker progress, and honours `--max N`. Runs use
-`--permission-mode bypassPermissions` by default (unattended runs can't answer
-prompts), so only autopilot roadmaps you trust.
+Run `/autopilot` inside Claude to get this command with the paths filled in —
+the skill is interactive and walks you through the options below (model,
+iteration cap, usage-check, permission mode, dry-run first) before printing the
+final command. Each iteration launches `claude -p "/planning:session
+<plan-dir>"` with a fresh context, then re-reads `TRACKER.md`: it stops cleanly
+when no ⬜/🟡 rows remain, hard-stops on a ⛔ row (failed verification gate),
+aborts after two consecutive runs that make no tracker progress, and honours
+`--max N`.
 
-Subscription limits: if a run dies because the 5-hour window is exhausted, the
-script sleeps until the reset time in the error (or `--backoff`, default 30m)
-and retries. Opt-in `--usage-check --threshold 20` also checks remaining window
-*before* each run — it reads your own Claude Code OAuth token (Keychain /
-`~/.claude/.credentials.json`) and calls an undocumented endpoint, degrading to
-a warning if that ever breaks. Logs land in `.planning/<slug>/autopilot/`.
+#### All options
+
+| Flag | Argument | Default | What it does |
+|------|----------|---------|--------------|
+| `--plan` | `.planning/<slug>` | auto-detect | Roadmap dir to run. If omitted, the script finds the single roadmap with pending rows; it errors if zero or several match, so pass this when you have more than one active roadmap. |
+| `--max` | `N` | `0` (unlimited) | Stop after at most `N` iterations, even if sessions remain. Usage-limit waits don't count against `N`. |
+| `--model` | `<model>` | session default | Model passed to each `claude` run (e.g. `sonnet` for mechanical roadmaps, `opus`/`fable` for hard ones). Omit to inherit your Claude Code default. |
+| `--branch` | `<name>` | current branch | Check out `<name>` (creating it from the current HEAD if it doesn't exist) **once** before the loop, so an unattended run's commits land there instead of piling onto whatever you're on. Omit to stay on the current branch. See [Branch behaviour](#branch-behaviour). |
+| `--usage-check` | *(flag)* | off | Opt-in **proactive** check of the 5-hour subscription window *before* each run; sleeps until reset when low. Reads your own Claude Code OAuth token (macOS Keychain, then `~/.claude/.credentials.json`) and calls an undocumented endpoint. Degrades to a warning if unavailable. |
+| `--threshold` | `PCT` | `20` | With `--usage-check`, the minimum % of the window that must remain before a run starts. Below it, autopilot waits for the reset (or backs off). No effect without `--usage-check`. |
+| `--backoff` | `DURATION` | `30m` | Sleep length when a usage limit is hit but no reset time can be parsed from the error. Accepts `45s` / `30m` / `2h`, or a bare number meaning minutes. |
+| `--permission-mode` | `MODE` | `bypassPermissions` | Permission mode for each `claude` run. Defaults to `bypassPermissions` because unattended runs can't answer prompts — so only autopilot roadmaps you trust. Pass e.g. `acceptEdits` for a more restrictive mode. |
+| `--dry-run` | *(flag)* | off | Print the tracker verdict, the next pending row, and the exact `claude` command that *would* run — without running anything. Recommended for a first look at a new roadmap. |
+| `-h`, `--help` | *(flag)* | — | Print usage and exit. |
+
+#### Branch behaviour
+
+By default autopilot performs **no branch management** — it never checks out,
+creates, or pushes a branch. Each session ends with one local commit (session
+summary + updated tracker + the work), landing on **whatever branch is checked
+out when you launch autopilot**. Start it on `main` and the commits go to `main`;
+start it on a feature branch and they go there. Nothing is pushed — commits stay
+local until you push.
+
+For an unattended multi-session run you usually don't want commits piling
+straight onto `main`. Pass `--branch <name>` (e.g. `--branch autopilot/<slug>`)
+and autopilot checks that branch out — creating it from the current HEAD if
+needed — once, before the loop; every session then commits onto it. If the
+branch already exists it's switched to; a switch that would conflict with
+uncommitted changes stops the run with a clear error, so commit or stash first.
+The `/autopilot` skill offers this as a choice and defaults to a new branch when
+it sees you're on `main`.
+
+**Subscription limits (always on, no flags).** If a run dies because the 5-hour
+window is exhausted, the script sleeps until the reset time embedded in the
+error (or `--backoff` if it can't be parsed) and retries the *same* session
+without consuming an iteration. `--usage-check` layers a proactive check on top.
+
+**Exit codes.** `0` = roadmap complete or `--max` reached · `2` = a ⛔ blocked
+gate (autopilot refuses to start, or stops, on a failed verification gate) ·
+`3` = stopped after two consecutive no-progress runs (a safety brake against
+burning your subscription). Ctrl-C exits cleanly with a summary.
+
+**Output.** Progress streams to stdout and `.planning/<slug>/autopilot/autopilot.log`;
+per-run result JSON lands in `.planning/<slug>/autopilot/run-N.json`.
 
 ## Install
 

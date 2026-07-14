@@ -10,8 +10,14 @@
 #
 # Usage:
 #   autopilot.sh [--plan .planning/<slug>] [--max N] [--model <model>]
-#                [--threshold PCT] [--usage-check] [--permission-mode MODE]
-#                [--backoff DURATION] [--dry-run]
+#                [--branch <name>] [--threshold PCT] [--usage-check]
+#                [--permission-mode MODE] [--backoff DURATION] [--dry-run]
+#
+# Branch:
+#   By default, commits land on the branch already checked out — autopilot never
+#   switches branches. Pass --branch <name> to check out (or create, from the
+#   current HEAD) that branch once before the loop, so an unattended run doesn't
+#   pile commits directly onto whatever you happened to be on (e.g. main).
 #
 # Subscription-limit handling:
 #   * Reactive (always on): if a run fails with a usage-limit error, sleep until
@@ -27,6 +33,7 @@ set -u -o pipefail
 PLAN_DIR=""
 MAX=0                      # 0 = unlimited
 MODEL=""
+BRANCH=""                  # empty = stay on the current branch
 THRESHOLD=20
 USAGE_CHECK=0
 PERM_MODE="bypassPermissions"
@@ -36,7 +43,7 @@ DRY_RUN=0
 USAGE_ENDPOINT="https://api.anthropic.com/api/oauth/usage"
 
 usage() {
-  sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
@@ -49,6 +56,7 @@ while [ $# -gt 0 ]; do
     --plan)            PLAN_DIR="${2:?--plan needs a value}"; shift 2 ;;
     --max)             MAX="${2:?--max needs a value}"; shift 2 ;;
     --model)           MODEL="${2:?--model needs a value}"; shift 2 ;;
+    --branch)          BRANCH="${2:?--branch needs a value}"; shift 2 ;;
     --threshold)       THRESHOLD="${2:?--threshold needs a value}"; shift 2 ;;
     --usage-check)     USAGE_CHECK=1; shift ;;
     --permission-mode) PERM_MODE="${2:?--permission-mode needs a value}"; shift 2 ;;
@@ -233,6 +241,27 @@ summary() {
 trap 'echo; warn "interrupted"; summary; exit 130' INT TERM
 
 # ---------------------------------------------------------------------------
+# Branch selection (opt-in). Check out --branch, creating it from the current
+# HEAD if it doesn't exist yet. Runs once, before the loop; every session then
+# commits onto this branch. Without --branch, we stay on the current branch.
+# ---------------------------------------------------------------------------
+ensure_branch() {
+  local b="$1" cur out
+  cur="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  [ "$cur" = "$b" ] && { log "already on branch $b"; return 0; }
+  if git show-ref --verify --quiet "refs/heads/$b"; then
+    out="$(git checkout "$b" 2>&1)" \
+      || die "could not switch to existing branch '$b' — commit or stash conflicting changes first:
+$out"
+    log "switched to existing branch $b (was $cur)"
+  else
+    out="$(git checkout -b "$b" 2>&1)" || die "could not create branch '$b':
+$out"
+    log "created and switched to branch $b (from $cur)"
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
 read_tracker
@@ -245,10 +274,13 @@ CMD=(claude -p "/planning:session $PLAN_DIR" --output-format json --permission-m
 if [ "$DRY_RUN" -eq 1 ]; then
   log "dry run — tracker: $DONE done / $PENDING pending / $BLOCKED blocked"
   log "next session row: $(next_pending_row)"
+  [ -n "$BRANCH" ] && log "would check out branch: $BRANCH (currently on $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?'))"
   log "would run: ${CMD[*]}"
   [ "$MAX" -gt 0 ] && log "for up to $MAX iteration(s)"
   exit 0
 fi
+
+[ -n "$BRANCH" ] && ensure_branch "$BRANCH"
 
 mkdir -p "$RUN_DIR"
 STRIKES=0
