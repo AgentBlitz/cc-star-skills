@@ -1,7 +1,12 @@
 # cc-star-skills
 
-A Claude Code plugin marketplace bundling a set of multi-session build-planning
-skills.
+A Claude Code plugin marketplace. Each plugin installs independently — adding the
+marketplace only registers the catalogue; you enable the plugins you want.
+
+| Plugin | What it gives you |
+|--------|-------------------|
+| `planning` | Multi-session build-planning skills (`/roadmap`, `/session`, `/wrapup`, `/handoff`, `/autopilot`). |
+| `copilot` | A wizard (`/build-copilot`) that embeds a tool-calling AI copilot into a web app. |
 
 ## The `planning` plugin
 
@@ -82,27 +87,48 @@ burning your subscription). Ctrl-C exits cleanly with a summary.
 **Output.** Progress streams to stdout and `.planning/<slug>/autopilot/autopilot.log`;
 per-run result JSON lands in `.planning/<slug>/autopilot/run-N.json`.
 
+## The `copilot` plugin
+
+| Skill | What it does |
+|-------|--------------|
+| `/build-copilot` | Interactive wizard that embeds a context-aware, tool-calling AI copilot into an existing web app — a chat drawer backed by an OpenAI-compatible LLM proxy, READ/HELP/PROPOSE tools, help-corpus search, and SSE streaming. It reads the target codebase, confirms the per-app decisions (which entities become tools, which draft-write actions to allow, help corpus, terminology), then scaffolds the implementation step by step. |
+
+Run `/build-copilot` **inside the app repo you want the copilot to live in** (not
+this marketplace). The skill bundles a portable [design guide](plugins/copilot/skills/build-copilot/reference/design-guide.md)
+as its source of truth and adapts it to your stack — backend framework, frontend
+router, ORM, auth, and settings UI are all discovered, not assumed. The LLM
+endpoint (LM Studio / vLLM / cloud) is a runtime setting configured in the admin
+panel the wizard builds, so no provider is hardcoded.
+
 ## Install
 
 ```text
 /plugin marketplace add AgentBlitz/cc-star-skills
 /plugin install planning@cc-star-skills
+/plugin install copilot@cc-star-skills
 ```
+
+Each plugin installs independently — take one, both, or neither. Adding the
+marketplace by itself installs nothing.
 
 (For a private repo, use the full SSH/HTTPS URL or a local clone path instead of
 the `owner/repo` shorthand, with git credentials configured via `gh auth login`
 or `ssh-agent`.)
 
-After installing, `/roadmap`, `/session`, `/wrapup`, `/handoff`, and `/autopilot`
-are available in every project.
+After installing `planning`, `/roadmap`, `/session`, `/wrapup`, `/handoff`, and
+`/autopilot` are available in every project; installing `copilot` adds
+`/build-copilot`.
 
 ## Updating
 
-Bump `version` in `.claude-plugin/marketplace.json` and
-`plugins/planning/.claude-plugin/plugin.json`, push, then users run:
+For the plugin you changed, bump `version` in **both** places that carry it —
+its entry in `.claude-plugin/marketplace.json` and its own
+`plugins/<plugin>/.claude-plugin/plugin.json` — keep them in sync, push, then
+users run:
 
 ```text
 /plugin update planning@cc-star-skills
+/plugin update copilot@cc-star-skills
 ```
 
 ## Layout
@@ -110,8 +136,14 @@ Bump `version` in `.claude-plugin/marketplace.json` and
 ```
 cc-star-skills/
 ├── .claude-plugin/marketplace.json
-└── plugins/planning/
-    ├── .claude-plugin/plugin.json
-    ├── scripts/autopilot.sh
-    └── skills/{roadmap,session,wrapup,handoff,autopilot}/SKILL.md
+└── plugins/
+    ├── planning/
+    │   ├── .claude-plugin/plugin.json
+    │   ├── scripts/autopilot.sh
+    │   └── skills/{roadmap,session,wrapup,handoff,autopilot}/SKILL.md
+    └── copilot/
+        ├── .claude-plugin/plugin.json
+        └── skills/build-copilot/
+            ├── SKILL.md
+            └── reference/design-guide.md
 ```

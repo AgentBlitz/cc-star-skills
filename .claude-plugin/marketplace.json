@@ -9,6 +9,14 @@
       "license": "MIT",
       "description": "Multi-session build planning skills (roadmap, session, wrapup, handoff, autopilot).",
       "author": { "name": "Kam Star" }
+    },
+    {
+      "name": "copilot",
+      "source": "./plugins/copilot",
+      "version": "1.0.0",
+      "license": "MIT",
+      "description": "Interactive wizard that builds an embedded, tool-calling AI copilot into an existing web app (build-copilot).",
+      "author": { "name": "Kam Star" }
     }
   ]
 }

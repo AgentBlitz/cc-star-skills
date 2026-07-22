@@ -1,0 +1,10 @@
+{
+  "name": "copilot",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "Interactive wizard that builds an embedded, context-aware, tool-calling AI copilot into a web app — chat drawer, OpenAI-compatible LLM proxy, READ/HELP/PROPOSE tools, help-corpus search, and SSE streaming — adapting a portable design guide to the target codebase.",
+  "author": { "name": "Kam Star", "email": "kam@kamstar.net" },
+  "homepage": "https://github.com/AgentBlitz/cc-star-skills",
+  "repository": "https://github.com/AgentBlitz/cc-star-skills",
+  "keywords": ["copilot", "llm", "chat-assistant", "tool-calling", "sse", "openai-compatible", "rag", "help-corpus"]
+}
