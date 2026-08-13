@@ -29,12 +29,12 @@ to the end of the roadmap without you.
 
 ```bash
 # from the target project root, in a normal terminal (not inside Claude):
-bash <plugin-path>/scripts/autopilot.sh --plan .planning/<slug> [--model sonnet] [--max 5]
+bash <plugin-path>/scripts/autopilot.sh --plan .planning/<slug> [--model sonnet] [--effort high] [--max 5]
 ```
 
 Run `/autopilot` inside Claude to get this command with the paths filled in —
 the skill is interactive and walks you through the options below (model,
-iteration cap, usage-check, permission mode, dry-run first) before printing the
+effort, iteration cap, branch, usage-check, dry-run first) before printing the
 final command. Each iteration launches `claude -p "/planning:session
 <plan-dir>"` with a fresh context, then re-reads `TRACKER.md`: it stops cleanly
 when no ⬜/🟡 rows remain, hard-stops on a ⛔ row (failed verification gate),
@@ -48,6 +48,7 @@ aborts after two consecutive runs that make no tracker progress, and honours
 | `--plan` | `.planning/<slug>` | auto-detect | Roadmap dir to run. If omitted, the script finds the single roadmap with pending rows; it errors if zero or several match, so pass this when you have more than one active roadmap. |
 | `--max` | `N` | `0` (unlimited) | Stop after at most `N` iterations, even if sessions remain. Usage-limit waits don't count against `N`. |
 | `--model` | `<model>` | session default | Model passed to each `claude` run (e.g. `sonnet` for mechanical roadmaps, `opus`/`fable` for hard ones). Omit to inherit your Claude Code default. |
+| `--effort` | `low`\|`medium`\|`high`\|`xhigh`\|`max` | model default | Reasoning effort passed to each `claude` run as `--effort <level>` — e.g. `max` for the hardest roadmaps, `low` for cheap mechanical ones. Omit to use the model's default. Validated up front; an unknown level refuses to start. |
 | `--branch` | `<name>` | current branch | Check out `<name>` (creating it from the current HEAD if it doesn't exist) **once** before the loop, so an unattended run's commits land there instead of piling onto whatever you're on. Omit to stay on the current branch. See [Branch behaviour](#branch-behaviour). |
 | `--usage-check` | *(flag)* | off | Opt-in **proactive** check of the 5-hour subscription window *before* each run; sleeps until reset when low. Reads your own Claude Code OAuth token (macOS Keychain, then `~/.claude/.credentials.json`) and calls an undocumented endpoint. Degrades to a warning if unavailable. |
 | `--threshold` | `PCT` | `20` | With `--usage-check`, the minimum % of the window that must remain before a run starts. Below it, autopilot waits for the reset (or backs off). No effect without `--usage-check`. |

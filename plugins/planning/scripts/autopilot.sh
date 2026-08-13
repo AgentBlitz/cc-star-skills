@@ -10,8 +10,9 @@
 #
 # Usage:
 #   autopilot.sh [--plan .planning/<slug>] [--max N] [--model <model>]
-#                [--branch <name>] [--threshold PCT] [--usage-check]
-#                [--permission-mode MODE] [--backoff DURATION] [--dry-run]
+#                [--effort low|medium|high|xhigh|max] [--branch <name>]
+#                [--threshold PCT] [--usage-check] [--permission-mode MODE]
+#                [--backoff DURATION] [--dry-run]
 #
 # Branch:
 #   By default, commits land on the branch already checked out — autopilot never
@@ -33,6 +34,7 @@ set -u -o pipefail
 PLAN_DIR=""
 MAX=0                      # 0 = unlimited
 MODEL=""
+EFFORT=""                  # empty = claude's default effort for the model
 BRANCH=""                  # empty = stay on the current branch
 THRESHOLD=20
 USAGE_CHECK=0
@@ -43,7 +45,7 @@ DRY_RUN=0
 USAGE_ENDPOINT="https://api.anthropic.com/api/oauth/usage"
 
 usage() {
-  sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
@@ -56,6 +58,7 @@ while [ $# -gt 0 ]; do
     --plan)            PLAN_DIR="${2:?--plan needs a value}"; shift 2 ;;
     --max)             MAX="${2:?--max needs a value}"; shift 2 ;;
     --model)           MODEL="${2:?--model needs a value}"; shift 2 ;;
+    --effort)          EFFORT="${2:?--effort needs a value}"; shift 2 ;;
     --branch)          BRANCH="${2:?--branch needs a value}"; shift 2 ;;
     --threshold)       THRESHOLD="${2:?--threshold needs a value}"; shift 2 ;;
     --usage-check)     USAGE_CHECK=1; shift ;;
@@ -66,6 +69,11 @@ while [ $# -gt 0 ]; do
     *)                 warn "unknown option: $1"; usage 1 ;;
   esac
 done
+
+case "$EFFORT" in
+  ""|low|medium|high|xhigh|max) ;;
+  *) die "--effort must be one of: low, medium, high, xhigh, max (got: $EFFORT)" ;;
+esac
 
 command -v claude  >/dev/null 2>&1 || die "claude CLI not found on PATH"
 command -v python3 >/dev/null 2>&1 || die "python3 not found on PATH (needed to parse JSON)"
@@ -270,6 +278,7 @@ read_tracker
 
 CMD=(claude -p "/planning:session $PLAN_DIR" --output-format json --permission-mode "$PERM_MODE")
 [ -n "$MODEL" ] && CMD+=(--model "$MODEL")
+[ -n "$EFFORT" ] && CMD+=(--effort "$EFFORT")
 
 if [ "$DRY_RUN" -eq 1 ]; then
   log "dry run — tracker: $DONE done / $PENDING pending / $BLOCKED blocked"

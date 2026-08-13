@@ -23,9 +23,10 @@ Read the TRACKER and report: sessions done / pending / blocked. If a row is ⛔,
 
 ## 3. Ask about options interactively
 
-Drive this with `AskUserQuestion` so the user picks options instead of reading flag docs. Ask in **one** `AskUserQuestion` call with these questions (skip any the user already pinned in `$ARGUMENTS`):
+Drive this with `AskUserQuestion` so the user picks options instead of reading flag docs. Batch the questions into as few `AskUserQuestion` calls as possible (the tool takes at most 4 questions per call), skipping any the user already pinned in `$ARGUMENTS`:
 
 1. **Model** (`--model`) — options: *Session default* (recommended; omit the flag), *sonnet* (mechanical roadmaps), *opus* (hard reasoning), *fable*. Map the choice to `--model <x>`; "Session default" adds no flag.
+1b. **Effort** (`--effort`) — options: *Model default* (recommended; omit the flag), *max* (hardest roadmaps — deepest reasoning per session), *high*, *low* (cheap mechanical runs). Map to `--effort <level>` (script validates `low|medium|high|xhigh|max`), passed through to `claude --effort`.
 2. **Iteration cap** (`--max`) — options: *Unlimited* (recommended; run to completion, no flag), *3*, *5*, *10*. Map to `--max N`.
 2b. **Branch** (`--branch`) — options: *Current branch* (default; no flag — commits land wherever the repo is now), *New autopilot branch* (recommended when the repo is on `main`/a shared branch — suggest something like `autopilot/<slug>` and pass `--branch <name>`, which autopilot checks out or creates from the current HEAD once before the loop). Check the current branch first via `git rev-parse --abbrev-ref HEAD`: if it's `main`/`master`, lead with the new-branch option; otherwise default to staying put. Unattended runs commit once per session, so a dedicated branch keeps them off `main`.
 3. **Usage guard** (`--usage-check`) — options: *Reactive only* (recommended; no flag — a limit-reached run sleeps until the reset in the error, then retries), *Proactive check* (adds `--usage-check --threshold 20`: checks the 5-hour window before each run and waits when < 20% remains; reads the user's own Claude Code OAuth token from macOS Keychain / `~/.claude/.credentials.json` and calls an undocumented endpoint, degrading to a warning if unavailable).
@@ -42,7 +43,7 @@ Keep these advanced; only surface them if the user asks or the situation calls f
 Resolve the script's absolute path (it ships with this plugin at `${CLAUDE_PLUGIN_ROOT}/scripts/autopilot.sh` — echo that env var via Bash to resolve it). Assemble the flags from the answers in step 3 and print the fully-populated command as a copy-pasteable block, e.g.:
 
 ```bash
-bash <resolved-path>/autopilot.sh --plan .planning/<slug> --model sonnet --max 5 --branch autopilot/<slug> --usage-check --dry-run
+bash <resolved-path>/autopilot.sh --plan .planning/<slug> --model sonnet --effort high --max 5 --branch autopilot/<slug> --usage-check --dry-run
 ```
 
 Only include flags the user actually chose — a run with all defaults is just `bash <resolved-path>/autopilot.sh --plan .planning/<slug>`. If the user chose a dry run, add a note that once the verdict looks right they re-run the same command **without** `--dry-run` to go live.
