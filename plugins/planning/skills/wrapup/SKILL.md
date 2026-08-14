@@ -2,7 +2,8 @@
 name: wrapup
 description: Commit all changes and write a session summary to .planning/sessions/ for context continuity across conversations.
 allowed-tools: [Bash, Write]
-user-invocable: true
+argument-hint: "[no-commit | summary-only]"
+context: fork
 ---
 
 # Wrap Up Session

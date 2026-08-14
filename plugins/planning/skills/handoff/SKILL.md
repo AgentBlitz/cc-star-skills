@@ -2,7 +2,7 @@
 name: handoff
 description: Hand off the current session to a fresh Claude context — do everything `/wrapup` does (commit + session summary), then surface a ready-to-paste continuation prompt. Triggers on "hand off", "continuation prompt", "resume in a fresh chat", "/handoff" (formerly /next). Not for advancing a roadmap — that's /session.
 allowed-tools: [Read, Bash, Write]
-user-invocable: true
+argument-hint: "[notes | no-commit | summary-only]"
 ---
 
 # Handoff — Wrap Up & Surface a Continuation Prompt

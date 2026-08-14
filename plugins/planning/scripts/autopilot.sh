@@ -28,6 +28,14 @@
 #     OAuth usage endpoint with your own Claude Code token (macOS Keychain, then
 #     ~/.claude/.credentials.json). If < --threshold % of the 5-hour window
 #     remains, sleep until it resets. Degrades to a warning if unavailable.
+#
+# Transient-error handling:
+#   Each claude run is launched with CLAUDE_CODE_RETRY_WATCHDOG=1, Claude Code's
+#   unattended-session mode: transient API failures (network blips, 5xx,
+#   overloaded) are retried with backoff inside the run — up to 300 attempts —
+#   instead of dying at the default ~15-retry cap. Retries resend failed
+#   requests only; completed work is never re-run. Usage-limit errors are not
+#   retried by the watchdog — the reactive sleep-until-reset above owns those.
 
 set -u -o pipefail
 
@@ -45,7 +53,7 @@ DRY_RUN=0
 USAGE_ENDPOINT="https://api.anthropic.com/api/oauth/usage"
 
 usage() {
-  sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'
   exit "${1:-0}"
 }
 
@@ -276,6 +284,9 @@ read_tracker
 [ "$BLOCKED" -gt 0 ] && { blocked_rows >&2; die "tracker has a ⛔ blocked session — resolve it before running autopilot" 2; }
 [ "$PENDING" -eq 0 ] && { log "roadmap already complete ($DONE sessions ✅) — nothing to do"; exit 0; }
 
+# Unattended runs must survive transient API weather (see header note).
+export CLAUDE_CODE_RETRY_WATCHDOG=1
+
 CMD=(claude -p "/planning:session $PLAN_DIR" --output-format json --permission-mode "$PERM_MODE")
 [ -n "$MODEL" ] && CMD+=(--model "$MODEL")
 [ -n "$EFFORT" ] && CMD+=(--effort "$EFFORT")
@@ -341,6 +352,8 @@ while :; do
     fi
     continue
   fi
+
+  [ "$is_err" != "false" ] && warn "claude run reported an error (is_error=$is_err): $msg"
 
   read_tracker
   progressed=0

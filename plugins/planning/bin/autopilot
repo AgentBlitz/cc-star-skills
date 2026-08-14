@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Thin wrapper so Claude Code's Bash tool can invoke `autopilot` as a bare
+# command (plugin bin/ dirs are added to the Bash tool's PATH). Safe in-session
+# use is `autopilot --plan <dir> --dry-run`; the real loop must run in the
+# user's own terminal via scripts/autopilot.sh (a skill cannot outlive its
+# claude process).
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec "$SCRIPT_DIR/../scripts/autopilot.sh" "$@"

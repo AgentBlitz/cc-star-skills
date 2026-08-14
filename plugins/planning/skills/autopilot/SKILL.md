@@ -2,7 +2,7 @@
 name: autopilot
 description: Set up an unattended loop that runs every remaining roadmap session back-to-back — one fresh claude process per session — until the tracker is complete, a gate fails, or an iteration cap is hit. Triggers on "run the whole roadmap", "autopilot", "loop the sessions", "run all remaining sessions unattended". Surfaces the exact terminal command; the loop itself runs outside Claude.
 allowed-tools: [Read, Bash, Glob, Grep, AskUserQuestion]
-user-invocable: true
+argument-hint: "[plan-dir]"
 ---
 
 # Autopilot — Run the Whole Roadmap Unattended
@@ -23,14 +23,19 @@ Read the TRACKER and report: sessions done / pending / blocked. If a row is ⛔,
 
 ## 3. Ask about options interactively
 
-Drive this with `AskUserQuestion` so the user picks options instead of reading flag docs. Batch the questions into as few `AskUserQuestion` calls as possible (the tool takes at most 4 questions per call), skipping any the user already pinned in `$ARGUMENTS`:
+Drive this with `AskUserQuestion` so the user picks options instead of reading flag docs. The tool takes at most 4 questions per call, so ask in **two batches**, skipping any question the user already pinned in `$ARGUMENTS` (if that empties a batch, skip the call):
+
+**Batch 1 — how the sessions run:**
 
 1. **Model** (`--model`) — options: *Session default* (recommended; omit the flag), *sonnet* (mechanical roadmaps), *opus* (hard reasoning), *fable*. Map the choice to `--model <x>`; "Session default" adds no flag.
-1b. **Effort** (`--effort`) — options: *Model default* (recommended; omit the flag), *max* (hardest roadmaps — deepest reasoning per session), *high*, *low* (cheap mechanical runs). Map to `--effort <level>` (script validates `low|medium|high|xhigh|max`), passed through to `claude --effort`.
-2. **Iteration cap** (`--max`) — options: *Unlimited* (recommended; run to completion, no flag), *3*, *5*, *10*. Map to `--max N`.
-2b. **Branch** (`--branch`) — options: *Current branch* (default; no flag — commits land wherever the repo is now), *New autopilot branch* (recommended when the repo is on `main`/a shared branch — suggest something like `autopilot/<slug>` and pass `--branch <name>`, which autopilot checks out or creates from the current HEAD once before the loop). Check the current branch first via `git rev-parse --abbrev-ref HEAD`: if it's `main`/`master`, lead with the new-branch option; otherwise default to staying put. Unattended runs commit once per session, so a dedicated branch keeps them off `main`.
-3. **Usage guard** (`--usage-check`) — options: *Reactive only* (recommended; no flag — a limit-reached run sleeps until the reset in the error, then retries), *Proactive check* (adds `--usage-check --threshold 20`: checks the 5-hour window before each run and waits when < 20% remains; reads the user's own Claude Code OAuth token from macOS Keychain / `~/.claude/.credentials.json` and calls an undocumented endpoint, degrading to a warning if unavailable).
-4. **First run** (`--dry-run`) — options: *Dry run first* (recommended for a new roadmap; prints the verdict and exact command without running), *Run for real* (no flag).
+2. **Effort** (`--effort`) — options: *Model default* (recommended; omit the flag), *max* (hardest roadmaps — deepest reasoning per session), *high*, *low* (cheap mechanical runs). Map to `--effort <level>` (script validates `low|medium|high|xhigh|max`), passed through to `claude --effort`.
+3. **Iteration cap** (`--max`) — options: *Unlimited* (recommended; run to completion, no flag), *3*, *5*, *10*. Map to `--max N`.
+4. **Branch** (`--branch`) — options: *Current branch* (default; no flag — commits land wherever the repo is now), *New autopilot branch* (recommended when the repo is on `main`/a shared branch — suggest something like `autopilot/<slug>` and pass `--branch <name>`, which autopilot checks out or creates from the current HEAD once before the loop). Check the current branch first via `git rev-parse --abbrev-ref HEAD`: if it's `main`/`master`, lead with the new-branch option; otherwise default to staying put. Unattended runs commit once per session, so a dedicated branch keeps them off `main`.
+
+**Batch 2 — safety rails:**
+
+5. **Usage guard** (`--usage-check`) — options: *Reactive only* (recommended; no flag — a limit-reached run sleeps until the reset in the error, then retries), *Proactive check* (adds `--usage-check --threshold 20`: checks the 5-hour window before each run and waits when < 20% remains; reads the user's own Claude Code OAuth token from macOS Keychain / `~/.claude/.credentials.json` and calls an undocumented endpoint, degrading to a warning if unavailable).
+6. **First run** (`--dry-run`) — options: *Dry run first* (recommended for a new roadmap; prints the verdict and exact command without running), *Run for real* (no flag).
 
 Keep these advanced; only surface them if the user asks or the situation calls for it:
 
@@ -38,20 +43,22 @@ Keep these advanced; only surface them if the user asks or the situation calls f
 - `--threshold PCT` — the `--usage-check` cutoff (default 20). Only relevant once proactive checking is on.
 - `--backoff DURATION` — sleep length (default `30m`; accepts `45s`/`30m`/`2h`) used only when a limit is hit with no parseable reset time.
 
-## 4. Surface the command
+## 4. Dry-run in-session, then surface the command
 
-Resolve the script's absolute path (it ships with this plugin at `${CLAUDE_PLUGIN_ROOT}/scripts/autopilot.sh` — echo that env var via Bash to resolve it). Assemble the flags from the answers in step 3 and print the fully-populated command as a copy-pasteable block, e.g.:
+The plugin ships `autopilot` as a `bin/` executable on the Bash tool's PATH. A dry run is safe to execute **in this session**: it only reads the tracker and prints the verdict + the exact command — no loop starts. So first run it yourself via Bash with the flags assembled from step 3, e.g. `autopilot --plan .planning/<slug> --model sonnet --dry-run`, and relay the verdict (tracker counts, next session row, the command it would run).
+
+Then resolve the script's absolute path (it ships at `${CLAUDE_PLUGIN_ROOT}/scripts/autopilot.sh` — echo that env var via Bash to resolve it) and print the fully-populated command for the user's own terminal as a copy-pasteable block, e.g.:
 
 ```bash
 bash <resolved-path>/autopilot.sh --plan .planning/<slug> --model sonnet --effort high --max 5 --branch autopilot/<slug> --usage-check --dry-run
 ```
 
-Only include flags the user actually chose — a run with all defaults is just `bash <resolved-path>/autopilot.sh --plan .planning/<slug>`. If the user chose a dry run, add a note that once the verdict looks right they re-run the same command **without** `--dry-run` to go live.
+Only include flags the user actually chose — a run with all defaults is just `bash <resolved-path>/autopilot.sh --plan .planning/<slug>`. Since you already dry-ran in-session, the user's command normally omits `--dry-run`; include it only if they explicitly chose to dry-run again themselves first.
 
 Tell the user: run it from the project root in a normal terminal (not inside Claude); progress goes to stdout and `.planning/<slug>/autopilot/autopilot.log`, per-run JSON to `.planning/<slug>/autopilot/run-N.json`; Ctrl-C exits cleanly with a summary; exit codes — 0 complete/cap reached, 2 blocked gate, 3 stopped after two no-progress runs.
 
 ## Rules
 
-- **Never launch the loop from this session** — surfacing the command is the deliverable.
-- Recommend `--dry-run` first for a new roadmap.
+- **Never launch the real loop from this session** — only `--dry-run` is safe in-session; surfacing the command is the deliverable.
+- Always dry-run in-session before surfacing the command (step 4).
 - Remind the user that a ⛔ row stops the loop by design (a failed gate is a full stop, per `/session`).

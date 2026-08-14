@@ -2,7 +2,7 @@
 name: session
 description: Execute the next pending session of a roadmap (a .planning/<slug>/ plan produced by /roadmap), with all housekeeping built in — re-establish context, do the work, run the verification gate, write the session summary, update the tracker, commit, and surface the next session's kickoff prompt. Triggers on "run the next session", "do the next phase", "continue the roadmap", "run /session".
 allowed-tools: [Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion]
-user-invocable: true
+argument-hint: "[plan-dir | session number]"
 ---
 
 # Session — Run the Next Roadmap Session

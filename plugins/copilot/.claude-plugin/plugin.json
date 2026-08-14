@@ -1,6 +1,6 @@
 {
   "name": "copilot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "description": "Interactive wizard that builds an embedded, context-aware, tool-calling AI copilot into a web app — chat drawer, OpenAI-compatible LLM proxy, READ/HELP/PROPOSE tools, help-corpus search, and SSE streaming — adapting a portable design guide to the target codebase.",
   "author": { "name": "Kam Star", "email": "kam@kamstar.net" },

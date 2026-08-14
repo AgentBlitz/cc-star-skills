@@ -2,7 +2,8 @@
 name: roadmap
 description: Turn a large goal — or a set of existing planning/spec docs, or an already-approved plan — into a phased, multi-session build plan where each session fits one fresh context window. Triggers on "break this into sessions", "make a multi-session plan", "roadmap this", "scaffold a phased plan". Produces .planning/<slug>/ with PLAN.md, TRACKER.md, and one kickoff prompt per session.
 allowed-tools: [Read, Write, Glob, Grep, Bash, Agent, AskUserQuestion]
-user-invocable: true
+argument-hint: "[goal | docs path | approved plan]"
+effort: max
 ---
 
 # Roadmap — Scaffold a Planned Multi-Session Build

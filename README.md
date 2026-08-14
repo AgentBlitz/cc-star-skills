@@ -34,8 +34,9 @@ bash <plugin-path>/scripts/autopilot.sh --plan .planning/<slug> [--model sonnet]
 
 Run `/autopilot` inside Claude to get this command with the paths filled in —
 the skill is interactive and walks you through the options below (model,
-effort, iteration cap, branch, usage-check, dry-run first) before printing the
-final command. Each iteration launches `claude -p "/planning:session
+effort, iteration cap, branch, usage-check, dry-run first), runs a safe
+`--dry-run` in-session (the plugin ships `autopilot` as a `bin/` executable on
+the Bash tool's PATH) to show you the verdict, then prints the final command. Each iteration launches `claude -p "/planning:session
 <plan-dir>"` with a fresh context, then re-reads `TRACKER.md`: it stops cleanly
 when no ⬜/🟡 rows remain, hard-stops on a ⛔ row (failed verification gate),
 aborts after two consecutive runs that make no tracker progress, and honours
@@ -79,6 +80,14 @@ it sees you're on `main`.
 window is exhausted, the script sleeps until the reset time embedded in the
 error (or `--backoff` if it can't be parsed) and retries the *same* session
 without consuming an iteration. `--usage-check` layers a proactive check on top.
+
+**Transient errors (always on, no flags).** Each `claude` run is launched with
+`CLAUDE_CODE_RETRY_WATCHDOG=1`, Claude Code's unattended-session mode: transient
+API failures (network blips, 5xx, overloaded) are retried with backoff inside
+the run — up to 300 attempts — instead of dying at the default ~15-retry cap, so
+an overnight run survives a bad patch of API weather. Only failed requests are
+resent; completed work is never re-run, and usage-limit errors stay with the
+sleep-until-reset handling above.
 
 **Exit codes.** `0` = roadmap complete or `--max` reached · `2` = a ⛔ blocked
 gate (autopilot refuses to start, or stops, on a failed verification gate) ·
@@ -124,8 +133,9 @@ After installing `planning`, `/roadmap`, `/session`, `/wrapup`, `/handoff`, and
 
 For the plugin you changed, bump `version` in **both** places that carry it —
 its entry in `.claude-plugin/marketplace.json` and its own
-`plugins/<plugin>/.claude-plugin/plugin.json` — keep them in sync, push, then
-users run:
+`plugins/<plugin>/.claude-plugin/plugin.json` — keep them in sync. Then run
+`claude plugin tag` from the repo root to cut a release git tag (it validates
+the version first), push, and users run:
 
 ```text
 /plugin update planning@cc-star-skills
@@ -140,6 +150,7 @@ cc-star-skills/
 └── plugins/
     ├── planning/
     │   ├── .claude-plugin/plugin.json
+    │   ├── bin/autopilot          # bare-command wrapper for the Bash tool
     │   ├── scripts/autopilot.sh
     │   └── skills/{roadmap,session,wrapup,handoff,autopilot}/SKILL.md
     └── copilot/

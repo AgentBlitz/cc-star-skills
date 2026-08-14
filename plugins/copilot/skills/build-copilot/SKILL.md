@@ -2,7 +2,6 @@
 name: build-copilot
 description: Interactive wizard that builds an embedded, context-aware, tool-calling AI copilot into an existing web app — a chat drawer backed by an OpenAI-compatible LLM proxy, READ/HELP/PROPOSE tools, help-corpus search, and SSE streaming. Triggers on "add a copilot to my app", "build an embedded AI assistant", "in-app chat assistant", "AI copilot drawer", "tool-calling chat assistant", "add an AI helper to this app". Discovers the target stack, confirms a few decisions, then scaffolds the implementation checklist adapting a portable design guide.
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion]
-user-invocable: true
 ---
 
 # Build Copilot — Embed an AI Assistant Into a Web App
