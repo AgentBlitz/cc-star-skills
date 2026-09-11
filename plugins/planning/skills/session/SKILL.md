@@ -9,7 +9,7 @@ argument-hint: "[plan-dir | session number]"
 
 When the user invokes `/session`, execute **exactly one** pending session of a roadmap and do all the housekeeping around it. **One session per invocation — never auto-chain into the next one.**
 
-> **See also:** `/roadmap` scaffolds the multi-session plan this runs; `/wrapup` and `/handoff` handle ad-hoc single-session housekeeping. All share one session-summary format (defined in the `wrapup` skill).
+> **See also:** `/roadmap` scaffolds the multi-session plan this runs; `/archive-roadmap` retires it once it's done; `/wrapup` and `/handoff` handle ad-hoc single-session housekeeping. All share one session-summary format (defined in the `wrapup` skill).
 
 ## 1. Locate the build dir + TRACKER
 
@@ -44,13 +44,13 @@ Run the session's **Verification gate** for real (tests, builds, curl checks, dr
 
 ### On PASS — self-contained housekeeping (no need to also call `/wrapup`)
 
-a. **Write the session summary** to `.planning/sessions/YYYY-MM-DD-<slug>.md` using the **exact format defined in the `wrapup` skill** (read that skill's `SKILL.md` and follow its summary template — do not redefine it here, to avoid drift). `<slug>` is a 2–4 word kebab-case description; append `-2` etc. if the name collides. Get `YYYY-MM-DD` from `date +%F` — do not guess it. Note: session logs live in the shared `.planning/sessions/` dir (not under the build dir), so `/wrapup`, `/handoff`, and `/session` all use one location and format.
+a. **Write the session summary** to `.planning/sessions/YYYY-MM-DD-<slug>.md` using the **exact format defined in the `wrapup` skill** (read that skill's `SKILL.md` and follow its summary template — do not redefine it here, to avoid drift). `<slug>` is a 2–4 word kebab-case description; append `-2` etc. if the name collides. Get `YYYY-MM-DD` from `date +%F` — do not guess it. **Always include the template's `**Roadmap:**` header field** with this build dir's path — you know it with certainty, and it is what lets `/archive-roadmap` attribute the log later. Note: session logs live in the shared `.planning/sessions/` dir (not under the build dir), so `/wrapup`, `/handoff`, and `/session` all use one location and format.
 
 b. **Update TRACKER.md:** set the row to ✅, append a session-log entry (what landed, any deviations from PLAN.md), and tick any open-items the session resolved.
 
 c. **Commit** all changes — including the session summary and the updated tracker — in **one** commit, following the repo's commit conventions (check `git log --oneline -5`). Report the short hash. Do not amend afterward. (If, unexpectedly, nothing is staged, skip the commit and report that instead of erroring.)
 
-d. **Output the next session's kickoff prompt** from `prompts/session-(N+1).md` as a copy-pasteable markdown blockquote, ready to paste into a fresh session (or tell the user to just run `/session` again). If the session just completed was the **final** one, declare the roadmap complete instead and summarise what was built.
+d. **Output the next session's kickoff prompt** from `prompts/session-(N+1).md` as a copy-pasteable markdown blockquote, ready to paste into a fresh session (or tell the user to just run `/session` again). If the session just completed was the **final** one, declare the roadmap complete instead, summarise what was built, and mention that `/archive-roadmap` will retire it out of the active planning tree.
 
 ## 5. Report
 

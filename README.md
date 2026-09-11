@@ -5,7 +5,7 @@ marketplace only registers the catalogue; you enable the plugins you want.
 
 | Plugin | What it gives you |
 |--------|-------------------|
-| `planning` | Multi-session build-planning skills (`/roadmap`, `/session`, `/wrapup`, `/handoff`, `/autopilot`). |
+| `planning` | Multi-session build-planning skills (`/roadmap`, `/session`, `/wrapup`, `/handoff`, `/autopilot`, `/archive-roadmap`). |
 | `copilot` | A wizard (`/build-copilot`) that embeds a tool-calling AI copilot into a web app. |
 
 ## The `planning` plugin
@@ -17,13 +17,15 @@ marketplace only registers the catalogue; you enable the plugins you want.
 | `/wrapup`   | Commit all changes and write a session summary to `.planning/sessions/` for context continuity across conversations. |
 | `/handoff` | Like `/wrapup`, plus generate a ready-to-paste continuation prompt for a fresh Claude context (formerly `/next`). |
 | `/autopilot` | Hand you the terminal command that runs every remaining roadmap session unattended — a fresh `claude` process per session — until the tracker is complete, a gate fails, or an iteration cap is hit. The loop itself is `scripts/autopilot.sh`, run outside Claude. |
+| `/archive-roadmap` | Retire a finished roadmap — move `.planning/<slug>/` and its session logs into `.planning/archive/<slug>/`, write a one-page `DIGEST.md` of what was built, and commit the move. Archived roadmaps stop costing context in every later session. |
 
 The session-running skills share one session-summary format, defined in the `wrapup` skill.
 
 **Which one?** `/wrapup` = save + commit · `/handoff` = same, plus a paste-ready
 prompt to resume in a fresh chat · `/session` = advance a `/roadmap` plan by
 exactly one phase (it includes its own wrapup) · `/autopilot` = loop `/session`
-to the end of the roadmap without you.
+to the end of the roadmap without you · `/archive-roadmap` = retire the roadmap
+once it's done.
 
 ### Autopilot
 
@@ -97,6 +99,49 @@ burning your subscription). Ctrl-C exits cleanly with a summary.
 **Output.** Progress streams to stdout and `.planning/<slug>/autopilot/autopilot.log`;
 per-run result JSON lands in `.planning/<slug>/autopilot/run-N.json`.
 
+### Archiving finished roadmaps
+
+`.planning/` only grows. A finished roadmap's `PLAN.md`, `TRACKER.md` and 50-odd
+kickoff prompts stay in the active tree forever, `.planning/sessions/` fills up
+with flat session logs, and every `/session` and `/autopilot` run keeps
+re-discovering dead roadmaps. `/archive-roadmap` retires one:
+
+```text
+/archive-roadmap                    # pick from the roadmaps it finds
+/archive-roadmap .planning/<slug>   # or name one
+/archive-roadmap .planning/<slug> force   # archive even with pending/blocked rows
+```
+
+It moves the plan dir to `.planning/archive/<slug>/`, sweeps that roadmap's
+session logs into `.planning/archive/<slug>/sessions/`, writes a one-page
+`DIGEST.md` (what was built, key decisions, gate results, the final file map,
+and anything left unfinished), and commits the move with `git mv` so history
+follows the files. It always prints the full manifest for you to confirm
+*before* anything moves.
+
+**Why `.planning/archive/` and not a flag.** Roadmap discovery is a **depth-1
+glob** — `.planning/*/TRACKER.md`, in `/session`, `/autopilot` and
+`autopilot.sh` alike. A roadmap at `.planning/archive/<slug>/TRACKER.md` sits
+one level too deep to match, so it disappears from all three at once with no
+exclusion logic anywhere. Don't "fix" that glob to recurse — it's load-bearing.
+
+Session logs are attributed by their `**Roadmap:**` header field (written by
+`/session`), by the plan-dir paths in their `## Changes` section, and by the
+roadmap's git date window — the last of which is what catches `/wrapup` logs
+that never name a tracker. Logs that also belong to a still-live roadmap are
+left where they are.
+
+Archiving is one-way: there's no restore flag, because reversing it is a
+`git mv` back, and the digest's "Where everything went" section spells it out.
+
+**One sharp edge worth knowing.** `.gitignore` rules are usually path-anchored
+(`/.planning/<slug>/art/*/*.webp`), so anything deliberately ignored inside a
+plan dir stops being ignored once the dir moves under `.planning/archive/`. The
+skill reports those files and never stages them — but it also means an archive
+directory can hold files git has no copy of. Reverse an archive with `git mv`,
+never by deleting the archive directory: `git reset --hard` will not bring
+ignored files back.
+
 ## The `copilot` plugin
 
 | Skill | What it does |
@@ -125,9 +170,9 @@ marketplace by itself installs nothing.
 the `owner/repo` shorthand, with git credentials configured via `gh auth login`
 or `ssh-agent`.)
 
-After installing `planning`, `/roadmap`, `/session`, `/wrapup`, `/handoff`, and
-`/autopilot` are available in every project; installing `copilot` adds
-`/build-copilot`.
+After installing `planning`, `/roadmap`, `/session`, `/wrapup`, `/handoff`,
+`/autopilot`, and `/archive-roadmap` are available in every project; installing
+`copilot` adds `/build-copilot`.
 
 ## Updating
 
@@ -152,7 +197,7 @@ cc-star-skills/
     │   ├── .claude-plugin/plugin.json
     │   ├── bin/autopilot          # bare-command wrapper for the Bash tool
     │   ├── scripts/autopilot.sh
-    │   └── skills/{roadmap,session,wrapup,handoff,autopilot}/SKILL.md
+    │   └── skills/{roadmap,session,wrapup,handoff,autopilot,archive-roadmap}/SKILL.md
     └── copilot/
         ├── .claude-plugin/plugin.json
         └── skills/build-copilot/

@@ -10,7 +10,7 @@ effort: max
 
 When the user invokes `/roadmap`, turn a big goal into a phased plan that runs **one session per fresh context window**, then run each session with `/session`.
 
-> **See also:** `/session` runs the next pending session of a roadmap; `/wrapup` and `/handoff` handle single-session housekeeping. This family shares one session-summary format (defined in the `wrapup` skill).
+> **See also:** `/session` runs the next pending session of a roadmap; `/archive-roadmap` retires a finished one into `.planning/archive/`; `/wrapup` and `/handoff` handle single-session housekeeping. This family shares one session-summary format (defined in the `wrapup` skill).
 
 ## When to use this vs plan mode
 

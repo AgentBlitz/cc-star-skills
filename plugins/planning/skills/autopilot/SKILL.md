@@ -62,3 +62,4 @@ Tell the user: run it from the project root in a normal terminal (not inside Cla
 - **Never launch the real loop from this session** — only `--dry-run` is safe in-session; surfacing the command is the deliverable.
 - Always dry-run in-session before surfacing the command (step 4).
 - Remind the user that a ⛔ row stops the loop by design (a failed gate is a full stop, per `/session`).
+- **Never archive a roadmap that autopilot is currently looping** — and once the loop finishes with a complete tracker, that's exactly the precondition `/archive-roadmap` wants, so mention it as the optional next step.
