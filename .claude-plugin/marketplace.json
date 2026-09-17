@@ -1,14 +1,14 @@
 {
   "name": "cc-star-skills",
-  "description": "Kam Star's Claude Code plugins: multi-session build planning (roadmap/session/wrapup/handoff/autopilot/archive-roadmap) and an embedded-AI-copilot build wizard.",
+  "description": "Kam Star's Claude Code plugins: multi-session build planning (roadmap/calibrate-roadmap/session/wrapup/handoff/autopilot/archive-roadmap) and an embedded-AI-copilot build wizard.",
   "owner": { "name": "Kam Star", "email": "kam@kamstar.net" },
   "plugins": [
     {
       "name": "planning",
       "source": "./plugins/planning",
-      "version": "1.5.0",
+      "version": "1.6.0",
       "license": "MIT",
-      "description": "Multi-session build planning skills (roadmap, session, wrapup, handoff, autopilot, archive-roadmap).",
+      "description": "Multi-session build planning skills (roadmap, calibrate-roadmap, session, wrapup, handoff, autopilot, archive-roadmap).",
       "author": { "name": "Kam Star" }
     },
     {

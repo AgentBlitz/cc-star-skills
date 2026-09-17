@@ -139,7 +139,7 @@ Two things worth getting right:
   drift** — "PLAN.md §6 listed `x.ts`; no session log touched it" is one of the most useful
   lines a digest can carry.
 - **Autopilot artefacts are metadata, never content.** Never read `autopilot.log` or
-  `run-N.json`. Emit one line — `Autopilot: N runs — log at autopilot/autopilot.log` — from
+  the `run-*.json` result files (named `run-<launch>-<n>.json` since v1.6.0). Emit one line — `Autopilot: N runs — log at autopilot/autopilot.log` — from
   `ls <plan-dir>/autopilot/run-*.json 2>/dev/null | wc -l`.
 
 **Bound the work:** `wc -c` the concatenated extracts. Under ~60 KB, synthesise directly. Over

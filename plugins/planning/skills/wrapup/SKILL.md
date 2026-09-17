@@ -33,6 +33,7 @@ The file must contain these sections:
 **Date:** YYYY-MM-DD
 **Branch:** <current branch>
 **Roadmap:** `.planning/<slug>` — *(include this line only when the work advanced a `/roadmap` plan; omit it entirely otherwise)*
+**Runtime:** `<model>/<effort> (autopilot attempt K)` — *(include this line only when an autopilot run's system prompt supplies it; omit it entirely otherwise)*
 
 > Do **not** include a "Commit:" field. The session file *is* the commit it ships in — `git log <session-file>` recovers the hash. Embedding the hash creates an amend loop because the file references its own commit.
 
@@ -90,4 +91,5 @@ Print a short confirmation:
 - The session summary should give a *future Claude in a new chat* enough context to continue the work seamlessly.
 - The session summary file MUST be included in the commit so the commit is a complete record of the session.
 - **`**Roadmap:**` is conditional.** Include it only when this session advanced a `/roadmap` plan, and give the real plan-dir path. It is what lets `/archive-roadmap` attribute this log to its roadmap later — but inventing a slug for unrelated work is worse than omitting the line.
+- **`**Runtime:**` is conditional too**, and always sits *after* `**Roadmap:**` — `/archive-roadmap` looks for the roadmap field in the first few header lines. Only `/session` under `/autopilot` fills it, copying the runtime from the run's `Autopilot (headless) run` note; it is how `/calibrate-roadmap` learns which sessions needed escalating.
 - If `$ARGUMENTS` contains "no-commit" or "summary-only", skip the commit step and only write the summary.
