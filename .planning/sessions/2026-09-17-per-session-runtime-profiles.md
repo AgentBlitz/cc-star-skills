@@ -15,7 +15,8 @@ Made `/roadmap` rate every session's model and effort in a second pass (new `/ca
 - `plugins/planning/skills/session/SKILL.md` — a ⛔ row now halts `/session` (previously it could skip past one); a `Needs decision:` row is answered interactively via AskUserQuestion and recorded in PLAN.md §3; frontmatter is metadata; new "Headless runs (autopilot)" section; `Runtime:` provenance in the summary and the tracker session log; next-prompt blockquote omits the frontmatter.
 - `plugins/planning/skills/wrapup/SKILL.md` — optional `**Runtime:**` header line after `**Roadmap:**` + its rule.
 - `plugins/planning/skills/autopilot/SKILL.md` — readiness dry run shows the resolved runtime + ladder; Model/Effort questions default to per-session profiles; new Escalation question (batch 2); exit codes 0/2/3/4; class table.
-- `README.md` — `/calibrate-roadmap` rows; options table (`--model`/`--effort` semantics, `--escalate`); new "Runtime profiles, failure classes & escalation" subsection; exit codes; run-file naming.
+- `README.md` — `/calibrate-roadmap` rows and a "Calibrating a roadmap" section; options table (`--model`/`--effort` semantics, `--escalate`, `--max`, `--dry-run`, `--permission-mode`); new "Runtime profiles, failure classes & escalation" subsection; exit codes; run-file naming; `/session` row (⛔ halts, `Needs decision:` answered interactively); "Updating" now gives the working `claude plugin validate` / `claude plugin tag plugins/<plugin>` invocations and says to push the tag.
+- `plugins/planning/skills/archive-roadmap/SKILL.md` — run-file naming; the "never archive while autopilot is running" rule re-stated against the new loop (simulated: it stops on the environment brake, exit 3, and can no longer spawn new sessions against a gone plan dir).
 - `plugins/planning/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` — 1.5.0 → 1.6.0; skill lists.
 
 ## Decisions & Rationale
@@ -32,7 +33,8 @@ Made `/roadmap` rate every session's model and effort in a second pass (new `/ca
 
 - Follow-ups noted in the plan: auto-resume of yielded/needs-human runs; `stream-json` + `compact_boundary` counting for an evidence-based "too big — split it" hint; `--max-budget-usd` passthrough.
 - Retrofit the live roadmaps (collabmd `desktop-coordinator`, pokeriment) with `/calibrate-roadmap` after `/plugin update planning@cc-star-skills`.
-- Push `main` + the `planning--v1.6.0` tag when ready (not pushed in this session).
+- Released: `main` and the tags `planning--v1.6.0`, `planning--v1.4.0`, `copilot--v1.0.1` pushed to both remotes (`origin` on GitHub, `GITLAB`) — neither remote had any tags before. There is no `planning--v1.5.0` tag; v1.5.0 (`7d9e901`) was never tagged.
+- Users pick it up with `/plugin update planning@cc-star-skills`.
 
 ## Resumption Context
 

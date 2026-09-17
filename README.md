@@ -14,7 +14,7 @@ marketplace only registers the catalogue; you enable the plugins you want.
 |-------------|--------------|
 | `/roadmap`  | Turn a large goal (or spec docs, or an approved plan) into a phased, multi-session build plan where each session fits one fresh context window. Produces `.planning/<slug>/` with `PLAN.md`, `TRACKER.md`, and one kickoff prompt per session. A second pass rates every session and records its model/effort runtime profile. |
 | `/calibrate-roadmap` | Rate each pending session — which model (`sonnet`/`opus`/`fable`) and how much effort — and write that profile into `PLAN.md` and the kickoff prompts. Runs inside `/roadmap`; run it on its own to retrofit an older roadmap, or to re-rate one after sessions blocked or had to be escalated. |
-| `/session`  | Execute the next pending session of a roadmap end to end — re-establish context, do the work, run the verification gate, write the session summary, update the tracker, commit, and surface the next kickoff prompt. |
+| `/session`  | Execute the next pending session of a roadmap end to end — re-establish context, do the work, run the verification gate, write the session summary, update the tracker, commit, and surface the next kickoff prompt. A ⛔ row halts it rather than being skipped; a ⛔ `Needs decision:` row is answered interactively — it asks you, records the decision in `PLAN.md`, then runs that session. |
 | `/wrapup`   | Commit all changes and write a session summary to `.planning/sessions/` for context continuity across conversations. |
 | `/handoff` | Like `/wrapup`, plus generate a ready-to-paste continuation prompt for a fresh Claude context (formerly `/next`). |
 | `/autopilot` | Hand you the terminal command that runs every remaining roadmap session unattended — a fresh `claude` process per session, each at its own model/effort profile — until the tracker is complete, a gate fails, a session needs a human, or an iteration cap is hit. The loop itself is `scripts/autopilot.sh`, run outside Claude. |
@@ -43,7 +43,8 @@ effort, escalation, iteration cap, branch, usage-check, dry-run first), runs a s
 `--dry-run` in-session (the plugin ships `autopilot` as a `bin/` executable on
 the Bash tool's PATH) to show you the verdict, then prints the final command. Each iteration launches `claude -p "/planning:session
 <plan-dir>"` with a fresh context, then re-reads `TRACKER.md`: it stops cleanly
-when no ⬜/🟡 rows remain, hard-stops on a ⛔ row (failed verification gate),
+when no ⬜/🟡 rows remain, hard-stops on a ⛔ row (a failed verification gate, or a `Needs decision:` row),
+stops when a session needs you (exit 4),
 classifies any run that makes no tracker progress before retrying it — see
 [Runtime profiles, failure classes & escalation](#runtime-profiles-failure-classes--escalation)
 — and honours `--max N`.
@@ -53,7 +54,7 @@ classifies any run that makes no tracker progress before retrying it — see
 | Flag | Argument | Default | What it does |
 |------|----------|---------|--------------|
 | `--plan` | `.planning/<slug>` | auto-detect | Roadmap dir to run. If omitted, the script finds the single roadmap with pending rows; it errors if zero or several match, so pass this when you have more than one active roadmap. |
-| `--max` | `N` | `0` (unlimited) | Stop after at most `N` iterations, even if sessions remain. Usage-limit waits don't count against `N`. |
+| `--max` | `N` | `0` (unlimited) | Stop after at most `N` iterations, even if sessions remain. Retries of a session, escalated ones included, count against `N`; usage-limit waits don't. |
 | `--model` | `<model>` | per-session profile, else your default | Model for **every** `claude` run, overriding the sessions' own profiles (e.g. `sonnet` to force a cheap run). Omit it and each session uses the `model:` in its kickoff prompt's frontmatter, or your Claude Code default where it has none. |
 | `--effort` | `low`\|`medium`\|`high`\|`xhigh`\|`max` | per-session profile, else the model's default | Reasoning effort for **every** run, overriding the sessions' own profiles. Omit it and each session uses the `effort:` in its frontmatter. Validated up front; an unknown level refuses to start. |
 | `--escalate` | `off`\|`effort`\|`model` | `model` | What to do when a session **genuinely stalls** (a long run that moves nothing): `model` retries at the same model on `max` effort, then once on the next model up; `effort` stops after the effort rung; `off` retries identically once, as before. Other kinds of no-progress run are never escalated — see [below](#runtime-profiles-failure-classes--escalation). |
@@ -61,8 +62,8 @@ classifies any run that makes no tracker progress before retrying it — see
 | `--usage-check` | *(flag)* | off | Opt-in **proactive** check of the 5-hour subscription window *before* each run; sleeps until reset when low. Reads your own Claude Code OAuth token (macOS Keychain, then `~/.claude/.credentials.json`) and calls an undocumented endpoint. Degrades to a warning if unavailable. |
 | `--threshold` | `PCT` | `20` | With `--usage-check`, the minimum % of the window that must remain before a run starts. Below it, autopilot waits for the reset (or backs off). No effect without `--usage-check`. |
 | `--backoff` | `DURATION` | `30m` | Sleep length when a usage limit is hit but no reset time can be parsed from the error. Accepts `45s` / `30m` / `2h`, or a bare number meaning minutes. |
-| `--permission-mode` | `MODE` | `bypassPermissions` | Permission mode for each `claude` run. Defaults to `bypassPermissions` because unattended runs can't answer prompts — so only autopilot roadmaps you trust. Pass e.g. `acceptEdits` for a more restrictive mode. |
-| `--dry-run` | *(flag)* | off | Print the tracker verdict, the next pending row, and the exact `claude` command that *would* run — without running anything. Recommended for a first look at a new roadmap. |
+| `--permission-mode` | `MODE` | `bypassPermissions` | Permission mode for each `claude` run. Defaults to `bypassPermissions` because unattended runs can't answer prompts — so only autopilot roadmaps you trust. Pass e.g. `acceptEdits` for a more restrictive mode. Deny rules and hooks still apply in every mode, this one included. |
+| `--dry-run` | *(flag)* | off | Print the tracker verdict, the next pending row, the runtime resolved for it (and whether it came from a flag, the prompt's frontmatter or the default), the escalation ladder, and the `claude` command that *would* run — without running anything. Recommended for a first look at a new roadmap. |
 | `-h`, `--help` | *(flag)* | — | Print usage and exit. |
 
 #### Branch behaviour
@@ -166,6 +167,45 @@ per-run result JSON lands in `.planning/<slug>/autopilot/run-<launch>-<n>.json`
 log line records the run's model, effort, attempt, ladder rung, stop reason,
 turn count, the model actually used and its session id.
 
+### Calibrating a roadmap
+
+A roadmap is a mix of mechanical sessions and a few genuinely hard ones, so one
+model and effort for the whole run is either wasteful or under-powered.
+`/calibrate-roadmap` rates each pending session and records a **runtime
+profile** for it:
+
+```text
+/calibrate-roadmap                      # pick from the roadmaps it finds
+/calibrate-roadmap .planning/<slug>     # or name one
+/calibrate-roadmap .planning/<slug> session 5 needed opus at max, bump the ones like it
+```
+
+`/roadmap` runs it for you as a second pass, once every session is written —
+difficulty is only visible relative to the whole set, and it is a different axis
+from sizing (reasoning density, not context volume). Run it yourself to
+**retrofit** a roadmap that predates profiles, or to **re-rate** one after a
+session went ⛔ or autopilot had to escalate: it reads that history from the
+tracker's `Runtime:` lines and from `autopilot.log`.
+
+It answers two separate questions per session. **Model — what kind of thinking
+is the bottleneck?** `sonnet` for pattern-following work (scaffold, wire up,
+mirror X for Y, docs), `opus` for judgement (design, decide, debug, cross-module
+refactors), `fable` when being subtly wrong is expensive and hard to see
+(correctness-critical algorithms, concurrency, security/auth/money, or anything
+that already blocked). **Effort — how much is at stake, and will the gate catch
+a mistake?** `low` for mechanical work behind a strong automated gate, up to
+`max` for weak or manual gates and a wide blast radius. A strong gate lets a
+session drop a step; a manual gate, the first session of a new subsystem, or a
+history of blocking moves it up; when unsure it picks `opus / high`.
+
+It shows the ratings as a table and asks once — accept, heavier across the
+board, or lighter — then writes a `**Runtime:**` line into each session of
+`PLAN.md` and the YAML frontmatter onto each kickoff prompt (the format is shown
+under [Runtime profiles](#runtime-profiles-failure-classes--escalation)). It
+never re-rates a ✅ session and never touches `TRACKER.md`'s table. A profile is
+a floor, not a ceiling: autopilot may escalate above it on a genuine stall, but
+never runs below it.
+
 ### Archiving finished roadmaps
 
 `.planning/` only grows. A finished roadmap's `PLAN.md`, `TRACKER.md` and 50-odd
@@ -245,9 +285,11 @@ After installing `planning`, `/roadmap`, `/calibrate-roadmap`, `/session`,
 
 For the plugin you changed, bump `version` in **both** places that carry it —
 its entry in `.claude-plugin/marketplace.json` and its own
-`plugins/<plugin>/.claude-plugin/plugin.json` — keep them in sync. Then run
-`claude plugin tag` from the repo root to cut a release git tag (it validates
-the version first), push, and users run:
+`plugins/<plugin>/.claude-plugin/plugin.json` — keep them in sync. Then, from the repo root, run
+`claude plugin validate plugins/<plugin>` and `claude plugin tag plugins/<plugin>`
+— the latter checks the two versions agree and cuts the release tag
+`<plugin>--v<version>` — and push the branch **and the tag**
+(`git push origin main refs/tags/<plugin>--v<version>`). Users then run:
 
 ```text
 /plugin update planning@cc-star-skills

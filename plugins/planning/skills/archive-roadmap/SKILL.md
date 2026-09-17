@@ -252,9 +252,11 @@ Print to the user:
 - **Scope the commit with pathspecs** covering both the old and new paths. Never `git add -A`,
   and never sweep up unrelated work.
 - **Never archive while autopilot is running.** `autopilot.sh` runs without `set -e`, so a
-  vanished `TRACKER.md` makes its `grep -c` return empty, the `[ "$PENDING" -eq 0 ]`
-  completion check error out and evaluate false, and the loop keep spawning sessions against
-  a gone plan dir until the two-strike no-progress brake exits 3.
+  vanished `TRACKER.md` leaves its counters empty instead of stopping it: the session in
+  flight finishes against a plan dir that has moved out from under it, and the loop only
+  halts afterwards — on its environment-failure brake (exit 3), behind a screen of shell
+  errors. (Since v1.6.0 it can no longer spawn *new* sessions against the gone dir, because
+  the run file has nowhere to land — but the in-flight session's work is still stranded.)
 - **Never `rm -rf` an archive path.** Path-anchored `.gitignore` rules stop matching after
   the move, so deliberately-ignored files (generated art, scratch, binaries) sit untracked
   inside the archive dir and `git reset --hard` cannot bring them back. Reverse a move with
