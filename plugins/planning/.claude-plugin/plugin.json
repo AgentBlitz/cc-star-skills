@@ -1,6 +1,6 @@
 {
   "name": "planning",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "license": "MIT",
   "description": "Multi-session build planning skills: roadmap scaffolds a phased plan, calibrate-roadmap rates each session's model/effort, session runs each phase, wrapup/handoff handle single-session housekeeping, autopilot loops the remaining sessions unattended at each session's own profile, archive-roadmap retires a finished plan.",
   "author": { "name": "Kam Star", "email": "kam@kamstar.net" },

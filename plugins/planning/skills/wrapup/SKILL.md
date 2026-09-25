@@ -37,6 +37,8 @@ The file must contain these sections:
 
 > Do **not** include a "Commit:" field. The session file *is* the commit it ships in — `git log <session-file>` recovers the hash. Embedding the hash creates an amend loop because the file references its own commit.
 
+> Refer to people by role, never by name, in every section — "the facilitator raised…", "a reviewer asked for…", not their name. The user is the one exception. See **Rules**.
+
 ## Summary
 
 One paragraph describing what was accomplished in this conversation.
@@ -90,6 +92,7 @@ Print a short confirmation:
 - Be specific: include file paths, function names, and concrete details — not vague descriptions.
 - The session summary should give a *future Claude in a new chat* enough context to continue the work seamlessly.
 - The session summary file MUST be included in the commit so the commit is a complete record of the session.
+- **Never name an individual other than the user.** Refer to people by role ('the facilitator', 'a reviewer'), falling back to 'a colleague'. This covers colleagues, clients, reviewers, chat handles and personas alike, in the summary *and* the commit message. Session logs get indexed, searched and pushed to shared remotes, and a name written there is hard to recall.
 - **`**Roadmap:**` is conditional.** Include it only when this session advanced a `/roadmap` plan, and give the real plan-dir path. It is what lets `/archive-roadmap` attribute this log to its roadmap later — but inventing a slug for unrelated work is worse than omitting the line.
 - **`**Runtime:**` is conditional too**, and always sits *after* `**Roadmap:**` — `/archive-roadmap` looks for the roadmap field in the first few header lines. Only `/session` under `/autopilot` fills it, copying the runtime from the run's `Autopilot (headless) run` note; it is how `/calibrate-roadmap` learns which sessions needed escalating.
 - If `$ARGUMENTS` contains "no-commit" or "summary-only", skip the commit step and only write the summary.

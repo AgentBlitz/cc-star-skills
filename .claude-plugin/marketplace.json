@@ -6,7 +6,7 @@
     {
       "name": "planning",
       "source": "./plugins/planning",
-      "version": "1.6.0",
+      "version": "1.7.0",
       "license": "MIT",
       "description": "Multi-session build planning skills (roadmap, calibrate-roadmap, session, wrapup, handoff, autopilot, archive-roadmap).",
       "author": { "name": "Kam Star" }
