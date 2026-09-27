@@ -98,7 +98,7 @@ Print to the user:
 - **PLAN.md is authoritative.** Everything else (tracker, prompts) serves it. Keep them consistent.
 - **Each session must fit one fresh context window** — if a session looks too big, split it.
 - **Every session needs a concrete, runnable verification gate** — something that can actually pass or fail, not a vague "looks done".
-- **Every session carries a runtime profile**, rated in the step-4 pass; when unsure, `opus / high`.
+- **Every session carries a runtime profile**, rated in the step-4 pass; when unsure, `opus / medium`.
 - **Leave no open decisions in the plan.** Unattended sessions can't ask; settle forks in step 2 and record them in PLAN.md §3.
 - **Reference the shared session-summary format** (defined in the `wrapup` skill) and the calibration rubric (defined in the `calibrate-roadmap` skill); never restate or fork them.
 - Don't add files beyond `PLAN.md`, `TRACKER.md`, and `prompts/session-*.md`.

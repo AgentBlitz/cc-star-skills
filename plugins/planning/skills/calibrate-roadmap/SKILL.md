@@ -17,7 +17,7 @@ It is a separate pass on purpose. Difficulty is only visible **relative to the w
 ## When this runs
 
 - **From `/roadmap`** — the sessions exist in `PLAN.md` §5 but the prompts aren't written yet. Do steps 2–4, then write **PLAN.md only** (step 5a–b); `/roadmap` emits the frontmatter when it writes the prompts.
-- **Standalone** — to retrofit a roadmap that predates profiles, or to **re-rate** one after evidence arrived: a session went ⛔, autopilot had to escalate, or the user says the ratings feel wrong. Do every step.
+- **Standalone** — to retrofit a roadmap that predates profiles, or to **re-rate** one after evidence arrived: a session went ⛔, autopilot had to escalate, the user says the ratings feel wrong, or a model alias moved to a newer model since the roadmap was rated (its profiles were calibrated for the old one — see the per-model note under the effort table). Do every step.
 
 ## 1. Locate the roadmap
 
@@ -56,11 +56,13 @@ Answer two separate questions per session. Don't collapse them into one "difficu
 
 (`xhigh` is accepted if a human sets it by hand; this rubric doesn't emit it.)
 
+**On `opus`, read the table one step lower** — `low` for the two mechanical rows, `medium` for design or debugging, `max` unchanged — then apply the modifiers. Effort names don't buy the same amount of thinking on every model: `opus` now resolves to Opus 5.5, whose `medium` matches or beats Opus 5 at `high` on multistep repo work in about half the tokens, and which tends to think more per turn than Opus 5 at the same level. `sonnet` (Sonnet 5) and `fable` (Fable 5.1) use the table as written — `high` is their everyday level.
+
 **Modifiers — apply after the tables:**
 - A **strong automated gate** lets you drop one step (a mistake gets caught cheaply). A **manual or weak gate** moves you up one.
 - The **first session of a new subsystem** moves up — later sessions copy whatever it establishes.
 - **History wins over reading:** a session like one that went ⛔ or was escalated moves up to at least what finally worked.
-- **Unsure → `opus / high`.** Under-powering a session costs a whole failed run; over-powering costs a little more for one run.
+- **Unsure → `opus / medium`** — Opus 5.5's own default, and already stronger than the `opus / high` this rule meant on Opus 5. Under-powering a session costs a whole failed run; over-powering costs a little more for one run.
 
 **Then a consistency pass over the whole set:** similar sessions get the same profile; and check the distribution — a plan rated all `fable / max` (or all `sonnet / low`) has not been calibrated, it has been defaulted. The point is to spend the heavy model where it pays.
 
@@ -108,7 +110,7 @@ Print the final table, the files changed, and:
 
 - **PLAN.md is authoritative**; a prompt's frontmatter must say the same thing as its `Runtime:` line.
 - **Never re-rate a ✅ session** — its `Runtime:` line is history.
-- **Three models, four efforts.** Don't invent tiers, and don't write model IDs — the aliases (`sonnet`, `opus`, `fable`) are what `claude --model` takes and they survive model upgrades.
+- **Three models, four efforts.** Don't invent tiers, and don't write model IDs — the aliases (`sonnet`, `opus`, `fable`) are what `claude --model` takes and they survive model upgrades. **The effort scale doesn't:** when an alias moves to a new model, check how its effort levels compare with its predecessor's and update the per-model note under the effort table.
 - **A profile is a floor, not a ceiling** — autopilot may escalate above it; it never runs below it.
 - **Every rationale is one clause a reviewer can argue with** ("templated CRUD, tests mirror `users.test.ts`"), not a restatement of the tier ("hard session").
 - Don't add files beyond what `/roadmap` allows (`PLAN.md`, `TRACKER.md`, `prompts/session-*.md`).

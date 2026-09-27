@@ -194,9 +194,12 @@ refactors), `fable` when being subtly wrong is expensive and hard to see
 (correctness-critical algorithms, concurrency, security/auth/money, or anything
 that already blocked). **Effort — how much is at stake, and will the gate catch
 a mistake?** `low` for mechanical work behind a strong automated gate, up to
-`max` for weak or manual gates and a wide blast radius. A strong gate lets a
-session drop a step; a manual gate, the first session of a new subsystem, or a
-history of blocking moves it up; when unsure it picks `opus / high`.
+`max` for weak or manual gates and a wide blast radius. Effort names don't buy
+the same thinking on every model, so `opus` reads that scale one step lower —
+Opus 5.5 at `medium` matches or beats Opus 5 at `high` on multistep repo work,
+in about half the tokens. A strong gate lets a session drop a step; a manual
+gate, the first session of a new subsystem, or a history of blocking moves it
+up; when unsure it picks `opus / medium`.
 
 It shows the ratings as a table and asks once — accept, heavier across the
 board, or lighter — then writes a `**Runtime:**` line into each session of
