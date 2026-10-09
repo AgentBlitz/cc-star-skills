@@ -3,8 +3,12 @@
     "target": "ESNext",
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "lib": ["ESNext"],
-    "types": ["node"],
+    "lib": [
+      "ESNext"
+    ],
+    "types": [
+      "node"
+    ],
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true,
@@ -15,6 +19,15 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["toolkit/**/*.ts"],
-  "exclude": ["toolkit/test/.out", "toolkit/spikes"]
+  "include": [
+    "toolkit/**/*.ts"
+  ],
+  "exclude": [
+    "toolkit/test/.out",
+    "toolkit/spikes",
+    "toolkit/runtime/src",
+    "toolkit/runtime/dist",
+    "toolkit/host",
+    "toolkit/test/runtime"
+  ]
 }

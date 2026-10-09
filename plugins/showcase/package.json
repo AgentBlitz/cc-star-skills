@@ -2,12 +2,14 @@
   "name": "showcase-toolkit",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "test": "node --disable-warning=ExperimentalWarning --test \"toolkit/test/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p toolkit/spikes",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p toolkit/spikes && tsc --noEmit -p toolkit/runtime && tsc --noEmit -p toolkit/host",
     "spikes": "node --disable-warning=ExperimentalWarning toolkit/spikes/run-all.ts",
-    "build:runtime": "echo 'build:runtime: no runtime yet (Session 4)'"
+    "build:runtime": "node --disable-warning=ExperimentalWarning toolkit/runtime/build.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.1",

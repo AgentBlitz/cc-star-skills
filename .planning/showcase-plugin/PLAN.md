@@ -1,6 +1,6 @@
 # showcase plugin: narrated product films and self-playing tours for any web app
 
-> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **3 of 13 sessions done.** Next: **Session 4 (R1, the runtime engine)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
+> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **4 of 13 sessions done.** Next: **Session 5 (R2, the overlay, host, Watch, rehearse and inspect)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
 
 ## 1. Context
 
@@ -179,7 +179,7 @@ film:end       {}   |   film:error { beat?, message, anchor? }
 ```
 
 - **Arming** waits for `document.fonts.ready`, then 400 ms with no screencast frames, which also covers canvases.
-- **Channel:** the `__showcaseFilm` binding carries the events, and the host keeps the log across reloads.
+- **Channel:** the one host binding `__showcaseHost(msg)` carries the events (with input, state, assets and logs), and the host keeps the log across reloads (Session 4). The page API is `window.__showcase`.
 - **Start:** the host starts the film with `__showcaseGo()`.
 - **No caption event:** the SRT cues are the sentences, split in post.
 
@@ -616,6 +616,7 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
   - `.ts` import specifiers.
   - In `tsconfig`: `erasableSyntaxOnly`, `verbatimModuleSyntax`, `allowImportingTsExtensions`, `noEmit`, `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`.
   - `toolkit/spikes/` has its own `tsconfig.json`, which adds the DOM lib for its `page.evaluate` code; `npm run typecheck` checks both, so Node code still sees no DOM globals (Session 2).
+  - `toolkit/runtime/` (browser code) and `toolkit/host/` (Node, with the DOM lib for the runtime's types; it also takes `toolkit/test/runtime/`) have their own too, and the root excludes them (Session 4). `npm run typecheck` runs all four.
 - **C4 · The runtime** imports nothing from Node or any framework (a test enforces it). `dist/` is rebuilt with `npm run build:runtime` and must be fresh (a test enforces the stamp).
 - **C5 · Timing is driven by narration:** a sentence lasts `durationMs` from the manifest, else `readingMs`. Muting never changes timing.
 - **C6 · Writes are idempotent:** every `write` has `done`, and fast-forward and re-show never write twice.
@@ -680,7 +681,7 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
    - No marketplace entry yet (Session 11).
 2. **`plugins/showcase/package.json`:**
    - `"private": true`, `"type": "module"`.
-   - Scripts: `test` (`node --disable-warning=ExperimentalWarning --test "toolkit/test/**/*.test.ts"`), `typecheck` (`tsc --noEmit`), `build:runtime` (a placeholder until Session 4).
+   - Scripts: `test` (`node --disable-warning=ExperimentalWarning --test "toolkit/test/**/*.test.ts"`), `typecheck` (`tsc --noEmit`), `build:runtime` (a placeholder until Session 4, real from it).
    - Dev dependencies: `typescript`, `esbuild`, and `playwright-core` pinned at exactly `1.63.0`.
    - `tsconfig.json` per C3.
    - The root `.gitignore` gains `**/showcase/out/`, `**/showcase/.cache/`, `**/showcase/.auth/` and `plugins/showcase/toolkit/test/.out/`.
@@ -884,6 +885,15 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
 **Verification gate.** Every test above passes headless, along with `npm test` and `npm run typecheck`, and the stamp is fresh.
 
 **Runtime:** fable / high — clocks, two-track timing and resume-without-rewrite invariants are subtle and system-wide
+
+- **As built (2026-10-09):** as planned, plus what later sessions build on:
+  - **The bridge** is one binding, `__showcaseHost(msg)`: `input` (move, click, down, up, wheel, key, type, upload), `state` (load, save, clear), `asset`, `event`, `log`, `ready` (a document booted) and `snapshot`. The host starts a film with `__showcaseGo()`. The page API is `window.__showcase` (`dispatch`, `snapshot`, `events`, `start`, `actions.register`, `acting`).
+  - **Run state** (`state.ts`): step, beat, position `{action, sentence, speaking, stage}` with stages `begin → tracks → nav → ready → dwell`, `entered`, `target` (a fast-forward in progress), the journal, `seq`, `doc`, `rolling`, `filmBeats`, `paused`, the pointer. The runtime stamps `seq`; the host bumps it for `nav`; `doc` goes up at each boot.
+  - **A `navigates` action** runs after both tracks, stage `nav` persisted first; the next document waits for its `done`, journals it and emits its `done` phase. A sentence cut by an unmarked load is ended in the next document, not repeated.
+  - **Re-show** leaves out the reads before a write **the journal** holds; a `done` that happens to hold before a write doesn't count.
+  - **Executor details:** `scroll … until` means on screen (the scroller is brought on screen first); `select` hovers with the real mouse then sets the value as Playwright's `selectOption` does; trusted `upload` is `setInputFiles` on the element; trusted `type` clicks to focus, select-all + Backspace, then types per character; `key` uses Playwright's spelling; cosmetic kinds (left out of a fast-forward) are spotlight, hover, focus, camera, card, hold and `wait` without `until`.
+  - **The overlay contract** is `OverlayPort` (`overlay-port.ts`); Session 4 ships a pointer stub.
+  - The runtime never boots on `about:blank`. `narration.ts` carries a draft `VoiceManifest` shape (`{v, id, tour, clips[{beat, text, hash, file, durationMs}]}`) and an FNV-1a `narrationFingerprint` for Session 6 to firm up.
 
 #### Session 5 — R2 · Runtime II: overlay, host, Watch, rehearse and inspect
 
