@@ -88,6 +88,8 @@ export interface HostOptions {
   onExit?: () => void;
   /** A marker on Chromium's command line, so a test can find the process. */
   marker?: string;
+  /** More Chromium switches (the film's colour profile and DevTools port). */
+  args?: string[];
 }
 
 export interface Ready {
@@ -191,6 +193,7 @@ export async function launchHost(options: HostOptions): Promise<Host> {
   // A marker on Chromium's command line, so a test can tell its processes have gone (`SHOWCASE_RUN_MARKER` is a test aid).
   const marker = options.marker ?? process.env.SHOWCASE_RUN_MARKER;
   if (marker) args.push(`--showcase-run=${marker}`);
+  args.push(...(options.args ?? []));
   const launch: LaunchOptions = { channel: "chromium", headless: maximised ? false : (options.headless ?? true), args };
   const browser = await pw.chromium.launch(launch);
   const ctxOptions: BrowserContextOptions = {
@@ -433,15 +436,24 @@ export async function launchHost(options: HostOptions): Promise<Host> {
   return host;
 }
 
-/** `browser.gpu: "required"` refuses a software renderer (Playwright always enables SwiftShader). */
-async function requireGpu(page: Page): Promise<void> {
-  const renderer = (await page.evaluate(`(() => {
+/** The WebGL renderer string ("none" without WebGL): what the film records and `gpu` checks. */
+export async function rendererOf(page: Page): Promise<string> {
+  return (await page.evaluate(`(() => {
     const gl = document.createElement("canvas").getContext("webgl");
     if (!gl) return "none";
     const ext = gl.getExtension("WEBGL_debug_renderer_info");
     return String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
   })()`)) as string;
-  if (renderer === "none" || /swiftshader|llvmpipe|software/i.test(renderer)) {
+}
+
+export function isSoftwareRenderer(renderer: string): boolean {
+  return renderer === "none" || /swiftshader|llvmpipe|software/i.test(renderer);
+}
+
+/** `browser.gpu: "required"` refuses a software renderer (Playwright always enables SwiftShader). */
+async function requireGpu(page: Page): Promise<void> {
+  const renderer = await rendererOf(page);
+  if (isSoftwareRenderer(renderer)) {
     throw new Error(`browser.gpu is "required" but the renderer is ${renderer}`);
   }
 }

@@ -1,6 +1,6 @@
 # showcase plugin: narrated product films and self-playing tours for any web app
 
-> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **6 of 13 sessions done.** Next: **Session 7 (F3, film I)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
+> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **7 of 13 sessions done.** Next: **Session 8 (F4, film II)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
 
 ## 1. Context
 
@@ -1027,6 +1027,19 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
 - `npm test` and `npm run typecheck` pass.
 
 **Runtime:** opus / high — first recorder session: backpressured capture and frame-to-timeline sync, gated by ffprobe
+
+**As built (Session 7).**
+- **`toolkit/film/`:** `record.ts` (the take, the watchdog, measuring, the checks), `capture.ts` (main-thread screencast, the event-loop monitor, quiet detection, the hand-off to the worker), `capture-worker.ts` (a raw CDP WebSocket in a worker thread), `frames.ts` (the bounded queue: 120 frames, then acks wait for writes), `cfr.ts` (the 30 fps schedule, gaps, frame rate; pure), `timeline.ts` (spans on the video's clock; pure), `encode.ts` (hard-linked CFR sequence → x264; ffprobe; the probe's patch colours). The command is `commands/film.ts`.
+- **`film <tour> --video-only [--detach] [--capture auto|main|worker] [--keep-frames] [--out] [--base] [--no-build] [--no-reset]`.** Without `--video-only` it exits 2 until Session 8. The film runs `app.build` by default (`--no-build` skips it) and notes a `start` that looks like a dev server, or a missing `app.build`.
+- **The video's clock:** time 0 is the start of the 750 ms pre-roll (the host's `Date.now()`); events gain `ms = wall − t0`; the video ends 1.2 s after `film:end`. Screencast timestamps, the page's captured `Date.now()` and Node's clock are all epoch milliseconds on one machine; the probe measures the offset between the first two.
+- **Arming:** the runtime's `film:armed` (fonts, two frames, 400 ms), then the host waits for 400 ms with no screencast frame (capped at 5 s; the fixture's spinner never stops, which is noted).
+- **The clock-sync probe runs before the pre-roll**, so it's never in the video: a full-viewport `#ff00ff` element drawn in a known animation frame (`__showcase.film.probe()`), found in the frames by the colour of a 32×32 patch.
+- **The heartbeat** (a decision of this session): from the pre-roll, a 1 px element at opacity 0 ↔ 0.01 flips every animation frame (`runtime/src/film-aids.ts`), so Chrome makes a frame on every vsync and any gap in the capture is a missed frame, not a still screen. Later documents pick it up at boot from `window.__showcaseRolling` (an init script added at the pre-roll). It also gives the page's own frame rate and its stalls (animation frames > 50 ms late).
+- **The motion-gap check** takes the largest gap between captured frames over the take, exempting one that contains a `nav` load (from up to 100 ms before it starts), per S-D4.
+- **The worker fallback:** Chromium gets `--remote-debugging-port=<free port>` (unless `--capture main`); after a one-second window with event-loop p99 > 20 ms, a worker opens its own session on the page's target, and the main screencast stops once the worker has a frame.
+- **Colour:** `scale=…:in_color_matrix=bt601:in_range=full:out_color_matrix=bt709:out_range=limited,format=yuv420p,setparams=…bt709…:range=tv`. The `-color_*` output options alone left transfer and primaries untagged, which is why `setparams` is there. A test round-trips saturated colours.
+- **Outputs:** `showcase/out/<tour>/video.mp4` (the picture; Session 8 muxes it into `<tour>.mp4`), `timeline.json` (spans, events with `ms`, `keyframesMs`, `probe`, `capture` stats, `videoProbe`, `checks`, `orderProblems`, `app`), `progress.json` (phases starting → launching → arming → probing → rolling → tail → encoding → done or failed). A failed take writes `error.png` and `timeline.partial.json`. The frames go in `.capture/` and are deleted after the encode, unless `--keep-frames`.
+- **Measured on the fixture tour (M4 Max, ANGLE Metal):** 40.3 s; capture median 60 fps, p5 59; page 60 fps; largest motion gap 20–27 ms over five takes (the session's very first take had one 193 ms gap at the first click, before the stall diagnostics existed, and it hasn't come back); sync probe 18–21 ms; event-loop p99 11.7 ms; queue never above 1; about 4.9 MB/s; `video.mp4` about 2 MB.
 
 #### Session 8 — F4 · Film II: sound, captions, outputs and verify
 

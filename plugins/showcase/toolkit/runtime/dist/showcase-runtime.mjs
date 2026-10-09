@@ -5333,6 +5333,69 @@ var Director = class {
   }
 };
 
+// toolkit/runtime/src/film-aids.ts
+var ROLLING_KEY = "__showcaseRolling";
+var PROBE_TAG = "showcase-probe";
+var HEARTBEAT_TAG = "showcase-heartbeat";
+var PROBE_COLOUR = "#ff00ff";
+var STALL_MS = 50;
+function fixed(el, css) {
+  Object.assign(el.style, { position: "fixed", pointerEvents: "none", zIndex: "2147483647", margin: "0", padding: "0", border: "0" }, css);
+}
+function createFilmAids(win, n) {
+  const doc = win.document;
+  let beat = null;
+  const attach = (el) => {
+    if (el.isConnected) return true;
+    const root = doc.documentElement;
+    if (!root) return false;
+    root.appendChild(el);
+    return true;
+  };
+  const tick = () => {
+    const b = beat;
+    if (!b) return;
+    const now = n.perfNow();
+    if (b.frames > 0 && now - b.last > STALL_MS && b.stalls.length < 100) b.stalls.push({ wall: n.dateNow(), ms: Math.round(now - b.last) });
+    b.last = now;
+    if (attach(b.el)) {
+      b.flip = !b.flip;
+      b.el.style.opacity = b.flip ? "0.01" : "0";
+      b.frames += 1;
+    }
+    b.frame = n.requestAnimationFrame(tick);
+  };
+  return {
+    probe(holdMs = 200) {
+      return new Promise((resolve2) => {
+        const el = doc.createElement(PROBE_TAG);
+        fixed(el, { inset: "0", width: "100vw", height: "100vh", background: PROBE_COLOUR, display: "block" });
+        n.requestAnimationFrame(() => {
+          attach(el);
+          const wall = n.dateNow();
+          n.setTimeout(() => {
+            el.remove();
+            resolve2({ wall });
+          }, holdMs);
+        });
+      });
+    },
+    heartbeat(on) {
+      if (on && !beat) {
+        const el = doc.createElement(HEARTBEAT_TAG);
+        fixed(el, { right: "0", bottom: "0", width: "1px", height: "1px", background: "#000", opacity: "0", display: "block" });
+        beat = { el, frame: 0, frames: 0, since: n.perfNow(), flip: false, last: n.perfNow(), stalls: [] };
+        beat.frame = n.requestAnimationFrame(tick);
+      } else if (!on && beat) {
+        n.cancelAnimationFrame(beat.frame);
+        beat.el.remove();
+        beat = null;
+      }
+    },
+    frameRate: () => beat ? { frames: beat.frames, ms: n.perfNow() - beat.since, stalls: [...beat.stalls] } : { frames: 0, ms: 0, stalls: [] }
+  };
+}
+
 // toolkit/runtime/src/inspect.ts
 var OUTLINE_ROLES = /* @__PURE__ */ new Set([
   "button",
@@ -6330,9 +6393,12 @@ function boot(win = window) {
     overlay: null,
     audio: null,
     inspect: (options) => outline(win.document, options),
-    visibleText: () => visibleText(win.document)
+    visibleText: () => visibleText(win.document),
+    film: createFilmAids(win, n)
   };
   Object.defineProperty(win, API_KEY, { value: api, configurable: true, enumerable: false, writable: false });
+  const early = w.__showcaseConfig;
+  if (w[ROLLING_KEY] === true && early?.mode === "film") api.film.heartbeat(true);
   const watching = () => {
     const snap = api.snapshot();
     return snap && snap.mode === "watch" && api.config && uiOf(api.config) === "watch" ? snap : null;
@@ -6407,9 +6473,11 @@ export {
   POLL_MS,
   PRESETS,
   PRESS_MS,
+  PROBE_COLOUR,
   READING_MIN_MS,
   READING_WPM,
   READY_TIMEOUT_MS,
+  ROLLING_KEY,
   RULES,
   RUNTIME_VERSION,
   ReadyTimeout,
@@ -6439,6 +6507,7 @@ export {
   createBridgeAudio,
   createClocks,
   createExecutor,
+  createFilmAids,
   createOverlay,
   createTimeline,
   crossFieldIssues,

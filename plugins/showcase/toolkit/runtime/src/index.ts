@@ -13,6 +13,7 @@ import { captureNatives, isTopFrame, type Natives, nextFrame } from "./capture.t
 import { createClocks, whenAborted } from "./clock.ts";
 import { type Command, Director, type Mode, type Snapshot } from "./director.ts";
 import { createExecutor, type InputMode } from "./executor.ts";
+import { createFilmAids, type FilmAids, ROLLING_KEY } from "./film-aids.ts";
 import { API_KEY, type FilmEvent } from "./film-events.ts";
 import { type OutlineItem, type OutlineOptions, outline, visibleText } from "./inspect.ts";
 import type { VoiceManifest } from "./narration.ts";
@@ -31,6 +32,7 @@ export * from "./clock.ts";
 export * from "./director.ts";
 export * from "./dom-events.ts";
 export * from "./executor.ts";
+export * from "./film-aids.ts";
 export * from "./film-events.ts";
 export * from "./inspect.ts";
 export * from "./narration.ts";
@@ -96,6 +98,8 @@ export interface ShowcaseApi {
   inspect(options?: OutlineOptions): OutlineItem[];
   /** The text a viewer can see now (`rehearse`'s spoken-number and deny-list checks). */
   visibleText(): string;
+  /** The recorder's aids: the clock-sync probe, the heartbeat, the page's frame rate. */
+  film: FilmAids;
 }
 
 type Realm = Window & typeof globalThis;
@@ -347,8 +351,12 @@ export function boot(win: Realm = window as Realm): ShowcaseApi | null {
     audio: null,
     inspect: (options) => outline(win.document, options),
     visibleText: () => visibleText(win.document),
+    film: createFilmAids(win, n),
   };
   Object.defineProperty(win, API_KEY, { value: api, configurable: true, enumerable: false, writable: false });
+  // A page load mid-film: the heartbeat goes on again before anything else is drawn.
+  const early = w.__showcaseConfig as BootConfig | undefined;
+  if (w[ROLLING_KEY] === true && early?.mode === "film") api.film.heartbeat(true);
 
   const watching = () => {
     const snap = api.snapshot();
