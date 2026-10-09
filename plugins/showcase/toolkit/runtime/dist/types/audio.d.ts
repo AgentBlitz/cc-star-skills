@@ -30,6 +30,8 @@ export interface BridgeAudioOptions {
     storage?: Pick<Storage, "getItem" | "setItem"> | null;
     setTimeout: (fn: () => void, ms: number) => number;
     clearTimeout: (id: number) => void;
+    /** In-app: a clip's URL on the app's static path, played as it is (no host to ask). */
+    clipUrl?: (file: string) => string;
 }
 export interface BridgeAudio extends AudioPort {
     readonly stats: AudioStats;

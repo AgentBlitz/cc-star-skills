@@ -13,6 +13,7 @@ import { init } from "./commands/init.ts";
 import { inspect } from "./commands/inspect.ts";
 import { keys } from "./commands/keys.ts";
 import { rehearse } from "./commands/rehearse.ts";
+import { runtime } from "./commands/runtime.ts";
 import { shim } from "./commands/shim.ts";
 import { storyboard } from "./commands/storyboard.ts";
 import { type Command, UsageError } from "./commands/types.ts";
@@ -22,7 +23,7 @@ import { watch } from "./commands/watch.ts";
 import { createLog } from "./lib/log.ts";
 import { describeError, redact } from "./lib/redact.ts";
 
-export const COMMANDS: readonly Command[] = [doctor, keys, shim, docs, init, check, storyboard, rehearse, watch, film, inspect, auth, voice, voices];
+export const COMMANDS: readonly Command[] = [doctor, keys, shim, docs, init, check, storyboard, rehearse, watch, film, inspect, auth, voice, voices, runtime];
 
 function help(): string {
   const width = Math.max(...COMMANDS.map((c) => c.name.length));

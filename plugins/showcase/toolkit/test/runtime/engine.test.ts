@@ -146,6 +146,27 @@ test("every action kind works, with trusted input where input is involved", asyn
   assert.ok(host.readies[1]?.resumed);
 });
 
+test("an SPA route mid-film: the host's nav event and the page's events keep one rising sequence", async () => {
+  const t = tour("spa-film", [
+    {
+      id: "spa",
+      path: "/spa",
+      beats: [
+        { id: "s-1", narration: say("The workspace."), actions: [{ id: "to-settings", kind: "click", target: { role: "link", name: "Settings" }, navigates: true }], dwellMs: 0 },
+        { id: "s-2", narration: say("Its settings, on the same page."), actions: [{ id: "to-members", kind: "click", target: { role: "link", name: "Members" }, navigates: true }], dwellMs: 0 },
+        { id: "s-3", narration: say("And its members."), dwellMs: 0 },
+      ],
+    },
+  ]);
+  const host = await launch({ tour: t, mode: "film", url: `${server.url}/spa` });
+  await host.waitForEvent("film:armed");
+  await host.go();
+  await host.waitForEvent("film:end", { timeoutMs: 60_000 });
+  const navs = host.events.filter((e) => e.type === "nav");
+  assert.deepEqual(navs.map((e) => (e.type === "nav" ? `${e.kind} ${new URL(e.url).pathname}` : "")), ["spa /spa/settings", "spa /spa/members"]);
+  assert.deepEqual(filmOrderProblems(host.events), []);
+});
+
 test("covered targets are handled: the sticky header, the cookie banner, a nested scroller, a frame, a modal dialog", async () => {
   const t = tour("covered", [
     {

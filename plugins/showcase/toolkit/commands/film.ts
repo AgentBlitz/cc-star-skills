@@ -20,7 +20,7 @@ export const film: Command = {
   name: "film",
   summary: "Film a tour from the real app: the narrated, captioned 1080p film, its SRT, script, stills and verify report",
   usage: [
-    "Usage: showcase film <tour> [--strict] [--video-only] [--detach] [--json]",
+    "Usage: showcase film <tour> [--strict] [--video-only] [--in-app] [--detach] [--json]",
     "  Builds and starts the app on its own port (snapshot, reset, health), plays the tour headless",
     "  in film mode and captures every frame. In showcase/out/<id>/: <id>.mp4 (1920×1080, CFR 30 fps,",
     "  H.264 High, BT.709; the voice mixed to −16 LUFS as AAC 192k; captions burned in; a chapter per",
@@ -29,6 +29,8 @@ export const film: Command = {
     "  video.mp4 (the picture alone) and timeline.json. Voice the tour and rehearse it first.",
     "  --strict           any warning fails the film (duration, loudness, silence, sync, voice, rehearse)",
     "  --video-only       the picture and timeline only: no sound, captions or verify",
+    "  --in-app           film the app's own vendored tour (?showcase=<id>&showcaseMode=film), injecting",
+    "                     nothing: run `showcase runtime vendor` first",
     "  --detach           run in the background; prints the pid, a log and progress.json",
     "  --capture <mode>   auto (default: the main thread, a worker if the event loop lags), main, worker",
     "  --keep-frames      keep the captured frames in out/<id>/.capture/",
@@ -39,6 +41,7 @@ export const film: Command = {
   ].join("\n"),
   options: {
     "video-only": { type: "boolean" },
+    "in-app": { type: "boolean" },
     strict: { type: "boolean" },
     detach: { type: "boolean" },
     capture: { type: "string" },
@@ -91,6 +94,7 @@ export const film: Command = {
       tourFile: tf.file,
       ...(values["video-only"] ? { videoOnly: true } : {}),
       ...(values.strict ? { strict: true } : {}),
+      ...(values["in-app"] ? { inApp: true } : {}),
       ...(values["keep-frames"] ? { keepFrames: true } : {}),
       ...(typeof values.base === "string" ? { url: values.base } : {}),
       ...(values["no-build"] ? { build: false } : {}),

@@ -31,7 +31,7 @@ export const rehearse: Command = {
     `  Plays the tour headless at ×${REHEARSE_SPEED} (no capture). At each beat it saves a still to`,
     "  showcase/out/<id>/rehearse/, checks every spoken number is on screen and that nothing on",
     "  privacy.deny is. A failure saves a screenshot, a DOM excerpt and candidate anchors.",
-    "  --synthetic    synthetic input only (what an in-app tour can do)",
+    "  --synthetic    synthetic input only, as an in-app tour plays; lists the actions it can't do",
     ...APP_USAGE,
   ].join("\n"),
   options: { speed: { type: "string" }, synthetic: { type: "boolean" }, out: { type: "string" }, ...APP_OPTIONS },

@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../schema/config.schema.json",
+  "showcase": 1,
+  "app": {
+    "build": "node_modules/.bin/next build",
+    "start": "node_modules/.bin/next start -p {port} -H 127.0.0.1",
+    "url": "http://127.0.0.1:{port}",
+    "health": "/"
+  },
+  "browser": {
+    "scale": 1.5,
+    "colorScheme": "light",
+    "locale": "en-GB",
+    "timezone": "Europe/London",
+    "hide": ["nextjs-portal"]
+  },
+  "voice": {
+    "dir": "showcase/voice",
+    "draft": { "provider": "say" }
+  },
+  "privacy": {
+    "deny": ["orbit-internal.example"]
+  }
+}

@@ -1,0 +1,12 @@
+:root { font-family: system-ui, sans-serif; color: #1b2330; background: #f6f7fb; }
+body { margin: 0; }
+header { display: flex; gap: 2rem; align-items: center; padding: 1rem 2rem; background: #fff; border-bottom: 1px solid #dde1ea; }
+nav { display: flex; gap: 1.25rem; }
+nav a, p a { color: #2a5bd7; }
+main { padding: 2rem; max-width: 48rem; }
+h1 { font-size: 2rem; margin: 0 0 1rem; }
+ul { background: #fff; border: 1px solid #dde1ea; border-radius: 8px; padding: 1rem 2rem; }
+li { padding: 0.25rem 0; }
+form { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }
+input { font: inherit; padding: 0.4rem 0.6rem; }
+button { font: inherit; padding: 0.4rem 1rem; background: #2a5bd7; color: #fff; border: 0; border-radius: 6px; }

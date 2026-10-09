@@ -27,6 +27,8 @@
     "toolkit/spikes",
     "toolkit/runtime/src",
     "toolkit/runtime/dist",
+    "toolkit/runtime/adapters",
+    "toolkit/fixtures/next",
     "toolkit/host",
     "toolkit/test/runtime"
   ]

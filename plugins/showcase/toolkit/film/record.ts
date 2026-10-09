@@ -34,6 +34,8 @@ import { findFfmpeg } from "../lib/ffmpeg.ts";
 import { freePort } from "../host/app.ts";
 import { type Host, isSoftwareRenderer, launchHost, rendererOf } from "../host/launch.ts";
 import { appUrl, browserSettings, openSession, type Project, voiceFor } from "../host/project.ts";
+import { publishedTourProblem } from "../lib/vendor.ts";
+import { deepLink } from "../runtime/src/in-app.ts";
 import { type FilmEvent, filmOrderProblems } from "../runtime/src/film-events.ts";
 import { beatPlanMs } from "../runtime/src/narrative.ts";
 import { beatsOf, type Tour } from "../runtime/src/schema.ts";
@@ -78,6 +80,11 @@ export interface FilmOptions {
   strict?: boolean;
   /** The tour's file, to tell whether the last rehearse is older than it. */
   tourFile?: string;
+  /**
+   * `--in-app`: film the app's own vendored tour, opened at `?showcase=<id>&showcaseMode=film`,
+   * with nothing injected. The same contract (binding, events, `__showcaseGo`) carries the take.
+   */
+  inApp?: boolean;
 }
 
 export interface Check {
@@ -196,6 +203,10 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
   const all = beatsOf(tour);
   const progress = progressWriter(o.progress ?? join(o.out, "progress.json"), { tour: tour.id, beatCount: all.length });
   progress({ phase: "starting" });
+  if (o.inApp && o.tourFile) {
+    const stale = publishedTourProblem(p.root, p.config.voice.dir, o.tourFile, tour.id);
+    if (stale) throw new Error(stale);
+  }
   const { ffmpeg, ffprobe } = findFfmpeg();
   if (!ffmpeg || !ffprobe) throw new Error("ffmpeg and ffprobe are needed: `brew install ffmpeg` (run `showcase doctor`)");
   const mode = o.capture ?? "auto";
@@ -241,7 +252,7 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
     const voice = voiceFor(p, tour);
     if (!voice.manifest) notes.push("no voice manifest: sentences last their reading time (run `showcase voice` first for the narrator's timing)");
     const debugPort = mode === "main" ? null : await freePort();
-    const first = appUrl(session.app.url, tour.steps[0]?.path);
+    const first = o.inApp ? appUrl(session.app.url, deepLink(tour.steps[0]?.path ?? "/", { tour: tour.id, mode: "film" })) : appUrl(session.app.url, tour.steps[0]?.path);
     say(`filming ${tour.id}: ${first}`);
     progress({ phase: "launching" });
     host = await launchHost({
@@ -256,6 +267,7 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
       assetsDir: o.assetsDir ?? p.showcaseDir ?? p.root,
       args: ["--force-color-profile=srgb", ...(debugPort ? [`--remote-debugging-port=${debugPort}`] : [])],
       ...(o.marker ? { marker: o.marker } : {}),
+      ...(o.inApp ? { inject: false } : {}),
     });
     const h = host;
     const renderer = await rendererOf(h.page).catch(() => "unknown");
@@ -268,7 +280,8 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
     const armedOrError = await h.waitForEvent("film:armed", { timeoutMs: 90_000 }).catch(() => null);
     const early = h.events.find((e) => e.type === "film:error");
     if (early || !armedOrError || armedOrError.type !== "film:armed") {
-      return await failWith(early?.type === "film:error" ? `film:error before the take: ${early.message}` : "the page never armed (no film:armed in 90 s)", h.events, null);
+      const never = o.inApp ? "the page never armed (no film:armed in 90 s): is the runtime vendored and <ShowcaseTour /> (or the snippet) on the page?" : "the page never armed (no film:armed in 90 s)";
+      return await failWith(early?.type === "film:error" ? `film:error before the take: ${early.message}` : never, h.events, null);
     }
     const armed = armedOrError;
     if (armed.tour !== tour.id) return await failWith(`armed for tour ${armed.tour}, not ${tour.id}`, h.events, null);

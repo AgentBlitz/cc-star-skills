@@ -1,0 +1,14 @@
+<!-- showcase tour (showcase {{version}}): put this in every page's <head>. It loads the runtime only
+     when the URL has ?showcase=<id> or the tab is part-way through a tour; a page load mid-tour
+     resumes it from sessionStorage. -->
+<script type="module">
+  let run = false;
+  try {
+    run = sessionStorage.getItem("showcase:run") !== null;
+  } catch {}
+  if (new URLSearchParams(location.search).has("showcase") || run) {
+    import("{{runtimeUrl}}")
+      .then(({ startInApp }) => startInApp({ base: "{{base}}" }))
+      .catch((e) => console.warn("showcase:", e));
+  }
+</script>

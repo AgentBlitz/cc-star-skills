@@ -11,12 +11,16 @@
  * Every anchor is resolved as the tour plays, so one that doesn't resolve stops the run. On a
  * failure it saves a screenshot, a DOM excerpt and candidate anchors from the page's outline.
  * The report goes to `out/<id>/rehearse.json`; the film's verify reads its deny-list result.
+ *
+ * `--synthetic` plays with synthetic input only, as an in-app tour does, and lists the actions
+ * synthetic input can't do (a problem) or may not do (a note to check): `syntheticGaps`.
  */
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { denyHits, type DenyHit, missingNumbers } from "../lib/screen-checks.ts";
 import type { Checkpoint, Snapshot } from "../runtime/src/protocol.ts";
 import { beatPlanMs } from "../runtime/src/narrative.ts";
+import { type SyntheticGap, syntheticGaps } from "../runtime/src/in-app.ts";
 import { beatsOf, type Tour } from "../runtime/src/schema.ts";
 import { type Host, launchHost } from "./launch.ts";
 import { appUrl, browserSettings, openSession, type Project } from "./project.ts";
@@ -35,7 +39,7 @@ export interface BeatReport {
 }
 
 export interface Problem {
-  kind: "deny" | "number" | "blocked" | "error" | "timeout";
+  kind: "deny" | "number" | "blocked" | "error" | "timeout" | "synthetic";
   beat: string | null;
   message: string;
 }
@@ -76,6 +80,8 @@ export interface RehearseReport {
   notes: string[];
   deny: { checked: number; clean: boolean };
   failure: Failure | null;
+  /** `--synthetic`: what synthetic input can't do (`cannot`, also a problem) or may not (`check`). */
+  synthetic?: SyntheticGap[];
 }
 
 export interface RehearseOptions {
@@ -152,7 +158,11 @@ export async function rehearse(o: RehearseOptions): Promise<RehearseReport> {
     notes: [],
     deny: { checked: 0, clean: true },
     failure: null,
+    ...(o.synthetic ? { synthetic: syntheticGaps(tour) } : {}),
   };
+  for (const g of report.synthetic ?? []) {
+    if (g.level === "cannot") report.problems.push({ kind: "synthetic", beat: g.beat, message: `${g.action} (${g.kind}) can't run in-app: ${g.why}` });
+  }
 
   const session = await openSession(p, {
     what: `rehearse ${tour.id}`,
@@ -282,6 +292,9 @@ export function reportLines(r: RehearseReport): string[] {
   const lines = [`${r.ok ? "ok" : "FAILED"}: ${r.tour} at ×${r.speed}, ${r.beats.length}/${r.beatCount} beats, ${(r.ms / 1000).toFixed(1)} s (${r.input})`];
   for (const p of r.problems) lines.push(`  ✗ ${p.kind}${p.beat ? ` [${p.beat}]` : ""}: ${p.message}`);
   for (const n of r.notes) lines.push(`  · ${n}`);
+  const checks = (r.synthetic ?? []).filter((g) => g.level === "check");
+  if (r.synthetic) lines.push(checks.length ? "  synthetic input (in-app): check these by hand" : "  synthetic input (in-app): every action can run");
+  for (const g of checks) lines.push(`    ? [${g.beat}] ${g.action} (${g.kind}): ${g.why}`);
   if (r.failure) {
     lines.push(`  screenshot: ${r.failure.screenshot} · DOM: ${r.failure.dom} · outline: ${r.failure.outline}`);
     if (r.failure.candidates.length) {

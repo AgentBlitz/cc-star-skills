@@ -485,6 +485,10 @@
     };
     const load = (file) => {
       let p = urls.get(file);
+      if (!p && options.clipUrl) {
+        p = Promise.resolve(options.clipUrl(file));
+        urls.set(file, p);
+      }
       if (!p) {
         p = bridge.asset(file, "voice").then((data) => {
           const View = win ?? globalThis;
@@ -1495,9 +1499,9 @@
     }
     async function typeInto(action, instant, signal) {
       const el = await locate(action, action.target, { use: true, ...signal ? { signal } : {} });
-      const control = el.tagName === "LABEL" ? el.control ?? el : el;
-      const field = isValueElement(control) && control.tagName !== "SELECT" ? control : null;
-      const editable = !field && isEditable(control) ? control : null;
+      const control2 = el.tagName === "LABEL" ? el.control ?? el : el;
+      const field = isValueElement(control2) && control2.tagName !== "SELECT" ? control2 : null;
+      const editable = !field && isEditable(control2) ? control2 : null;
       if (!field && !editable) throw new ActionError(action, "the target is not a text field", describeAnchor(action.target, ctx.anchors));
       const target = field ?? editable;
       let mode = "synthetic";
@@ -1583,9 +1587,9 @@
     }
     async function select(action, instant, signal) {
       const el = await locate(action, action.target, { use: true, ...signal ? { signal } : {} });
-      const control = el.tagName === "LABEL" ? el.control ?? el : el;
-      if (control.tagName !== "SELECT") throw new ActionError(action, "the target is not a select", describeAnchor(action.target, ctx.anchors));
-      const sel = control;
+      const control2 = el.tagName === "LABEL" ? el.control ?? el : el;
+      if (control2.tagName !== "SELECT") throw new ActionError(action, "the target is not a select", describeAnchor(action.target, ctx.anchors));
+      const sel = control2;
       const options = [...sel.options];
       const want = action.value !== void 0 ? options.find((o) => o.value === action.value) : action.option !== void 0 ? options.find((o) => o.label.trim().toLowerCase() === action.option?.trim().toLowerCase()) ?? options.find((o) => o.label.toLowerCase().includes(action.option?.toLowerCase() ?? "")) : void 0;
       if (!want) throw new ActionError(action, `the select has no option ${JSON.stringify(action.value ?? action.option ?? "")}`);
@@ -1607,21 +1611,21 @@
       blur(sel);
       return mode;
     }
-    function isChecked(control) {
-      if ("checked" in control && control.tagName === "INPUT") return control.checked;
-      const aria = control.getAttribute("aria-checked") ?? control.getAttribute("aria-pressed");
+    function isChecked(control2) {
+      if ("checked" in control2 && control2.tagName === "INPUT") return control2.checked;
+      const aria = control2.getAttribute("aria-checked") ?? control2.getAttribute("aria-pressed");
       if (aria === "true") return true;
       if (aria === "false") return false;
       return null;
     }
     async function check(action, instant, signal) {
       const el = await locate(action, action.target, { use: true, ...signal ? { signal } : {} });
-      const control = el.tagName === "LABEL" ? el.control ?? el : el;
+      const control2 = el.tagName === "LABEL" ? el.control ?? el : el;
       const want = action.checked ?? true;
-      const now = isChecked(control);
+      const now = isChecked(control2);
       if (now === null) throw new ActionError(action, "the target is not a checkbox, a radio or a switch", describeAnchor(action.target, ctx.anchors));
       if (now === want) return null;
-      const clickTarget = isVisible(control) ? control : (el.tagName === "LABEL" ? el : control.labels?.[0]) ?? control;
+      const clickTarget = isVisible(control2) ? control2 : (el.tagName === "LABEL" ? el : control2.labels?.[0]) ?? control2;
       return pressElement(action, clickTarget, instant, signal);
     }
     async function hover(action, instant, signal) {
@@ -1725,9 +1729,9 @@
     }
     async function upload(action, instant, signal) {
       const el = await locate(action, action.target, { use: true, ...signal ? { signal } : {} });
-      const control = el.tagName === "LABEL" ? el.control ?? el : el;
-      if (control.tagName !== "INPUT" || control.type !== "file") throw new ActionError(action, "the target is not a file input", describeAnchor(action.target, ctx.anchors));
-      const input = control;
+      const control2 = el.tagName === "LABEL" ? el.control ?? el : el;
+      if (control2.tagName !== "INPUT" || control2.type !== "file") throw new ActionError(action, "the target is not a file input", describeAnchor(action.target, ctx.anchors));
+      const input = control2;
       if (wantsTrusted(action)) {
         if (isVisible(el)) await approach(el, instant, signal);
         view().__showcaseUploadTarget = input;
@@ -5301,7 +5305,7 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
     if (held) return held;
     const listeners = /* @__PURE__ */ new Set();
     const owned = /* @__PURE__ */ new WeakSet();
-    let control = null;
+    let control2 = null;
     let busy = false;
     const changed = () => {
       if (busy) return;
@@ -5372,7 +5376,7 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
           if (type === "mousedown" || type === "pointerdown" || type === "touchstart") {
             if (e.cancelable && type === "mousedown") e.preventDefault();
           }
-          if (type === "click") control?.(path, e);
+          if (type === "click") control2?.(path, e);
           e.stopImmediatePropagation();
         },
         { capture: true, passive: false }
@@ -5388,7 +5392,7 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
       },
       owns,
       onControl(fn) {
-        control = fn;
+        control2 = fn;
       }
     };
     Object.defineProperty(win, KEY2, { value: api, configurable: false, enumerable: false, writable: false });
@@ -5874,9 +5878,24 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
         return;
     }
   }
-  async function bootDirector(win, api, config, n, adapters, top) {
+  function inAppCommand(api, env, bridge, c) {
+    if (c !== "exit") {
+      command(api, bridge, c);
+      return;
+    }
+    if (api.snapshot()?.status !== "done") api.dispatch({ type: "end" });
+    env.exit();
+  }
+  var inAppEnvs = /* @__PURE__ */ new WeakMap();
+  function control(api, bridge, c) {
+    const env = inAppEnvs.get(api);
+    if (env) inAppCommand(api, env, bridge, c);
+    else command(api, bridge, c);
+  }
+  async function bootDirector(win, api, config, n, adapters, top, env = null) {
     const doc = win.document;
     const bridge = createBridge(win);
+    if (env) inAppEnvs.set(api, env);
     let storage = null;
     try {
       storage = win.sessionStorage;
@@ -5900,7 +5919,7 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
       lingerCaptions: ui === "rehearse",
       ...ui === "rehearse" ? { reducedMotion: true } : {},
       title: config.tour.title,
-      onCommand: (c) => command(api, bridge, c)
+      onCommand: (c) => control(api, bridge, c)
     });
     api.overlay = overlay;
     if (resumed && prior?.pointer) overlay.movePointer(prior.pointer.x, prior.pointer.y);
@@ -5913,7 +5932,8 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
         ...config.muted !== void 0 ? { muted: config.muted } : {},
         storage,
         setTimeout: n.setTimeout,
-        clearTimeout: n.clearTimeout
+        clearTimeout: n.clearTimeout,
+        ...env ? { clipUrl: env.clipUrl } : {}
       });
       const a = audio;
       api.audio = {
@@ -5955,6 +5975,8 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
         natives: n,
         bridge,
         ...config.input ? { input: config.input } : {},
+        ...env?.navigate ? { navigate: env.navigate } : {},
+        ...env ? { readFile: (path) => fetchFile(win, env.assetUrl(path)) } : {},
         overlay,
         invoke: async (name, args) => {
           const fn = adapters.get(name);
@@ -5975,6 +5997,7 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
       waitFor: (ready, options) => waitFor(ready, { clock: options.clock, ctx: contextOf(ctx), timeoutMs: options.timeoutMs, ...options.signal ? { signal: options.signal } : {} }),
       navigate: (path, signal) => {
         if (samePath(win, path)) return Promise.resolve();
+        if (env?.navigate) return env.navigate(path, signal);
         win.location.assign(path);
         return signal ? whenAborted(signal) : new Promise(() => {
         });
@@ -6034,14 +6057,14 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
       dispatch: (command2) => api.director?.dispatch(command2),
       snapshot: () => api.director?.snapshot ?? null,
       events: () => api.director?.events ?? [],
-      start: async (config) => {
+      start: async (config, env) => {
         const c = config ?? w.__showcaseConfig;
         if (!c) throw new Error("no showcase config");
         if (api.director) {
           api.director.start({ mode: c.mode, speed: c.speed ?? 1, ...c.from ? { from: c.from } : {} });
           return;
         }
-        await bootDirector(win, api, { ...c, autostart: true }, n, adapters, top);
+        await bootDirector(win, api, { ...c, autostart: true }, n, adapters, top, env ?? null);
       },
       actions: {
         register: (name, fn) => {
@@ -6079,7 +6102,7 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
         if (!c || e.altKey || e.ctrlKey || e.metaKey || !watching() || !isViewerInput(api, n, e)) return;
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (!e.repeat) command(api, createBridge(win), c);
+        if (!e.repeat) control(api, createBridge(win), c);
       },
       true
     );
@@ -6098,6 +6121,12 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
     if (win.document.readyState === "loading") win.document.addEventListener("DOMContentLoaded", ready, { once: true });
     else ready();
     return api;
+  }
+  async function fetchFile(win, url) {
+    const res = await win.fetch(url);
+    if (!res.ok) throw new Error(`couldn't fetch ${url}: ${res.status}`);
+    const name = decodeURIComponent(url.split("/").pop() ?? "file");
+    return { name, type: res.headers.get("content-type") ?? "application/octet-stream", bytes: new Uint8Array(await res.arrayBuffer()) };
   }
 
   // toolkit/runtime/src/inject.ts

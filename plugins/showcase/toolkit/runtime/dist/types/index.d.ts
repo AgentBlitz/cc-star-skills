@@ -5,6 +5,11 @@
  * reads the config the host injects as `window.__showcaseConfig`, captures the real timers and
  * installs the top-layer watch and the control guard before any app code, and starts or resumes
  * the run once the document is ready.
+ *
+ * The in-app boot (`startInApp`, Session 10) is what the vendored adapters call: it reads the
+ * deep link (or the run saved in the tab), loads the tour and its voice manifest from the app's
+ * static paths, and runs the tour with synthetic input, sessionStorage run state and the app's
+ * own router (`navigate`), `reset`, `beforeStart` and `invoke` actions.
  */
 import { describeAnchor } from "./anchors.ts";
 import { type AudioStats } from "./audio.ts";
@@ -27,6 +32,7 @@ export * from "./dom-events.ts";
 export * from "./executor.ts";
 export * from "./film-aids.ts";
 export * from "./film-events.ts";
+export * from "./in-app.ts";
 export * from "./inspect.ts";
 export * from "./narration.ts";
 export * from "./narrative.ts";
@@ -61,6 +67,34 @@ export interface BootConfig {
     muted?: boolean;
 }
 export type AdapterFn = (args?: Record<string, unknown>) => unknown | Promise<unknown>;
+/** What a vendored tour gets from the app (PLAN §2.1 "Adapters"). Every part is optional. */
+export interface Adapter {
+    /** Goes to a URL through the app's router (Next's `router.push`). Absent: a full page load. */
+    navigate?: (url: string) => void | Promise<void>;
+    /** Puts the app's data back before a tour starts from a link (not on a reload's resume). */
+    reset?: () => void | Promise<void>;
+    /** Before every start or resume, for example a deterministic AI for this browser. */
+    beforeStart?: (info: {
+        tour: Tour;
+        mode: Mode;
+        step: string | null;
+        resumed: boolean;
+    }) => void | Promise<void>;
+    /** The tour's `invoke` actions, by name (the same registry as `showcase.actions.register`). */
+    actions?: Record<string, AdapterFn>;
+    /** Where the app serves `tours/`, `voice/` and `assets/` (default `/showcase`). */
+    base?: string;
+    speed?: number;
+    /** Called when the viewer closes the tour. */
+    onExit?: () => void;
+}
+/** How a vendored director reaches the app instead of a host (internal to `startInApp`). */
+interface InAppEnv {
+    navigate: ((url: string, signal?: AbortSignal) => Promise<void>) | null;
+    clipUrl: (file: string) => string;
+    assetUrl: (path: string) => string;
+    exit: () => void;
+}
 /** `window.__showcase`: the runtime's API in the page, for the host, the overlay and tests. */
 export interface ShowcaseApi {
     version: string;
@@ -74,7 +108,7 @@ export interface ShowcaseApi {
     snapshot(): Snapshot | null;
     events(): readonly FilmEvent[];
     /** Starts a run with the config given (or the injected one) when `autostart` was off. */
-    start(config?: BootConfig): Promise<void>;
+    start(config?: BootConfig, env?: InAppEnv): Promise<void>;
     /** The adapter registry (`showcase.actions.register`): what `invoke` actions call. */
     actions: {
         register(name: string, fn: AdapterFn): void;
@@ -100,3 +134,14 @@ type Realm = Window & typeof globalThis;
  */
 export declare function boot(win?: Realm): ShowcaseApi | null;
 export { describeAnchor as describe };
+/**
+ * The in-app boot (PLAN §2.6): what the vendored adapters call once the page wants a tour
+ * (`wantsShowcase`). A deep link starts the tour afresh, from `showcaseStep` if it names one, and
+ * takes its parameters off the URL, so a reload finds no link and resumes the run saved in the
+ * tab without writing twice. With neither a link nor a saved run it does nothing and returns null.
+ *
+ * Input is synthetic only. The voice starts muted (the viewer turns it on with the control,
+ * inside the click, as browsers require). Run state is the tab's sessionStorage, or the host's
+ * when `film --in-app` records the page.
+ */
+export declare function startInApp(adapter?: Adapter, win?: Realm): Promise<ShowcaseApi | null>;

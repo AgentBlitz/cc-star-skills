@@ -1,0 +1,77 @@
+{
+  "$schema": "../../../../schema/tour.schema.json",
+  "showcase": 1,
+  "id": "next-tour",
+  "title": "Orbit in twenty seconds",
+  "meta": {
+    "kind": "walkthrough",
+    "audience": "team",
+    "afterwards": "try",
+    "takeaway": "Projects and settings are a click away",
+    "language": "en-GB",
+    "length": { "targetSec": 20, "narration": { "min": 0, "max": 600 }, "beats": { "min": 1, "max": 50 } }
+  },
+  "anchors": {
+    "projects": { "role": "list", "name": "Projects" }
+  },
+  "steps": [
+    {
+      "id": "home",
+      "path": "/",
+      "ready": { "kind": "visible", "anchor": { "role": "heading", "name": "Welcome to Orbit" } },
+      "beats": [
+        {
+          "id": "welcome",
+          "narration": ["Orbit keeps every project your team runs in one calm place."],
+          "actions": [{ "id": "spot-nav", "kind": "spotlight", "target": { "role": "navigation", "name": "Main" } }]
+        },
+        {
+          "id": "to-projects",
+          "narration": ["The projects list is one click away in the menu."],
+          "actions": [{ "id": "open-projects", "kind": "click", "target": { "role": "link", "name": "Projects" }, "navigates": true }]
+        }
+      ]
+    },
+    {
+      "id": "projects",
+      "path": "/projects",
+      "ready": { "kind": "visible", "anchor": "@projects" },
+      "beats": [
+        {
+          "id": "add",
+          "narration": ["Name a new project and add it.", { "text": "It joins the list straight away.", "after": "add-it" }],
+          "actions": [
+            { "id": "name", "kind": "type", "target": { "role": "textbox", "name": "Project name" }, "text": "Launch plan" },
+            {
+              "id": "add-it",
+              "kind": "click",
+              "target": { "role": "button", "name": "Add project" },
+              "effect": "write",
+              "done": { "kind": "text", "anchor": "@projects", "contains": "Launch plan" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "path": "/settings",
+      "ready": { "kind": "visible", "anchor": { "role": "heading", "name": "Settings" } },
+      "beats": [
+        {
+          "id": "digest",
+          "narration": ["Turn on the weekly digest, and Orbit tells you what changed."],
+          "actions": [
+            {
+              "id": "digest-on",
+              "kind": "check",
+              "target": { "role": "checkbox", "name": "Weekly digest" },
+              "effect": "write",
+              "done": { "kind": "text", "anchor": { "role": "status" }, "contains": "every Monday" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

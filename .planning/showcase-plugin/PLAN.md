@@ -1,6 +1,6 @@
 # showcase plugin: narrated product films and self-playing tours for any web app
 
-> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **8 of 13 sessions done.** Next: **Session 9 (R1, the look-and-feel checkpoint, by hand)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
+> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **10 of 13 sessions done.** Next: **Session 11 (S1, the skill and integration)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
 
 ## 1. Context
 
@@ -334,12 +334,15 @@ Every command that brings the app up (`rehearse`, `watch`, `inspect` with a path
 
 - **`runtime vendor`:**
   - It copies `showcase-runtime.mjs` and its `.d.ts` into the app (for example `src/showcase/runtime/`), stamped with the version and never edited.
+    - *As built (Session 10):* the declarations are `showcase-runtime.d.mts` plus a `types/` folder, because TypeScript reads an `.mjs` file's types only from a `.d.mts`.
   - It compiles cleanly under `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`.
+  - *As built:* it also publishes every tour to `<public>/showcase/tours/<id>.json` (run it again after editing a tour; `film --in-app` refuses a stale copy). The runtime fetches the tour, the manifest and upload files under `/showcase/` (the adapter's `base`).
 - **Adapters:**
   - **Next:** a lazy client component `ShowcaseTour.tsx`, wired to the router.
   - **React.**
   - **HTML:** a plain `<script type="module">`, which also covers multi-page apps.
 - **Loading:** the runtime loads only when `?showcase=` is present, so the page's bundle budget is untouched.
+  - *As built:* or when the tab is part-way through a tour (`sessionStorage["showcase:run"]`). A deep link takes its parameters off the URL, so a reload resumes instead of restarting.
 - **The app also gets:**
   - a "Take the tour" entry point and the `?showcase=<id>&showcaseStep=<step>` deep links;
   - `data-showcase` anchors where roles and names aren't enough, with a two-sided contract test (as Compass's `anchors.ts` and `dom.test.ts` do);

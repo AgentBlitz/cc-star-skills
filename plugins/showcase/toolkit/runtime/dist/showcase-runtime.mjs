@@ -483,6 +483,10 @@ function createBridgeAudio(options) {
   };
   const load = (file) => {
     let p = urls.get(file);
+    if (!p && options.clipUrl) {
+      p = Promise.resolve(options.clipUrl(file));
+      urls.set(file, p);
+    }
     if (!p) {
       p = bridge.asset(file, "voice").then((data) => {
         const View = win ?? globalThis;
@@ -1625,9 +1629,9 @@ function createExecutor(deps) {
   }
   async function typeInto(action, instant, signal) {
     const el = await locate(action, action.target, { use: true, ...signal ? { signal } : {} });
-    const control = el.tagName === "LABEL" ? el.control ?? el : el;
-    const field = isValueElement(control) && control.tagName !== "SELECT" ? control : null;
-    const editable = !field && isEditable(control) ? control : null;
+    const control2 = el.tagName === "LABEL" ? el.control ?? el : el;
+    const field = isValueElement(control2) && control2.tagName !== "SELECT" ? control2 : null;
+    const editable = !field && isEditable(control2) ? control2 : null;
     if (!field && !editable) throw new ActionError(action, "the target is not a text field", describeAnchor(action.target, ctx.anchors));
     const target = field ?? editable;
     let mode = "synthetic";
@@ -1713,9 +1717,9 @@ function createExecutor(deps) {
   }
   async function select(action, instant, signal) {
     const el = await locate(action, action.target, { use: true, ...signal ? { signal } : {} });
-    const control = el.tagName === "LABEL" ? el.control ?? el : el;
-    if (control.tagName !== "SELECT") throw new ActionError(action, "the target is not a select", describeAnchor(action.target, ctx.anchors));
-    const sel = control;
+    const control2 = el.tagName === "LABEL" ? el.control ?? el : el;
+    if (control2.tagName !== "SELECT") throw new ActionError(action, "the target is not a select", describeAnchor(action.target, ctx.anchors));
+    const sel = control2;
     const options = [...sel.options];
     const want = action.value !== void 0 ? options.find((o) => o.value === action.value) : action.option !== void 0 ? options.find((o) => o.label.trim().toLowerCase() === action.option?.trim().toLowerCase()) ?? options.find((o) => o.label.toLowerCase().includes(action.option?.toLowerCase() ?? "")) : void 0;
     if (!want) throw new ActionError(action, `the select has no option ${JSON.stringify(action.value ?? action.option ?? "")}`);
@@ -1737,21 +1741,21 @@ function createExecutor(deps) {
     blur(sel);
     return mode;
   }
-  function isChecked(control) {
-    if ("checked" in control && control.tagName === "INPUT") return control.checked;
-    const aria = control.getAttribute("aria-checked") ?? control.getAttribute("aria-pressed");
+  function isChecked(control2) {
+    if ("checked" in control2 && control2.tagName === "INPUT") return control2.checked;
+    const aria = control2.getAttribute("aria-checked") ?? control2.getAttribute("aria-pressed");
     if (aria === "true") return true;
     if (aria === "false") return false;
     return null;
   }
   async function check(action, instant, signal) {
     const el = await locate(action, action.target, { use: true, ...signal ? { signal } : {} });
-    const control = el.tagName === "LABEL" ? el.control ?? el : el;
+    const control2 = el.tagName === "LABEL" ? el.control ?? el : el;
     const want = action.checked ?? true;
-    const now = isChecked(control);
+    const now = isChecked(control2);
     if (now === null) throw new ActionError(action, "the target is not a checkbox, a radio or a switch", describeAnchor(action.target, ctx.anchors));
     if (now === want) return null;
-    const clickTarget = isVisible(control) ? control : (el.tagName === "LABEL" ? el : control.labels?.[0]) ?? control;
+    const clickTarget = isVisible(control2) ? control2 : (el.tagName === "LABEL" ? el : control2.labels?.[0]) ?? control2;
     return pressElement(action, clickTarget, instant, signal);
   }
   async function hover(action, instant, signal) {
@@ -1855,9 +1859,9 @@ function createExecutor(deps) {
   }
   async function upload(action, instant, signal) {
     const el = await locate(action, action.target, { use: true, ...signal ? { signal } : {} });
-    const control = el.tagName === "LABEL" ? el.control ?? el : el;
-    if (control.tagName !== "INPUT" || control.type !== "file") throw new ActionError(action, "the target is not a file input", describeAnchor(action.target, ctx.anchors));
-    const input = control;
+    const control2 = el.tagName === "LABEL" ? el.control ?? el : el;
+    if (control2.tagName !== "INPUT" || control2.type !== "file") throw new ActionError(action, "the target is not a file input", describeAnchor(action.target, ctx.anchors));
+    const input = control2;
     if (wantsTrusted(action)) {
       if (isVisible(el)) await approach(el, instant, signal);
       view().__showcaseUploadTarget = input;
@@ -5642,7 +5646,7 @@ function installTopLayer(win) {
   if (held) return held;
   const listeners = /* @__PURE__ */ new Set();
   const owned = /* @__PURE__ */ new WeakSet();
-  let control = null;
+  let control2 = null;
   let busy = false;
   const changed = () => {
     if (busy) return;
@@ -5713,7 +5717,7 @@ function installTopLayer(win) {
         if (type === "mousedown" || type === "pointerdown" || type === "touchstart") {
           if (e.cancelable && type === "mousedown") e.preventDefault();
         }
-        if (type === "click") control?.(path, e);
+        if (type === "click") control2?.(path, e);
         e.stopImmediatePropagation();
       },
       { capture: true, passive: false }
@@ -5729,7 +5733,7 @@ function installTopLayer(win) {
     },
     owns,
     onControl(fn) {
-      control = fn;
+      control2 = fn;
     }
   };
   Object.defineProperty(win, KEY2, { value: api, configurable: false, enumerable: false, writable: false });
@@ -6161,6 +6165,100 @@ function createOverlay(options) {
   return overlay;
 }
 
+// toolkit/runtime/src/in-app.ts
+var TOUR_PARAM = "showcase";
+var STEP_PARAM = "showcaseStep";
+var MODE_PARAM = "showcaseMode";
+var SHOWCASE_PARAMS = [TOUR_PARAM, STEP_PARAM, MODE_PARAM];
+var DEFAULT_BASE = "/showcase";
+function readDeepLink(search) {
+  const params = new URLSearchParams(search);
+  const tour = params.get(TOUR_PARAM);
+  if (!tour || !/^[a-z0-9][a-z0-9-]*$/i.test(tour)) return null;
+  const step = params.get(STEP_PARAM);
+  return { tour, step: step || null, mode: params.get(MODE_PARAM) === "film" ? "film" : "watch" };
+}
+function deepLink(path, link) {
+  const [pathname, query = ""] = path.split("?", 2);
+  const params = new URLSearchParams(query);
+  params.set(TOUR_PARAM, link.tour);
+  if (link.step) params.set(STEP_PARAM, link.step);
+  if (link.mode === "film") params.set(MODE_PARAM, "film");
+  return `${pathname}?${params.toString()}`;
+}
+function withoutShowcaseParams(search) {
+  const params = new URLSearchParams(search);
+  for (const p of SHOWCASE_PARAMS) params.delete(p);
+  const q = params.toString();
+  return q ? `?${q}` : "";
+}
+function wantsShowcase(win) {
+  if (readDeepLink(win.location.search)) return true;
+  try {
+    return win.sessionStorage.getItem(STORAGE_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+function servedPaths(base, tourId) {
+  const b = base.replace(/\/+$/, "");
+  return {
+    tour: `${b}/tours/${encodeURIComponent(tourId)}.json`,
+    // `showcase voice` writes `<tour>.manifest.json`; a hand-made `manifest.json` names its tour.
+    manifests: [`${b}/voice/${encodeURIComponent(tourId)}.manifest.json`, `${b}/voice/manifest.json`],
+    asset: (path) => `${b}/assets/${path.split("/").map(encodeURIComponent).join("/")}`,
+    clip: (file) => `${b}/voice/${file.split("/").map(encodeURIComponent).join("/")}`
+  };
+}
+var REPUSH_MS = 2e3;
+var ROUTE_TIMEOUT_MS = 1e4;
+async function routeTo(url, deps) {
+  const started = deps.now();
+  let pushed = started;
+  await deps.push(url);
+  while (!deps.at()) {
+    if (deps.signal?.aborted) return;
+    const now = deps.now();
+    if (now - started > ROUTE_TIMEOUT_MS) throw new Error(`the app's router never reached ${url} (${ROUTE_TIMEOUT_MS / 1e3} s)`);
+    if (now - pushed > REPUSH_MS) {
+      pushed = now;
+      await deps.push(url);
+    }
+    await deps.sleep(50);
+  }
+}
+var TAB = /^(shift\+)?tab$/i;
+function gapOf(a) {
+  if (a.input === "trusted") return { level: "cannot", why: "it asks for trusted input, which only the injected host can give" };
+  switch (a.kind) {
+    case "hover":
+      return { level: "check", why: "CSS :hover and native tooltips don't answer synthetic events: only the app's own pointer listeners see it" };
+    case "key":
+      if (TAB.test(a.key)) return { level: "cannot", why: "a synthetic Tab doesn't move focus: focus the next field with a `focus` action" };
+      return { level: "check", why: "a synthetic key has no default action: only the app's own key handlers see it (Enter in a form field still submits)" };
+    case "upload":
+      return { level: "check", why: "the files must be served at <base>/assets/, and the target must be the <input type=file> itself" };
+    case "drag":
+      return { level: "check", why: "synthetic pointer and HTML drag events work with listeners, not with the browser's own text or link dragging" };
+    case "scroll":
+      return a.by ? { level: "check", why: "a synthetic scroll moves the scroller directly: an app that listens for wheel events won't see one" } : null;
+    default:
+      return null;
+  }
+}
+function syntheticGaps(tour) {
+  const gaps = [];
+  for (const step of tour.steps) {
+    for (const beat of step.beats) {
+      for (const a of beat.actions ?? []) {
+        const g = gapOf(a);
+        if (g) gaps.push({ step: step.id, beat: beat.id, action: a.id, kind: a.kind, ...g });
+      }
+    }
+  }
+  return gaps;
+}
+
 // toolkit/runtime/src/index.ts
 var RUNTIME_VERSION = true ? "0.1.0" : "dev";
 var STILL_MS = 400;
@@ -6215,9 +6313,24 @@ function command(api, bridge, c) {
       return;
   }
 }
-async function bootDirector(win, api, config, n, adapters, top) {
+function inAppCommand(api, env, bridge, c) {
+  if (c !== "exit") {
+    command(api, bridge, c);
+    return;
+  }
+  if (api.snapshot()?.status !== "done") api.dispatch({ type: "end" });
+  env.exit();
+}
+var inAppEnvs = /* @__PURE__ */ new WeakMap();
+function control(api, bridge, c) {
+  const env = inAppEnvs.get(api);
+  if (env) inAppCommand(api, env, bridge, c);
+  else command(api, bridge, c);
+}
+async function bootDirector(win, api, config, n, adapters, top, env = null) {
   const doc = win.document;
   const bridge = createBridge(win);
+  if (env) inAppEnvs.set(api, env);
   let storage = null;
   try {
     storage = win.sessionStorage;
@@ -6241,7 +6354,7 @@ async function bootDirector(win, api, config, n, adapters, top) {
     lingerCaptions: ui === "rehearse",
     ...ui === "rehearse" ? { reducedMotion: true } : {},
     title: config.tour.title,
-    onCommand: (c) => command(api, bridge, c)
+    onCommand: (c) => control(api, bridge, c)
   });
   api.overlay = overlay;
   if (resumed && prior?.pointer) overlay.movePointer(prior.pointer.x, prior.pointer.y);
@@ -6254,7 +6367,8 @@ async function bootDirector(win, api, config, n, adapters, top) {
       ...config.muted !== void 0 ? { muted: config.muted } : {},
       storage,
       setTimeout: n.setTimeout,
-      clearTimeout: n.clearTimeout
+      clearTimeout: n.clearTimeout,
+      ...env ? { clipUrl: env.clipUrl } : {}
     });
     const a = audio;
     api.audio = {
@@ -6296,6 +6410,8 @@ async function bootDirector(win, api, config, n, adapters, top) {
       natives: n,
       bridge,
       ...config.input ? { input: config.input } : {},
+      ...env?.navigate ? { navigate: env.navigate } : {},
+      ...env ? { readFile: (path) => fetchFile(win, env.assetUrl(path)) } : {},
       overlay,
       invoke: async (name, args) => {
         const fn = adapters.get(name);
@@ -6316,6 +6432,7 @@ async function bootDirector(win, api, config, n, adapters, top) {
     waitFor: (ready, options) => waitFor(ready, { clock: options.clock, ctx: contextOf(ctx), timeoutMs: options.timeoutMs, ...options.signal ? { signal: options.signal } : {} }),
     navigate: (path, signal) => {
       if (samePath(win, path)) return Promise.resolve();
+      if (env?.navigate) return env.navigate(path, signal);
       win.location.assign(path);
       return signal ? whenAborted(signal) : new Promise(() => {
       });
@@ -6375,14 +6492,14 @@ function boot(win = window) {
     dispatch: (command2) => api.director?.dispatch(command2),
     snapshot: () => api.director?.snapshot ?? null,
     events: () => api.director?.events ?? [],
-    start: async (config) => {
+    start: async (config, env) => {
       const c = config ?? w.__showcaseConfig;
       if (!c) throw new Error("no showcase config");
       if (api.director) {
         api.director.start({ mode: c.mode, speed: c.speed ?? 1, ...c.from ? { from: c.from } : {} });
         return;
       }
-      await bootDirector(win, api, { ...c, autostart: true }, n, adapters, top);
+      await bootDirector(win, api, { ...c, autostart: true }, n, adapters, top, env ?? null);
     },
     actions: {
       register: (name, fn) => {
@@ -6420,7 +6537,7 @@ function boot(win = window) {
       if (!c || e.altKey || e.ctrlKey || e.metaKey || !watching() || !isViewerInput(api, n, e)) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      if (!e.repeat) command(api, createBridge(win), c);
+      if (!e.repeat) control(api, createBridge(win), c);
     },
     true
   );
@@ -6440,6 +6557,122 @@ function boot(win = window) {
   else ready();
   return api;
 }
+async function fetchFile(win, url) {
+  const res = await win.fetch(url);
+  if (!res.ok) throw new Error(`couldn't fetch ${url}: ${res.status}`);
+  const name = decodeURIComponent(url.split("/").pop() ?? "file");
+  return { name, type: res.headers.get("content-type") ?? "application/octet-stream", bytes: new Uint8Array(await res.arrayBuffer()) };
+}
+async function fetchJson(win, url) {
+  const res = await win.fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  return res.json();
+}
+async function priorRun(win, bridge, now) {
+  if (bridge.present) return hostStore({ load: () => bridge.loadState(), save: () => {
+  }, clear: () => {
+  } }).load();
+  let storage = null;
+  try {
+    storage = win.sessionStorage;
+  } catch {
+    storage = null;
+  }
+  return storageStore(storage, now).load();
+}
+function startInApp(adapter = {}, win = window) {
+  let started = inAppStarts.get(win);
+  if (!started) {
+    started = startOnce(adapter, win);
+    inAppStarts.set(win, started);
+    started.catch(() => inAppStarts.delete(win));
+  }
+  return started;
+}
+var inAppStarts = /* @__PURE__ */ new WeakMap();
+async function startOnce(adapter, win) {
+  if (!isTopFrame(win)) return null;
+  const bridge = createBridge(win);
+  const link = readDeepLink(win.location.search);
+  let tourId;
+  let mode;
+  let step = null;
+  let resumed = false;
+  if (link) {
+    tourId = link.tour;
+    mode = link.mode;
+    step = link.step;
+    try {
+      win.history.replaceState(win.history.state, "", `${win.location.pathname}${withoutShowcaseParams(win.location.search)}${win.location.hash}`);
+    } catch {
+    }
+    if (!bridge.present) {
+      try {
+        win.sessionStorage.removeItem(STORAGE_KEY);
+      } catch {
+      }
+    }
+  } else {
+    const prior = await priorRun(win, bridge, () => Date.now());
+    if (!prior) return null;
+    tourId = prior.tourId;
+    mode = prior.mode;
+    resumed = true;
+  }
+  const api = boot(win);
+  if (!api) return null;
+  await api.booted;
+  if (api.director) return api;
+  const paths = servedPaths(adapter.base ?? DEFAULT_BASE, tourId);
+  const tour = await fetchJson(win, paths.tour);
+  if (!tour || tour.showcase !== 1 || tour.id !== tourId) throw new Error(`${paths.tour} isn't the tour ${tourId}: run \`showcase runtime vendor\``);
+  let manifest = null;
+  for (const url of paths.manifests) {
+    const m = await fetchJson(win, url).catch(() => null);
+    if (m && m.v === 1 && m.tour === tourId && Array.isArray(m.clips)) {
+      manifest = m;
+      break;
+    }
+  }
+  for (const [name, fn] of Object.entries(adapter.actions ?? {})) api.actions.register(name, fn);
+  if (!resumed) await adapter.reset?.();
+  if (mode === "film" && win[ROLLING_KEY] === true) api.film.heartbeat(true);
+  await adapter.beforeStart?.({ tour, mode, step, resumed });
+  const push = adapter.navigate;
+  const env = {
+    navigate: push ? (url, signal) => routeTo(url, {
+      push,
+      at: () => samePath(win, url),
+      now: () => win.performance.now(),
+      sleep: (ms) => new Promise((r) => win.setTimeout(r, ms)),
+      ...signal ? { signal } : {}
+    }) : null,
+    clipUrl: paths.clip,
+    assetUrl: paths.asset,
+    exit: () => {
+      api.overlay?.destroy();
+      api.overlay = null;
+      try {
+        win.sessionStorage.removeItem(STORAGE_KEY);
+      } catch {
+      }
+      adapter.onExit?.();
+    }
+  };
+  await api.start(
+    {
+      tour,
+      mode,
+      speed: adapter.speed ?? 1,
+      ...step ? { from: step } : {},
+      input: "synthetic",
+      manifest,
+      muted: true
+    },
+    env
+  );
+  return api;
+}
 export {
   ANCHOR_TIMEOUT_MS,
   API_KEY,
@@ -6453,6 +6686,7 @@ export {
   CAPTION_WIDTH,
   CARD_HOLD_MIN_MS,
   CONTROLS_TAG,
+  DEFAULT_BASE,
   DEFAULT_DWELL_MS,
   Director,
   FILM_EVENT_NAME,
@@ -6465,6 +6699,7 @@ export {
   HOST_BINDING,
   KIND_DEFAULT_SEC,
   KIND_FACTOR,
+  MODE_PARAM,
   MUTED_KEY,
   NO_OVERLAY,
   NO_TIMELINE,
@@ -6477,17 +6712,22 @@ export {
   READING_MIN_MS,
   READING_WPM,
   READY_TIMEOUT_MS,
+  REPUSH_MS,
   ROLLING_KEY,
+  ROUTE_TIMEOUT_MS,
   RULES,
   RUNTIME_VERSION,
   ReadyTimeout,
   RealClock,
   SCROLL_SETTLE_MS,
+  SHOWCASE_PARAMS,
   STATE_MAX_AGE_MS,
   STATE_VERSION,
+  STEP_PARAM,
   STILL_MS,
   STORAGE_KEY,
   SchemaValidator,
+  TOUR_PARAM,
   TYPE_MS,
   accessibleName,
   anchorOf,
@@ -6512,6 +6752,7 @@ export {
   createTimeline,
   crossFieldIssues,
   cuesMs,
+  deepLink,
   deref,
   describeAnchor as describe,
   describeAnchor,
@@ -6553,16 +6794,19 @@ export {
   placeCallout,
   presetFor,
   queryDeep,
+  readDeepLink,
   readingMs,
   realmOf,
   rectOf,
   resolve,
   resolveAll,
   roleOf,
+  routeTo,
   safeMatches,
   schedule,
   selectAll,
   sentenceText,
+  servedPaths,
   setFiles,
   setNativeChecked,
   setNativeValue,
@@ -6570,8 +6814,10 @@ export {
   speak,
   spokenNumbers,
   squash,
+  startInApp,
   storageStore,
   suggestAnchor,
+  syntheticGaps,
   throwIfAborted,
   topmostAutoPopover,
   topmostModal,
@@ -6582,7 +6828,9 @@ export {
   visibleText,
   waitFor,
   waitForGo,
+  wantsShowcase,
   whenAborted,
+  withoutShowcaseParams,
   wordCount,
   wrapCaption
 };

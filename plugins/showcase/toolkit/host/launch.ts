@@ -86,6 +86,11 @@ export interface HostOptions {
   onCheckpoint?: (checkpoint: Checkpoint, host: Host) => Promise<void>;
   /** Watch: the viewer asked to close. */
   onExit?: () => void;
+  /**
+   * Inject the config and the runtime (default). Off for `film --in-app`: the app's vendored
+   * runtime boots from the deep link, and the host only binds, captures and collects.
+   */
+  inject?: boolean;
   /** A marker on Chromium's command line, so a test can find the process. */
   marker?: string;
   /** More Chromium switches (the film's colour profile and DevTools port). */
@@ -256,6 +261,9 @@ export async function launchHost(options: HostOptions): Promise<Host> {
     const seen = (seq: number) => {
       if (seq > lastSeq) lastSeq = seq;
     };
+    // The host's own `nav` events take sequence numbers the page doesn't know of: until the page
+    // next loads its state (a new document starts from the host's seq), its events move up past them.
+    let shift = 0;
     // Files for the next chooser a tour's `upload` opens; a chooser nobody asked for is cancelled.
     let pendingFiles: string[] | null = null;
 
@@ -317,7 +325,10 @@ export async function launchHost(options: HostOptions): Promise<Host> {
           }
           return null;
         case "state":
-          if (msg.op === "load") return host.state;
+          if (msg.op === "load") {
+            shift = 0;
+            return host.state;
+          }
           if (msg.op === "save") {
             host.state = { ...msg.state, seq: Math.max(msg.state.seq, lastSeq) };
             seen(host.state.seq);
@@ -330,10 +341,12 @@ export async function launchHost(options: HostOptions): Promise<Host> {
           const file = assetPath(dir, msg.path);
           return { name: basename(file), type: TYPES[extname(file).toLowerCase()] ?? "application/octet-stream", base64: readFileSync(file).toString("base64") };
         }
-        case "event":
-          seen(msg.event.seq);
-          host.events.push(msg.event);
+        case "event": {
+          const event = shift ? { ...msg.event, seq: msg.event.seq + shift } : msg.event;
+          seen(event.seq);
+          host.events.push(event);
           return null;
+        }
         case "log":
           host.logs.push({ level: msg.level, message: msg.message });
           return null;
@@ -366,8 +379,10 @@ export async function launchHost(options: HostOptions): Promise<Host> {
     };
     // Order matters (D16): the config, then the runtime (it captures the real clocks), then the
     // page aids, then the fixed clock, so the clock script never runs before the runtime.
-    if (options.tour) await context.addInitScript({ content: `window.__showcaseConfig = ${JSON.stringify(config)};` });
-    await context.addInitScript({ content: readFileSync(RUNTIME_IIFE, "utf8") });
+    if (options.inject !== false) {
+      if (options.tour) await context.addInitScript({ content: `window.__showcaseConfig = ${JSON.stringify(config)};` });
+      await context.addInitScript({ content: readFileSync(RUNTIME_IIFE, "utf8") });
+    }
     await context.addInitScript({ content: SAME_TAB });
     if (b.hide?.length) await context.addInitScript({ content: hideScript(b.hide) });
     if (b.clock?.fixed) await context.clock.setFixedTime(new Date(b.clock.fixed));
@@ -419,6 +434,7 @@ export async function launchHost(options: HostOptions): Promise<Host> {
       const s = host.state;
       if (!s || s.mode !== "film" || !s.rolling) return;
       const event: FilmEvent = { type: "nav", url, kind, v: FILM_VERSION, seq: ++lastSeq, doc: s.doc, t: Date.now(), wall: Date.now() };
+      shift += 1;
       host.state = { ...s, seq: lastSeq };
       host.events.push(event);
     };

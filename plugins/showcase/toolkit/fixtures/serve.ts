@@ -22,6 +22,9 @@ const TYPES: Record<string, string> = {
   ".js": "text/javascript; charset=utf-8",
   ".svg": "image/svg+xml",
   ".txt": "text/plain; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".json": "application/json",
+  ".mp3": "audio/mpeg",
 };
 
 export interface FixtureServer {
@@ -35,20 +38,23 @@ export interface ServeOptions {
   port?: number;
   /** Delay before each `.html` and `.css` response, in ms. */
   latencyMs?: number;
+  /** Serve another copy of the app (the in-app tests vendor into a scratch copy). */
+  root?: string;
 }
 
-function resolvePath(urlPath: string): string | null {
+function resolvePath(urlPath: string, root: string): string | null {
   let p = decodeURIComponent(urlPath.split("?")[0] ?? "/");
   if (p === "/") p = "/index.html";
   if (p === "/spa" || p.startsWith("/spa/")) p = "/spa.html";
-  const file = normalize(join(APP_DIR, p));
-  return file.startsWith(APP_DIR + sep) ? file : null;
+  const file = normalize(join(root, p));
+  return file.startsWith(root + sep) ? file : null;
 }
 
 export function serveFixture(opts: ServeOptions = {}): Promise<FixtureServer> {
   const latency = opts.latencyMs ?? 0;
+  const root = resolve(opts.root ?? APP_DIR);
   const server = createServer(async (req, res) => {
-    const file = resolvePath(req.url ?? "/");
+    const file = resolvePath(req.url ?? "/", root);
     if (req.url === "/favicon.ico") {
       res.writeHead(204).end();
       return;
