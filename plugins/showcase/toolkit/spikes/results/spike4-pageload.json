@@ -1,0 +1,390 @@
+{
+  "when": "2026-10-09T12:39:02.675Z",
+  "scale": 1.5,
+  "runs": [
+    {
+      "paintHolding": false,
+      "latencyMs": 120,
+      "paintHoldingDisabledInCommandLine": true,
+      "frames": 320,
+      "whiteFrames": 0,
+      "whiteMs": 0,
+      "brightFrames": 0,
+      "maxLuma": 28.7,
+      "baseLuma": 25.9,
+      "worstGaps": [
+        {
+          "atSec": 0.15,
+          "ms": 149
+        },
+        {
+          "atSec": 1.65,
+          "ms": 149
+        },
+        {
+          "atSec": 3.15,
+          "ms": 149
+        },
+        {
+          "atSec": 1.52,
+          "ms": 21
+        }
+      ],
+      "clicks": [
+        {
+          "link": "Reports",
+          "atSec": 0
+        },
+        {
+          "link": "Pipeline",
+          "atSec": 1.49
+        },
+        {
+          "link": "Open the workspace →",
+          "atSec": 2.99
+        },
+        {
+          "link": "Settings",
+          "atSec": 4.49
+        }
+      ],
+      "navs": [
+        {
+          "kind": "load",
+          "url": "/list.html",
+          "atSec": 0.16
+        },
+        {
+          "kind": "load",
+          "url": "/detail.html",
+          "atSec": 1.66
+        },
+        {
+          "kind": "load",
+          "url": "/spa",
+          "atSec": 3.16
+        },
+        {
+          "kind": "spa",
+          "url": "/spa/settings",
+          "atSec": 4.52
+        }
+      ],
+      "armed": [
+        {
+          "url": "/index.html",
+          "doc": 2,
+          "seq": 2
+        },
+        {
+          "url": "/list.html",
+          "doc": 3,
+          "seq": 12
+        },
+        {
+          "url": "/detail.html",
+          "doc": 4,
+          "seq": 20
+        },
+        {
+          "url": "/spa",
+          "doc": 5,
+          "seq": 28
+        }
+      ],
+      "reArmedOnEachLoad": true,
+      "spaDidNotReArm": true,
+      "seqStrictlyIncreasing": true,
+      "events": 36,
+      "framesOnDisk": 349
+    },
+    {
+      "paintHolding": true,
+      "latencyMs": 120,
+      "paintHoldingDisabledInCommandLine": false,
+      "frames": 320,
+      "whiteFrames": 0,
+      "whiteMs": 0,
+      "brightFrames": 0,
+      "maxLuma": 30.8,
+      "baseLuma": 25.9,
+      "worstGaps": [
+        {
+          "atSec": 0.15,
+          "ms": 149
+        },
+        {
+          "atSec": 3.13,
+          "ms": 149
+        },
+        {
+          "atSec": 1.65,
+          "ms": 131
+        },
+        {
+          "atSec": 1.5,
+          "ms": 27
+        }
+      ],
+      "clicks": [
+        {
+          "link": "Reports",
+          "atSec": 0
+        },
+        {
+          "link": "Pipeline",
+          "atSec": 1.49
+        },
+        {
+          "link": "Open the workspace →",
+          "atSec": 2.98
+        },
+        {
+          "link": "Settings",
+          "atSec": 4.47
+        }
+      ],
+      "navs": [
+        {
+          "kind": "load",
+          "url": "/list.html",
+          "atSec": 0.16
+        },
+        {
+          "kind": "load",
+          "url": "/detail.html",
+          "atSec": 1.65
+        },
+        {
+          "kind": "load",
+          "url": "/spa",
+          "atSec": 3.14
+        },
+        {
+          "kind": "spa",
+          "url": "/spa/settings",
+          "atSec": 4.5
+        }
+      ],
+      "armed": [
+        {
+          "url": "/index.html",
+          "doc": 2,
+          "seq": 2
+        },
+        {
+          "url": "/list.html",
+          "doc": 3,
+          "seq": 12
+        },
+        {
+          "url": "/detail.html",
+          "doc": 4,
+          "seq": 20
+        },
+        {
+          "url": "/spa",
+          "doc": 5,
+          "seq": 28
+        }
+      ],
+      "reArmedOnEachLoad": true,
+      "spaDidNotReArm": true,
+      "seqStrictlyIncreasing": true,
+      "events": 36,
+      "framesOnDisk": 349
+    },
+    {
+      "paintHolding": false,
+      "latencyMs": 400,
+      "paintHoldingDisabledInCommandLine": true,
+      "frames": 372,
+      "whiteFrames": 0,
+      "whiteMs": 0,
+      "brightFrames": 0,
+      "maxLuma": 30.8,
+      "baseLuma": 25.9,
+      "worstGaps": [
+        {
+          "atSec": 0.43,
+          "ms": 427
+        },
+        {
+          "atSec": 4.53,
+          "ms": 417
+        },
+        {
+          "atSec": 2.48,
+          "ms": 413
+        },
+        {
+          "atSec": 0.01,
+          "ms": 22
+        }
+      ],
+      "clicks": [
+        {
+          "link": "Reports",
+          "atSec": 0
+        },
+        {
+          "link": "Pipeline",
+          "atSec": 2.05
+        },
+        {
+          "link": "Open the workspace →",
+          "atSec": 4.09
+        },
+        {
+          "link": "Settings",
+          "atSec": 6.14
+        }
+      ],
+      "navs": [
+        {
+          "kind": "load",
+          "url": "/list.html",
+          "atSec": 0.44
+        },
+        {
+          "kind": "load",
+          "url": "/detail.html",
+          "atSec": 2.48
+        },
+        {
+          "kind": "load",
+          "url": "/spa",
+          "atSec": 4.53
+        },
+        {
+          "kind": "spa",
+          "url": "/spa/settings",
+          "atSec": 6.18
+        }
+      ],
+      "armed": [
+        {
+          "url": "/index.html",
+          "doc": 2,
+          "seq": 3
+        },
+        {
+          "url": "/list.html",
+          "doc": 3,
+          "seq": 16
+        },
+        {
+          "url": "/detail.html",
+          "doc": 4,
+          "seq": 27
+        },
+        {
+          "url": "/spa",
+          "doc": 5,
+          "seq": 38
+        }
+      ],
+      "reArmedOnEachLoad": true,
+      "spaDidNotReArm": true,
+      "seqStrictlyIncreasing": true,
+      "events": 47,
+      "framesOnDisk": 402
+    },
+    {
+      "paintHolding": true,
+      "latencyMs": 400,
+      "paintHoldingDisabledInCommandLine": false,
+      "frames": 372,
+      "whiteFrames": 0,
+      "whiteMs": 0,
+      "brightFrames": 0,
+      "maxLuma": 28.7,
+      "baseLuma": 25.9,
+      "worstGaps": [
+        {
+          "atSec": 0.43,
+          "ms": 423
+        },
+        {
+          "atSec": 2.48,
+          "ms": 420
+        },
+        {
+          "atSec": 4.53,
+          "ms": 417
+        },
+        {
+          "atSec": 0.02,
+          "ms": 26
+        }
+      ],
+      "clicks": [
+        {
+          "link": "Reports",
+          "atSec": 0
+        },
+        {
+          "link": "Pipeline",
+          "atSec": 2.05
+        },
+        {
+          "link": "Open the workspace →",
+          "atSec": 4.1
+        },
+        {
+          "link": "Settings",
+          "atSec": 6.14
+        }
+      ],
+      "navs": [
+        {
+          "kind": "load",
+          "url": "/list.html",
+          "atSec": 0.45
+        },
+        {
+          "kind": "load",
+          "url": "/detail.html",
+          "atSec": 2.49
+        },
+        {
+          "kind": "load",
+          "url": "/spa",
+          "atSec": 4.54
+        },
+        {
+          "kind": "spa",
+          "url": "/spa/settings",
+          "atSec": 6.19
+        }
+      ],
+      "armed": [
+        {
+          "url": "/index.html",
+          "doc": 2,
+          "seq": 3
+        },
+        {
+          "url": "/list.html",
+          "doc": 3,
+          "seq": 16
+        },
+        {
+          "url": "/detail.html",
+          "doc": 4,
+          "seq": 27
+        },
+        {
+          "url": "/spa",
+          "doc": 5,
+          "seq": 38
+        }
+      ],
+      "reArmedOnEachLoad": true,
+      "spaDidNotReArm": true,
+      "seqStrictlyIncreasing": true,
+      "events": 47,
+      "framesOnDisk": 401
+    }
+  ]
+}

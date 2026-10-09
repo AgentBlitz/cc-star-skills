@@ -1,0 +1,342 @@
+{
+  "when": "2026-10-09T12:37:55.732Z",
+  "scale": 1.5,
+  "landed": "20/20",
+  "syntheticFallbacks": 0,
+  "coveredBeforeCheck": 16,
+  "overlayStillUp": true,
+  "clicks": [
+    {
+      "where": "header",
+      "target": "Open Q3 revenue",
+      "coveredBefore": "header",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Open Q3 revenue",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 495
+      }
+    },
+    {
+      "where": "header",
+      "target": "Open churn by region",
+      "coveredBefore": "header",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Open churn by region",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 1079
+      }
+    },
+    {
+      "where": "header",
+      "target": "Open pipeline",
+      "coveredBefore": "header",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Open pipeline",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 1661
+      }
+    },
+    {
+      "where": "header",
+      "target": "Open support load",
+      "coveredBefore": "header",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Open support load",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 2246
+      }
+    },
+    {
+      "where": "banner",
+      "target": "Open hiring plan",
+      "coveredBefore": "banner",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Open hiring plan",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 2847
+      }
+    },
+    {
+      "where": "banner",
+      "target": "Open cloud spend",
+      "coveredBefore": "banner",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Open cloud spend",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 3427
+      }
+    },
+    {
+      "where": "banner",
+      "target": "Schedule weekly summary",
+      "coveredBefore": "banner",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Schedule weekly summary",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 4011
+      }
+    },
+    {
+      "where": "banner",
+      "target": "Schedule finance close",
+      "coveredBefore": "banner",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Schedule finance close",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 4597
+      }
+    },
+    {
+      "where": "scroller",
+      "target": "Acknowledge entry 31",
+      "coveredBefore": "nothing",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Acknowledge entry 31",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 5194
+      }
+    },
+    {
+      "where": "scroller",
+      "target": "Acknowledge entry 35",
+      "coveredBefore": "nothing",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Acknowledge entry 35",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 5761
+      }
+    },
+    {
+      "where": "scroller",
+      "target": "Acknowledge entry 38",
+      "coveredBefore": "nothing",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Acknowledge entry 38",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 6327
+      }
+    },
+    {
+      "where": "scroller",
+      "target": "Acknowledge entry 40",
+      "coveredBefore": "nothing",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Acknowledge entry 40",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 6894
+      }
+    },
+    {
+      "where": "iframe",
+      "target": "Approve claim E",
+      "coveredBefore": "nothing",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Approve claim E",
+        "trusted": true,
+        "page": "/frame.html",
+        "t": 7522
+      }
+    },
+    {
+      "where": "iframe",
+      "target": "Approve claim F",
+      "coveredBefore": "nothing",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Approve claim F",
+        "trusted": true,
+        "page": "/frame.html",
+        "t": 8154
+      }
+    },
+    {
+      "where": "iframe",
+      "target": "Approve claim G",
+      "coveredBefore": "nothing",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Approve claim G",
+        "trusted": true,
+        "page": "/frame.html",
+        "t": 8775
+      }
+    },
+    {
+      "where": "iframe",
+      "target": "Approve claim H",
+      "coveredBefore": "nothing",
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Approve claim H",
+        "trusted": true,
+        "page": "/frame.html",
+        "t": 9407
+      }
+    },
+    {
+      "where": "dialog",
+      "target": "Add as viewer",
+      "coveredBefore": null,
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Add as viewer",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 10684
+      }
+    },
+    {
+      "where": "dialog",
+      "target": "Add as editor",
+      "coveredBefore": null,
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Add as editor",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 11278
+      }
+    },
+    {
+      "where": "dialog",
+      "target": "Add as admin",
+      "coveredBefore": null,
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Add as admin",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 11877
+      }
+    },
+    {
+      "where": "dialog",
+      "target": "Copy invite link",
+      "coveredBefore": null,
+      "stable": true,
+      "inset": false,
+      "input": "trusted",
+      "landed": true,
+      "logged": {
+        "label": "Copy invite link",
+        "trusted": true,
+        "page": "/index.html",
+        "t": 12462
+      }
+    }
+  ],
+  "menu": [
+    {
+      "stop": "host",
+      "controlClicks": 5,
+      "controlsRegistered": 5,
+      "menuNeverClosed": true,
+      "focusStayedInMenu": true,
+      "hitTestFindsHost": true,
+      "captureListenerSawOutside": 5,
+      "closesOnRealOutsideClick": true
+    },
+    {
+      "stop": "window",
+      "controlClicks": 5,
+      "controlsRegistered": 5,
+      "menuNeverClosed": true,
+      "focusStayedInMenu": true,
+      "hitTestFindsHost": true,
+      "captureListenerSawOutside": 0,
+      "closesOnRealOutsideClick": true
+    },
+    {
+      "stop": "none",
+      "controlClicks": 5,
+      "controlsRegistered": 5,
+      "menuNeverClosed": false,
+      "focusStayedInMenu": false,
+      "hitTestFindsHost": true,
+      "captureListenerSawOutside": 1,
+      "closesOnRealOutsideClick": true
+    }
+  ]
+}

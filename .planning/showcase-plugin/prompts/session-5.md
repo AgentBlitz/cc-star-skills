@@ -25,7 +25,7 @@ The tour becomes visible and playable: the overlay, the full host, the live demo
 
 ## Do
 1. **The overlay** (`toolkit/runtime/src/overlay/`), per S-D3:
-   - **The host:** by default `<showcase-overlay popover="manual">` on `<html>` with a shadow root. It re-shows itself on top-layer changes, and in Watch its controls move into the topmost modal.
+   - **The host:** the hybrid S-D3 chose. `<showcase-overlay popover="manual">` on `<html>` with a shadow root draws everything and re-shows itself on top-layer changes. In Watch, only the controls (their own `<showcase-controls>` shadow host) move: into the fullscreen element, else the topmost modal dialog, else the app's topmost open auto popover, else back into the overlay. `toolkit/spikes/overlay-proto.js` is the measured prototype.
    - **The pieces:**
      - a pointer with a click ripple (WAAPI, awaited through `finished`);
      - a spotlight that follows its element, holds for its sentence and clears when the pointer moves on;
@@ -40,12 +40,12 @@ The tour becomes visible and playable: the overlay, the full host, the live demo
      - fonts declared at document level;
      - re-attached when the app re-renders it away;
      - it never takes focus;
-     - pointer events stop at the host;
+     - events from the controls are consumed by a window capture listener the bootstrap registers before any app code (S-D2), and the controls `preventDefault` on `mousedown`;
      - reduced motion honoured.
 2. **Audio in the runtime:** manifest lookup by tour, beat and exact text; `HTMLAudio` from Blob URLs delivered through the bridge; muting never changes timing.
 3. **The full host** (`toolkit/host/`):
    - **App lifecycle:** `app.build`, `start`, `url`, `health` and `env` (the child-environment policy); port allocation; a per-repo lock; process-group kill on exit; the `snapshot` and `reset` hooks.
-   - **Launch:** playwright-core, new headless or headed; scale; locale, timezone and colour scheme.
+   - **Launch:** playwright-core, new headless or headed; scale (with `--force-device-scale-factor`, S-D1); locale, timezone and colour scheme.
    - **The clock:** `setFixedTime`, registered **after** the runtime's init script.
    - **Browser options:**
      - `bypassCSP` and `serviceWorkers: 'block'`;

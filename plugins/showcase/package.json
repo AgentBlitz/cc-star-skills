@@ -5,7 +5,8 @@
   "engines": { "node": ">=24" },
   "scripts": {
     "test": "node --disable-warning=ExperimentalWarning --test \"toolkit/test/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p toolkit/spikes",
+    "spikes": "node --disable-warning=ExperimentalWarning toolkit/spikes/run-all.ts",
     "build:runtime": "echo 'build:runtime: no runtime yet (Session 4)'"
   },
   "devDependencies": {

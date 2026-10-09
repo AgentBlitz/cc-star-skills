@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard · Ledgerly</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <span class="brand">Ledgerly</span>
+    <nav aria-label="Main">
+      <a href="/index.html" aria-current="page">Dashboard</a>
+      <a href="/list.html">Reports</a>
+      <a href="/spa">Workspace</a>
+    </nav>
+    <span class="spacer"></span>
+    <span class="sync"><span class="spinner" aria-hidden="true"></span>Syncing</span>
+    <button class="quiet" popovertarget="notifications">Notifications</button>
+    <div class="menu-wrap">
+      <button class="quiet" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu">Account</button>
+      <div id="account-menu" role="menu" aria-label="Account" hidden>
+        <button role="menuitem">Profile</button>
+        <button role="menuitem">Billing</button>
+        <button role="menuitem">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="notifications" popover>
+    <h2>Notifications</h2>
+    <p>Three reports were updated overnight.</p>
+    <button class="quiet" popovertarget="notifications" popovertargetaction="hide">Dismiss</button>
+  </div>
+
+  <main>
+    <p role="status">Last action: none</p>
+
+    <section class="hero" aria-labelledby="hero-title">
+      <div>
+        <h1 id="hero-title">Good morning</h1>
+        <p>Revenue is tracking 4% ahead of plan this quarter.</p>
+        <p>
+          <button data-opens-dialog>Invite people</button>
+          <button class="quiet" data-fullscreen>Present chart</button>
+        </p>
+        <div class="chart-panel" role="figure" aria-label="Revenue chart">
+          <canvas width="640" height="240" aria-label="Revenue, last 90 days"></canvas>
+          <button class="quiet" data-fullscreen>Exit full screen</button>
+        </div>
+      </div>
+      <div class="spinner large" role="progressbar" aria-label="Loading forecast"></div>
+    </section>
+
+    <section aria-labelledby="reports-title">
+      <h2 id="reports-title">Recent reports</h2>
+      <div class="cards">
+        <div class="card"><h3>Q3 revenue</h3><button>Open Q3 revenue</button></div>
+        <div class="card"><h3>Churn by region</h3><button>Open churn by region</button></div>
+        <div class="card"><h3>Pipeline</h3><button>Open pipeline</button></div>
+        <div class="card"><h3>Hiring plan</h3><button>Open hiring plan</button></div>
+        <div class="card"><h3>Cloud spend</h3><button>Open cloud spend</button></div>
+        <div class="card"><h3>Support load</h3><button>Open support load</button></div>
+        <div class="card"><h3>Renewals</h3><button>Open renewals</button></div>
+        <div class="card"><h3>Marketing mix</h3><button>Open marketing mix</button></div>
+        <div class="card"><h3>Cash runway</h3><button>Open cash runway</button></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="activity-title">
+      <h2 id="activity-title">Activity</h2>
+      <div class="scroller" role="region" aria-label="Activity feed" tabindex="0">
+        <ol id="activity"></ol>
+      </div>
+    </section>
+
+    <section aria-labelledby="preview-title">
+      <h2 id="preview-title">Embedded preview</h2>
+      <iframe src="/frame.html" title="Approvals preview"></iframe>
+    </section>
+
+    <section aria-labelledby="settings-title">
+      <h2 id="settings-title">Settings</h2>
+      <form aria-labelledby="settings-title">
+        <label for="name">Workspace name</label>
+        <input id="name" type="text" value="Ledgerly UK">
+        <label for="region">Region</label>
+        <select id="region">
+          <option>United Kingdom</option>
+          <option>Ireland</option>
+          <option>Germany</option>
+        </select>
+        <label for="weekly">Email me weekly</label>
+        <input id="weekly" type="checkbox">
+        <span id="notes-label">Notes</span>
+        <div contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="notes-label">Quarterly review in two weeks.</div>
+        <span></span>
+        <div><button type="submit">Save settings</button></div>
+      </form>
+    </section>
+
+    <section aria-labelledby="more-title">
+      <h2 id="more-title">More</h2>
+      <p>
+        <span class="hover-menu">
+          <a href="#resources" aria-haspopup="true">Resources</a>
+          <ul aria-label="Resources">
+            <li><a href="/detail.html?id=guide">Getting-started guide</a></li>
+            <li><a href="/detail.html?id=api">API reference</a></li>
+          </ul>
+        </span>
+        · <a href="/detail.html?id=help" data-help-window>Open help in a new window</a>
+      </p>
+      <div class="dnd">
+        <div class="draggable" draggable="true" role="listitem" aria-label="Stale report: Q1 forecast">Stale report: Q1 forecast</div>
+        <div class="dropzone" role="region" aria-label="Archive">Drag reports here to archive them</div>
+      </div>
+      <p><label for="attach">Attach a file</label> <input id="attach" type="file"></p>
+    </section>
+
+    <section class="prose" aria-labelledby="notes-title">
+      <h2 id="notes-title">Release notes</h2>
+      <p>Reports now refresh every fifteen minutes, and the forecast model takes account of seasonality in the retail segment.</p>
+      <p>Region filters remember your last choice. Exports include the chart as an image and the underlying table as CSV.</p>
+      <p>The activity feed groups repeated events, and approvals can be delegated while you are away.</p>
+      <p>Cloud-spend reports split shared costs by team, using the tags your platform team already maintains.</p>
+    </section>
+
+    <section aria-labelledby="later-title">
+      <h2 id="later-title">Scheduled exports</h2>
+      <div class="cards">
+        <div class="card"><h3>Board pack</h3><button>Schedule board pack</button></div>
+        <div class="card"><h3>Weekly summary</h3><button>Schedule weekly summary</button></div>
+        <div class="card"><h3>Finance close</h3><button>Schedule finance close</button></div>
+        <div class="card"><h3>Sales digest</h3><button>Schedule sales digest</button></div>
+        <div class="card"><h3>Ops review</h3><button>Schedule ops review</button></div>
+        <div class="card"><h3>Audit trail</h3><button>Schedule audit trail</button></div>
+      </div>
+    </section>
+
+    <p><a href="/list.html">All reports →</a></p>
+  </main>
+
+  <dialog aria-labelledby="invite-title">
+    <h2 id="invite-title">Invite people</h2>
+    <p><label for="invite-email">Email address</label> <input id="invite-email" type="text" value="sam@example.com"></p>
+    <div class="row">
+      <button>Add as viewer</button>
+      <button>Add as editor</button>
+      <button>Add as admin</button>
+      <button class="quiet">Copy invite link</button>
+      <button class="quiet" data-closes-dialog>Close</button>
+    </div>
+  </dialog>
+
+  <div class="cookie-banner" role="region" aria-label="Cookie consent">
+    <p>We use cookies to keep you signed in and to understand how Ledgerly is used.</p>
+    <button>Accept cookies</button>
+    <button class="quiet">Decline</button>
+  </div>
+
+  <script>
+    // The activity feed: 40 entries in a nested scroller.
+    const list = document.getElementById("activity");
+    const who = ["Priya", "Tom", "Aisha", "Marek", "Jo", "Lena", "Sam", "Ravi"];
+    for (let i = 1; i <= 40; i++) {
+      const li = document.createElement("li");
+      const text = document.createElement("span");
+      text.textContent = `${who[i % who.length]} updated report ${i}`;
+      const b = document.createElement("button");
+      b.className = "quiet";
+      b.textContent = "Acknowledge";
+      b.setAttribute("aria-label", `Acknowledge entry ${i}`);
+      li.append(text, b);
+      list.append(li);
+    }
+  </script>
+</body>
+</html>

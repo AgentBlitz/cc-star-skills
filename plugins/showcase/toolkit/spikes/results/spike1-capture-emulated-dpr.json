@@ -1,0 +1,544 @@
+{
+  "when": "2026-10-09T12:21:12.077Z",
+  "settleMs": 300,
+  "chromium": "new headless (channel chromium), build 1243",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Max, Unspecified Version)",
+  "runs": [
+    {
+      "scale": 1,
+      "quality": 80,
+      "rep": 1,
+      "viewport": "1920x1080@1",
+      "frameSize": "1920x1080",
+      "seconds": 8.26,
+      "frames": 495,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 21,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.6,
+      "mbPerSec": 4.86,
+      "kbPerFrame": 81,
+      "pageRafFps": 60,
+      "worstGaps": [
+        {
+          "atSec": 0.16,
+          "ms": 21
+        },
+        {
+          "atSec": 0.12,
+          "ms": 19
+        },
+        {
+          "atSec": 0.19,
+          "ms": 19
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.97,
+        "up": 1.96,
+        "pointer": 8.25
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    },
+    {
+      "scale": 1,
+      "quality": 80,
+      "rep": 2,
+      "viewport": "1920x1080@1",
+      "frameSize": "1920x1080",
+      "seconds": 8.23,
+      "frames": 493,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 20.5,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.6,
+      "mbPerSec": 4.86,
+      "kbPerFrame": 81,
+      "pageRafFps": 60,
+      "worstGaps": [
+        {
+          "atSec": 0.16,
+          "ms": 21
+        },
+        {
+          "atSec": 5.09,
+          "ms": 19
+        },
+        {
+          "atSec": 5.96,
+          "ms": 19
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.98,
+        "up": 1.96,
+        "pointer": 8.22
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    },
+    {
+      "scale": 1,
+      "quality": 90,
+      "rep": 1,
+      "viewport": "1920x1080@1",
+      "frameSize": "1920x1080",
+      "seconds": 8.26,
+      "frames": 495,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 20.8,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.6,
+      "mbPerSec": 6.13,
+      "kbPerFrame": 102,
+      "pageRafFps": 60,
+      "worstGaps": [
+        {
+          "atSec": 0.16,
+          "ms": 21
+        },
+        {
+          "atSec": 1.93,
+          "ms": 18
+        },
+        {
+          "atSec": 1.98,
+          "ms": 18
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.98,
+        "up": 1.94,
+        "pointer": 8.26
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    },
+    {
+      "scale": 1,
+      "quality": 90,
+      "rep": 2,
+      "viewport": "1920x1080@1",
+      "frameSize": "1920x1080",
+      "seconds": 8.26,
+      "frames": 495,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 20.4,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 6.13,
+      "kbPerFrame": 102,
+      "pageRafFps": 60,
+      "worstGaps": [
+        {
+          "atSec": 0.16,
+          "ms": 20
+        },
+        {
+          "atSec": 0.79,
+          "ms": 18
+        },
+        {
+          "atSec": 1.13,
+          "ms": 18
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.97,
+        "up": 1.96,
+        "pointer": 8.26
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    },
+    {
+      "scale": 1.5,
+      "quality": 80,
+      "rep": 1,
+      "viewport": "1280x720@1.5",
+      "frameSize": "1280x720",
+      "seconds": 8.24,
+      "frames": 494,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 21.4,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 2.66,
+      "kbPerFrame": 44,
+      "pageRafFps": 60,
+      "worstGaps": [
+        {
+          "atSec": 0.19,
+          "ms": 21
+        },
+        {
+          "atSec": 4.81,
+          "ms": 20
+        },
+        {
+          "atSec": 0.07,
+          "ms": 19
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.97,
+        "up": 1.96,
+        "pointer": 8.24
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    },
+    {
+      "scale": 1.5,
+      "quality": 80,
+      "rep": 2,
+      "viewport": "1280x720@1.5",
+      "frameSize": "1280x720",
+      "seconds": 8.24,
+      "frames": 494,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 22.1,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 2.67,
+      "kbPerFrame": 44,
+      "pageRafFps": 60,
+      "worstGaps": [
+        {
+          "atSec": 0.19,
+          "ms": 22
+        },
+        {
+          "atSec": 5.12,
+          "ms": 20
+        },
+        {
+          "atSec": 0.94,
+          "ms": 19
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.97,
+        "up": 1.95,
+        "pointer": 8.24
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    },
+    {
+      "scale": 1.5,
+      "quality": 90,
+      "rep": 1,
+      "viewport": "1280x720@1.5",
+      "frameSize": "1280x720",
+      "seconds": 8.26,
+      "frames": 495,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 21.3,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.6,
+      "mbPerSec": 3.4,
+      "kbPerFrame": 57,
+      "pageRafFps": 60,
+      "worstGaps": [
+        {
+          "atSec": 0.19,
+          "ms": 21
+        },
+        {
+          "atSec": 3.76,
+          "ms": 20
+        },
+        {
+          "atSec": 5.52,
+          "ms": 20
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.98,
+        "up": 1.96,
+        "pointer": 8.26
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    },
+    {
+      "scale": 1.5,
+      "quality": 90,
+      "rep": 2,
+      "viewport": "1280x720@1.5",
+      "frameSize": "1280x720",
+      "seconds": 8.26,
+      "frames": 496,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 21.7,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 3.41,
+      "kbPerFrame": 57,
+      "pageRafFps": 59.9,
+      "worstGaps": [
+        {
+          "atSec": 0.19,
+          "ms": 22
+        },
+        {
+          "atSec": 0.66,
+          "ms": 21
+        },
+        {
+          "atSec": 1.06,
+          "ms": 20
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.98,
+        "up": 1.96,
+        "pointer": 8.26
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    },
+    {
+      "scale": 2,
+      "quality": 80,
+      "rep": 1,
+      "viewport": "960x540@2",
+      "frameSize": "960x540",
+      "seconds": 8.26,
+      "frames": 495,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 21.4,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 2.11,
+      "kbPerFrame": 35,
+      "pageRafFps": 59.9,
+      "worstGaps": [
+        {
+          "atSec": 0.21,
+          "ms": 21
+        },
+        {
+          "atSec": 2.59,
+          "ms": 20
+        },
+        {
+          "atSec": 0.03,
+          "ms": 19
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.98,
+        "up": 1.96,
+        "pointer": 8.26
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    },
+    {
+      "scale": 2,
+      "quality": 80,
+      "rep": 2,
+      "viewport": "960x540@2",
+      "frameSize": "960x540",
+      "seconds": 8.26,
+      "frames": 495,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 20.8,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 2.11,
+      "kbPerFrame": 35,
+      "pageRafFps": 60,
+      "worstGaps": [
+        {
+          "atSec": 0.21,
+          "ms": 21
+        },
+        {
+          "atSec": 1.11,
+          "ms": 20
+        },
+        {
+          "atSec": 2.59,
+          "ms": 20
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.97,
+        "up": 1.96,
+        "pointer": 8.26
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    },
+    {
+      "scale": 2,
+      "quality": 90,
+      "rep": 1,
+      "viewport": "960x540@2",
+      "frameSize": "960x540",
+      "seconds": 8.28,
+      "frames": 497,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 21.9,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 2.75,
+      "kbPerFrame": 46,
+      "pageRafFps": 59.9,
+      "worstGaps": [
+        {
+          "atSec": 0.21,
+          "ms": 22
+        },
+        {
+          "atSec": 7.63,
+          "ms": 20
+        },
+        {
+          "atSec": 1.84,
+          "ms": 19
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.98,
+        "up": 1.96,
+        "pointer": 8.28
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    },
+    {
+      "scale": 2,
+      "quality": 90,
+      "rep": 2,
+      "viewport": "960x540@2",
+      "frameSize": "960x540",
+      "seconds": 8.29,
+      "frames": 497,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 20.5,
+      "gapsOver100ms": 0,
+      "eventLoopP99Ms": 11.6,
+      "mbPerSec": 2.75,
+      "kbPerFrame": 46,
+      "pageRafFps": 59.9,
+      "worstGaps": [
+        {
+          "atSec": 2.59,
+          "ms": 21
+        },
+        {
+          "atSec": 0.09,
+          "ms": 20
+        },
+        {
+          "atSec": 0.21,
+          "ms": 20
+        }
+      ],
+      "phases": {
+        "start": 0,
+        "down": 0.97,
+        "up": 1.96,
+        "pointer": 8.29
+      },
+      "maxQueue": 1,
+      "delayedAcks": 0
+    }
+  ],
+  "summary": [
+    {
+      "scale": 1,
+      "quality": 80,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 21,
+      "eventLoopP99Ms": 11.6,
+      "mbPerSec": 4.86,
+      "kbPerFrame": 81,
+      "pageRafFps": 60
+    },
+    {
+      "scale": 1,
+      "quality": 90,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 20.8,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 6.13,
+      "kbPerFrame": 102,
+      "pageRafFps": 60
+    },
+    {
+      "scale": 1.5,
+      "quality": 80,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 22.1,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 2.67,
+      "kbPerFrame": 44,
+      "pageRafFps": 60
+    },
+    {
+      "scale": 1.5,
+      "quality": 90,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 21.7,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 3.41,
+      "kbPerFrame": 57,
+      "pageRafFps": 59.9
+    },
+    {
+      "scale": 2,
+      "quality": 80,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 21.4,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 2.11,
+      "kbPerFrame": 35,
+      "pageRafFps": 59.9
+    },
+    {
+      "scale": 2,
+      "quality": 90,
+      "fpsP5": 60,
+      "fpsMedian": 60,
+      "maxGapMs": 21.9,
+      "eventLoopP99Ms": 11.7,
+      "mbPerSec": 2.75,
+      "kbPerFrame": 46,
+      "pageRafFps": 59.9
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "pages": {
+    "index.html": "Dashboard · Ledgerly",
+    "list.html": "Reports · Ledgerly",
+    "detail.html": "Report · Ledgerly",
+    "spa.html": "Overview · Ledgerly",
+    "spa/settings": "Settings · Ledgerly",
+    "frame.html": "Approvals preview"
+  },
+  "elements": {
+    "stickyHeader": "sticky",
+    "cookieBanner": 1,
+    "menuTrigger": "menu",
+    "dialogOpener": 1,
+    "popover": "",
+    "fullscreen": 1,
+    "scroller": 1,
+    "iframe": 1,
+    "text": 1,
+    "select": 1,
+    "checkbox": 1,
+    "contenteditable": 1,
+    "hoverMenu": 1,
+    "drag": "true",
+    "dropZone": 1,
+    "canvas": 1,
+    "spinner": 1,
+    "fileInput": 1,
+    "windowOpen": 1,
+    "testIds": 0
+  },
+  "spa": {
+    "url": "/spa/settings",
+    "heading": "Settings",
+    "sameDocument": true
+  },
+  "problems": []
+}

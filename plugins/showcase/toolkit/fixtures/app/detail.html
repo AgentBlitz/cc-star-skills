@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Report · Ledgerly</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <span class="brand">Ledgerly</span>
+    <nav aria-label="Main">
+      <a href="/index.html">Dashboard</a>
+      <a href="/list.html" aria-current="page">Reports</a>
+      <a href="/spa">Workspace</a>
+    </nav>
+    <span class="spacer"></span>
+    <span class="sync"><span class="spinner" aria-hidden="true"></span>Syncing</span>
+  </header>
+
+  <main>
+    <p role="status">Last action: none</p>
+    <section aria-labelledby="detail-title">
+      <p><a href="/list.html">← All reports</a></p>
+      <h1 id="detail-title">Q3 revenue</h1>
+      <dl>
+        <dt>Owner</dt><dd>Finance</dd>
+        <dt>Revenue</dt><dd>£4.2m, 4% ahead of plan</dd>
+        <dt>Updated</dt><dd>This morning</dd>
+      </dl>
+      <p><a href="/spa">Open the workspace →</a></p>
+    </section>
+    <section aria-labelledby="chart-title">
+      <h2 id="chart-title">Trend</h2>
+      <div class="spinner large" role="progressbar" aria-label="Loading trend"></div>
+    </section>
+  </main>
+  <script>
+    const id = new URLSearchParams(location.search).get("id");
+    const names = ["Q3 revenue","Churn by region","Pipeline","Hiring plan","Cloud spend","Support load","Renewals","Marketing mix","Cash runway"];
+    const n = names[Number(id) - 1];
+    if (n) { document.getElementById("detail-title").textContent = n; document.title = `${n} · Ledgerly`; }
+  </script>
+
+  <div class="cookie-banner" role="region" aria-label="Cookie consent">
+    <p>We use cookies to keep you signed in and to understand how Ledgerly is used.</p>
+    <button>Accept cookies</button>
+    <button class="quiet">Decline</button>
+  </div>
+</body>
+</html>

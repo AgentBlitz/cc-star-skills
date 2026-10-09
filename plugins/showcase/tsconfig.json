@@ -16,5 +16,5 @@
     "resolveJsonModule": true
   },
   "include": ["toolkit/**/*.ts"],
-  "exclude": ["toolkit/test/.out"]
+  "exclude": ["toolkit/test/.out", "toolkit/spikes"]
 }

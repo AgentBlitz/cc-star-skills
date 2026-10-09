@@ -1,0 +1,666 @@
+{
+  "when": "2026-10-09T12:38:17.201Z",
+  "scale": 1.5,
+  "rows": [
+    {
+      "design": "popover",
+      "case": "baseline",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": false,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-overlay",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/popover-baseline.png"
+    },
+    {
+      "design": "popover",
+      "case": "modal",
+      "opened": {
+        "dialogOpen": true,
+        "popoverOpen": false,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "div",
+        "inner": null
+      },
+      "controlsClickable": false,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/popover-modal.png"
+    },
+    {
+      "design": "popover",
+      "case": "popover-auto",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": true,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-overlay",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": false,
+      "screenshot": "test/.out/spikes/s3/popover-popover-auto.png"
+    },
+    {
+      "design": "popover",
+      "case": "fullscreen",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": false,
+        "fullscreen": true
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "div",
+        "inner": null
+      },
+      "controlsClickable": false,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/popover-fullscreen.png"
+    },
+    {
+      "design": "popover-static",
+      "case": "baseline",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": false,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-overlay",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/popover-static-baseline.png"
+    },
+    {
+      "design": "popover-static",
+      "case": "modal",
+      "opened": {
+        "dialogOpen": true,
+        "popoverOpen": false,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": false,
+      "barDrawnOnTop": false,
+      "pointerRgb": [
+        14,
+        22,
+        40
+      ],
+      "barRgb": [
+        255,
+        255,
+        255
+      ],
+      "elementFromPointAtNext": {
+        "top": "div",
+        "inner": null
+      },
+      "controlsClickable": false,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/popover-static-modal.png"
+    },
+    {
+      "design": "popover-static",
+      "case": "popover-auto",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": true,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": false,
+      "barDrawnOnTop": false,
+      "pointerRgb": [
+        19,
+        28,
+        46
+      ],
+      "barRgb": [
+        19,
+        28,
+        46
+      ],
+      "elementFromPointAtNext": {
+        "top": "div",
+        "inner": null
+      },
+      "controlsClickable": false,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/popover-static-popover-auto.png"
+    },
+    {
+      "design": "popover-static",
+      "case": "fullscreen",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": false,
+        "fullscreen": true
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": false,
+      "barDrawnOnTop": false,
+      "pointerRgb": [
+        16,
+        24,
+        43
+      ],
+      "barRgb": [
+        14,
+        22,
+        40
+      ],
+      "elementFromPointAtNext": {
+        "top": "div",
+        "inner": null
+      },
+      "controlsClickable": false,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/popover-static-fullscreen.png"
+    },
+    {
+      "design": "portal",
+      "case": "baseline",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": false,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "body",
+        "popoverOpen": null,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-overlay",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/portal-baseline.png"
+    },
+    {
+      "design": "portal",
+      "case": "modal",
+      "opened": {
+        "dialogOpen": true,
+        "popoverOpen": false,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "dialog",
+        "popoverOpen": null,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-overlay",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/portal-modal.png"
+    },
+    {
+      "design": "portal",
+      "case": "popover-auto",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": true,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "body",
+        "popoverOpen": null,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": false,
+      "barDrawnOnTop": false,
+      "pointerRgb": [
+        19,
+        28,
+        46
+      ],
+      "barRgb": [
+        19,
+        28,
+        46
+      ],
+      "elementFromPointAtNext": {
+        "top": "div",
+        "inner": null
+      },
+      "controlsClickable": false,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/portal-popover-auto.png"
+    },
+    {
+      "design": "portal",
+      "case": "fullscreen",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": false,
+        "fullscreen": true
+      },
+      "host": {
+        "parent": "body",
+        "popoverOpen": null,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": false,
+      "barDrawnOnTop": false,
+      "pointerRgb": [
+        16,
+        24,
+        43
+      ],
+      "barRgb": [
+        14,
+        22,
+        40
+      ],
+      "elementFromPointAtNext": {
+        "top": "div",
+        "inner": null
+      },
+      "controlsClickable": false,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/portal-fullscreen.png"
+    },
+    {
+      "design": "hybrid",
+      "case": "baseline",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": false,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-overlay",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/hybrid-baseline.png"
+    },
+    {
+      "design": "hybrid",
+      "case": "modal",
+      "opened": {
+        "dialogOpen": true,
+        "popoverOpen": false,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "dialog"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-controls",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/hybrid-modal.png"
+    },
+    {
+      "design": "hybrid",
+      "case": "popover-auto",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": true,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-overlay",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": false,
+      "screenshot": "test/.out/spikes/s3/hybrid-popover-auto.png"
+    },
+    {
+      "design": "hybrid",
+      "case": "fullscreen",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": false,
+        "fullscreen": true
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "div"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-controls",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/hybrid-fullscreen.png"
+    },
+    {
+      "design": "hybrid+popover",
+      "case": "baseline",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": false,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "overlay"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-overlay",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/hybrid+popover-baseline.png"
+    },
+    {
+      "design": "hybrid+popover",
+      "case": "modal",
+      "opened": {
+        "dialogOpen": true,
+        "popoverOpen": false,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "dialog"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-controls",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/hybrid+popover-modal.png"
+    },
+    {
+      "design": "hybrid+popover",
+      "case": "popover-auto",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": true,
+        "fullscreen": false
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "div"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-controls",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/hybrid+popover-popover-auto.png"
+    },
+    {
+      "design": "hybrid+popover",
+      "case": "fullscreen",
+      "opened": {
+        "dialogOpen": false,
+        "popoverOpen": false,
+        "fullscreen": true
+      },
+      "host": {
+        "parent": "html",
+        "popoverOpen": true,
+        "controlsIn": "div"
+      },
+      "pointerDrawnOnTop": true,
+      "barDrawnOnTop": true,
+      "pointerRgb": [
+        255,
+        0,
+        255
+      ],
+      "barRgb": [
+        255,
+        212,
+        0
+      ],
+      "elementFromPointAtNext": {
+        "top": "showcase-controls",
+        "inner": "Next"
+      },
+      "controlsClickable": true,
+      "appElementSurvivedControlClick": true,
+      "screenshot": "test/.out/spikes/s3/hybrid+popover-fullscreen.png"
+    }
+  ]
+}

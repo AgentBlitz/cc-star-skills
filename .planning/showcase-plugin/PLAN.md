@@ -1,6 +1,6 @@
 # showcase plugin: narrated product films and self-playing tours for any web app
 
-> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **0 of 13 sessions done.** Next: **Session 1 (F1, the foundation)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
+> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **2 of 13 sessions done.** Next: **Session 3 (T1, the tour format)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
 
 ## 1. Context
 
@@ -129,16 +129,16 @@ Input goes two ways:
   - An "acting" window `{kind, point, deadline}` replaces Compass's `isTrusted` test for telling the tour's input from the viewer's. A viewer's click pauses the tour.
 - **In-app: realm-correct synthetic events**, ported from Compass's `dom-events.ts`: the React value setter, plus `beforeinput` typing for contenteditable and `DataTransfer` uploads. `rehearse --synthetic` shows which tours can ship in-app.
 
-**Overlay** (the default design; Session 2's Spike 3 confirms it or picks the fallback).
+**Overlay** (the hybrid design Session 2's Spike 3 chose, S-D3).
 - A shadow root inside `<showcase-overlay popover="manual">`, attached to `<html>`, not `<body>`, so React hydration doesn't trip over it.
 - **Staying on top:**
-  - `showPopover()` is called again on every top-layer change.
-  - The bootstrap patches `showModal`, `showPopover` and `requestFullscreen`, and also watches `toggle`, `fullscreenchange` and dialog `open`.
+  - `showPopover()` is called again (hide, then show) on every top-layer change. Without it the overlay is drawn under a modal dialog, an auto popover or a fullscreen element.
+  - The bootstrap patches `showModal`, `showPopover` and `requestFullscreen`, and also watches `toggle` (capture phase), `fullscreenchange` and dialog `open`.
 - **Staying out of the way:**
-  - Anything outside an open modal is inert, so in Watch mode the controls move into the topmost modal. The film has nothing interactive.
+  - Anything outside an open modal dialog is inert, and in Chromium so is anything outside a fullscreen element. A click on the controls also light-dismisses an app's open `popover=auto`. So in Watch mode **only the controls** move, in their own `<showcase-controls>` shadow host: into the fullscreen element, else the topmost modal dialog, else the app's topmost open auto popover, else back into the overlay. The drawing (pointer, spotlight, captions, cards) stays in the popover. The film has nothing interactive, so it uses the popover alone.
   - Everything is `pointer-events: none` except the controls. A `data-acting` flag clears the shield during host input.
-  - Pointer events stop at the host, so the app's "click outside" handlers stay quiet.
-  - It never takes focus.
+  - Events from the controls are consumed by a **window capture listener** the bootstrap registers before any app code: it acts on the control and stops the event, so neither bubble-phase "click outside" handlers (Radix) nor capture-phase ones ever see it.
+  - It never takes focus: the controls `preventDefault()` on `mousedown`.
 - **Hygiene:**
   - `:host{all:initial}`;
   - adopted stylesheets only (safe under CSP and Trusted Types);
@@ -153,7 +153,7 @@ Input goes two ways:
   - title and closing cards;
   - controls;
   - an end card.
-- **The fallback** is Compass's portal into the topmost open dialog.
+- **The fallback** is Compass's portal into the topmost open dialog. Spike 3 found it isn't drawn over an auto popover or a fullscreen element.
 
 **Audio.**
 - Clips come from the manifest, looked up by tour, beat and exact text. Muting never changes timing.
@@ -212,7 +212,7 @@ film:end       {}   |   film:error { beat?, message, anchor? }
 **`showcase/config.json`** holds:
 - **`app`:** `build`, `start`, `url`, `health`, `env`, `reset` (a command or HTTP), `snapshot` (for example an SQLite `.backup`).
 - **`browser`:**
-  - `scale`, `viewport`;
+  - `scale` (default 1.5, S-D1), `viewport`;
   - `colorScheme`, `locale`, `timezone`;
   - `clock` (`setFixedTime` only; `clock.install` would fake the tour's own timers);
   - `storageState`;
@@ -231,7 +231,7 @@ film:end       {}   |   film:error { beat?, message, anchor? }
 - keeps `window.open` and `target=_blank` in the same tab;
 - ignores "context destroyed" errors after a click navigates;
 - grants clipboard permissions;
-- handles full page loads per Spike 4, so they don't flash white (PaintHolding, or crossfades at `nav` in post).
+- handles full page loads per Spike 4 (S-D4): Playwright's default arguments show no white flash, because the old page stays on screen until the new one paints. The host holds the run state across loads, including the pointer's position (the overlay re-arms at the centre). A crossfade at `nav` in post stays the fallback.
 
 **Injection (D16).**
 - The IIFE goes in with `addInitScript`, in the top frame only, registered before any clock script.
@@ -292,10 +292,12 @@ film:end       {}   |   film:error { beat?, message, anchor? }
 - **Take:**
   - Film the production build; dev overlays and hot reloads would show up.
   - The app runs on its own port with `app.env`, after `snapshot` and `reset`, and the recorder waits for `health`.
-  - Headless Chromium (new headless) at the configured scale, with `--force-color-profile=srgb`, the locale, timezone and colour scheme, a fixed clock, and `reducedMotion: 'no-preference'`.
+  - Headless Chromium (new headless, `channel: "chromium"`) at the configured scale (default 1.5, S-D1), with `--force-color-profile=srgb`, the locale, timezone and colour scheme, a fixed clock, and `reducedMotion: 'no-preference'`.
+  - **The DPR must be real:** launch with `--force-device-scale-factor=<scale>` as well as the context's `deviceScaleFactor`. With emulation alone the screencast sends frames at the CSS viewport size (960×540 at scale 2).
 - **Capture:**
-  - CDP `Page.startScreencast`: JPEG at Spike 1's quality (q90 expected), every frame, acknowledged at once, written through a bounded queue. When it's full, acknowledgements are delayed, so Chrome drops frames rather than Node's memory growing.
-  - If the event loop lags (p99 over 20 ms), capture moves to a worker on a raw CDP WebSocket.
+  - CDP `Page.startScreencast`: JPEG q90 (S-D1), `maxWidth` 1920 and `maxHeight` 1080, every frame, acknowledged at once, written through a bounded queue. When it's full, acknowledgements are delayed, so Chrome drops frames rather than Node's memory growing. Spike 1 measured 60 fps at p5 and about 6 MB/s at every scale.
+  - The executor settles 300 ms after each scroll. Back-to-back scrolls with no settle cause one ~267 ms capture stall when the burst ends.
+  - If the event loop lags (p99 over 20 ms), capture moves to a worker on a raw CDP WebSocket. Spike 1 measured 11.7 ms.
   - A clock-sync probe, a 750 ms pre-roll, a watchdog, and a 1.2 s tail.
   - The page's own frame rate is logged too.
   - Playwright's `recordVideo` was rejected: VP8 at 1 Mbps and 25 fps is too soft for text.
@@ -321,7 +323,7 @@ film:end       {}   |   film:error { beat?, message, anchor? }
   - no silent gap over 2.5 s;
   - the SRT equals the sentences;
   - captions and audio within 50 ms;
-  - no motion gap over 100 ms;
+  - no motion gap over 100 ms, except one that starts at a `nav` load (the held frame of a page load, S-D4);
   - the last `rehearse` deny-list result clean.
 
   Then Claude reads the contact sheet and each still against its narration: does the screen show what the sentence says?
@@ -579,10 +581,10 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
 
 | # | Question | Verdict | Numbers | Default chosen | Fallback |
 |---|---|---|---|---|---|
-| S-D1 | Capture: fps and frame gaps at scale 1, 1.5 and 2 (JPEG q80/q90) | — | — | — | worker capture → lower scale → `beginFrame` (`Needs decision:`) |
-| S-D2 | Trusted clicks under covers; controls vs the app's menus | — | — | — | synthetic input, logged |
-| S-D3 | Overlay hosting: the popover top layer vs `showModal`, `popover=auto`, full screen | — | — | — | Compass's portal into the topmost dialog |
-| S-D4 | Continuity and white flashes across full page loads | — | — | — | crossfade at `nav` in post |
+| S-D1 | Capture: fps and frame gaps at scale 1, 1.5 and 2 (JPEG q80/q90) | **Holds at every scale, once the DPR is real.** With only `deviceScaleFactor` emulated, the screencast sends CSS-size frames (960×540 at scale 2), so the recorder also launches with `--force-device-scale-factor=<scale>`; then every scale gives 1920×1080. Back-to-back scrolls with no settle cause one ~267 ms capture stall when the burst ends (the page's rAF never stalls); a 300 ms settle after each scroll removes it | All six configs (2 reps, worst kept, 300 ms settle): p5 60 fps, median 60, largest gap 21–35 ms, event-loop p99 11.7 ms, 4.8–6.9 MB/s, 80–116 kB/frame, page rAF 60; bounded queue never above 2, no delayed acks. Burst (no settle): p5 43, one 267 ms gap at all scales. Renderer: ANGLE Metal, M4 Max (`spikes/results/spike1-*.json`) | **`browser.scale` 1.5** (1280×720 CSS, a desktop layout, at DPR 1.5); **JPEG q90**; capture on the main thread (p99 far under 20 ms); the executor settles 300 ms after each scroll | worker capture → lower scale → `beginFrame` (`Needs decision:`) |
+| S-D2 | Trusted clicks under covers; controls vs the app's menus | **Trusted CDP input lands everywhere** behind the §2.1 check (scroll to centre, rect stable over two frames, `elementsFromPoint` ignoring the overlay, inset points). Events from the controls are best consumed by a **window capture listener** the bootstrap registers before any app code: stopping them at the host keeps Radix-style (bubble) menus open, but capture-phase listeners still see them | 20/20 landed and logged as trusted (header 4, banner 4, nested scroller 4, iframe 4, modal dialog 4), 16 of them covered or clipped before the check, 0 synthetic fallbacks. Menu: host-stop and window-stop both kept it open across 5 control clicks with focus left in the menu; a capture-phase listener saw 5 of 5 with host-stop and 0 with window-stop; with no stopping, the first click closed it (`spikes/results/spike2-clicks.json`) | trusted input with the check; window-capture event consumption; controls `preventDefault` on `mousedown`, so they never take focus | synthetic input, logged |
+| S-D3 | Overlay hosting: the popover top layer vs `showModal`, `popover=auto`, full screen | **A hybrid.** The popover host, re-shown on every top-layer change, draws on top in every case, but its controls are inert under a modal dialog and under full screen (Chromium makes everything outside the fullscreen element inert too), and a control click light-dismisses an app's `popover=auto`. Compass's portal fails for `popover=auto` and full screen. So the **drawing** stays in the popover, and only the **controls** move into the topmost modal dialog, the fullscreen element or the app's open auto popover | Popover re-shown: drawn 4/4, clickable 2/4. Popover never re-shown: drawn 1/4. Compass portal: drawn 2/4, clickable 2/4. Hybrid: 4/4 drawn and clickable, but the auto popover closed. Hybrid with popovers: 4/4 drawn, 4/4 clickable, 4/4 app elements kept. Pixel checks (pointer magenta, bar yellow), `elementFromPoint` and screenshots for all 20 cells (`spikes/results/spike3-toplayer.json`, contact sheet read back) | **The hybrid** (§2.1 "Overlay"); the film has no controls, so it uses the popover alone | Compass's portal into the topmost dialog |
+| S-D4 | Continuity and white flashes across full page loads | **No white flashes, with or without PaintHolding.** New headless keeps the old page on screen until the new one paints, so a load shows as a held last frame, as long as the server takes. Playwright's defaults stay. The init script re-arms on each load, an SPA route doesn't re-arm, and the host-held `seq` carries on | 4 runs (PaintHolding off/on × 120/400 ms latency): 0 white frames, max mean luma 31 against a base of 26; 3 held frames per tour of 149 ms (120 ms latency) and about 420 ms (400 ms); re-armed on each of 4 loads with `doc` up by one each time, `seq` strictly increasing over 36–47 events plus `nav` events; the `/spa/settings` route came as `navigatedWithinDocument` (`spikes/results/spike4-pageload.json`) | Playwright's default arguments (no PaintHolding change); verify exempts a motion gap that starts at a `nav` load; the host also holds the pointer's position, which re-arms at the centre | crossfade at `nav` in post |
 
 ### Reconciliations (the newer decision wins)
 
@@ -613,6 +615,7 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
   - Erasable syntax only: no enums, no constructor parameter properties, no namespaces.
   - `.ts` import specifiers.
   - In `tsconfig`: `erasableSyntaxOnly`, `verbatimModuleSyntax`, `allowImportingTsExtensions`, `noEmit`, `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`.
+  - `toolkit/spikes/` has its own `tsconfig.json`, which adds the DOM lib for its `page.evaluate` code; `npm run typecheck` checks both, so Node code still sees no DOM globals (Session 2).
 - **C4 · The runtime** imports nothing from Node or any framework (a test enforces it). `dist/` is rebuilt with `npm run build:runtime` and must be fresh (a test enforces the stamp).
 - **C5 · Timing is driven by narration:** a sentence lasts `durationMs` from the manifest, else `readingMs`. Muting never changes timing.
 - **C6 · Writes are idempotent:** every `write` has `done`, and fast-forward and re-show never write twice.
@@ -891,7 +894,7 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
 2. **Audio in the runtime:** manifest lookup, `HTMLAudio` from Blob URLs delivered through the bridge, timing independent of mute.
 3. **The full host** (`toolkit/host/`):
    - **App lifecycle:** `app.build`, `start`, `url`, `health` and `env`; port allocation; a per-repo lock; process-group kill; the `snapshot` and `reset` hooks.
-   - **Launch:** new headless or headed; scale; locale, timezone and colour scheme.
+   - **Launch:** new headless or headed; scale (with `--force-device-scale-factor`, S-D1); locale, timezone and colour scheme.
    - **The clock:** `setFixedTime`, registered after the runtime's init script.
    - **Browser options:**
      - `bypassCSP` and `serviceWorkers: 'block'`;
@@ -1008,7 +1011,7 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
    - `report.json` and `report.md` with the §2.5 verify list;
    - `--strict`;
    - `-draft.mp4` with a DRAFT watermark;
-   - crossfades at `nav`, if S-D4 needs them.
+   - verify exempts a motion gap that starts at a `nav` load (S-D4: no white flash with Playwright's defaults); crossfades at `nav` only as a fallback.
 4. **`skills/showcase/reference/film.md`.**
 
 **Boundaries.** No camera, music or 4K (D19).

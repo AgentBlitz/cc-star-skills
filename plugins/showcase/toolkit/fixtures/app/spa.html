@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workspace · Ledgerly</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <span class="brand">Ledgerly</span>
+    <nav aria-label="Main">
+      <a href="/index.html">Dashboard</a>
+      <a href="/list.html">Reports</a>
+      <a href="/spa" aria-current="page">Workspace</a>
+    </nav>
+    <span class="spacer"></span>
+    <span class="sync"><span class="spinner" aria-hidden="true"></span>Syncing</span>
+  </header>
+
+  <main>
+    <p role="status">Last action: none</p>
+    <nav aria-label="Workspace">
+      <a href="/spa" data-spa-link>Overview</a> ·
+      <a href="/spa/settings" data-spa-link>Settings</a> ·
+      <a href="/spa/members" data-spa-link>Members</a>
+    </nav>
+    <section data-spa-outlet aria-live="polite"></section>
+  </main>
+
+  <div class="cookie-banner" role="region" aria-label="Cookie consent">
+    <p>We use cookies to keep you signed in and to understand how Ledgerly is used.</p>
+    <button>Accept cookies</button>
+    <button class="quiet">Decline</button>
+  </div>
+</body>
+</html>

@@ -38,7 +38,7 @@ The first complete film: narration, captions, script, stills and a verification 
 4. **Flags and fixes:**
    - `--strict`, which fails on any warning;
    - `-draft.mp4` with a DRAFT watermark while the narrator is unapproved or the draft voice is used;
-   - crossfades at `nav` events, if S-D4 said PaintHolding alone doesn't stop the white flashes.
+   - verify exempts a motion gap that starts at a `nav` load (S-D4 found no white flash with Playwright's defaults; a load shows as a held frame). Crossfades at `nav` stay a fallback, only if a real app flashes.
 5. **A fixture beat that beeps and flashes together,** for measuring A/V sync.
 6. **`skills/showcase/reference/film.md`.**
 
