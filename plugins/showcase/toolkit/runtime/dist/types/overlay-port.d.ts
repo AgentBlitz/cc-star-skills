@@ -1,6 +1,6 @@
 /**
- * What the executor and the director show while they act. Session 5's overlay implements it in
- * full; Session 4 ships a pointer stub (`overlay-stub.ts`).
+ * What the executor and the director show while they act: the contract `overlay/index.ts`
+ * implements (PLAN §2.1 "Overlay"). The engine only ever sees this port.
  */
 import type { Rect } from "./anchors.ts";
 export interface Callout {
@@ -12,10 +12,11 @@ export interface OverlayPort {
     pointerTo(rect: Rect, signal?: AbortSignal): Promise<void>;
     /** The click ripple, where the pointer is. */
     press(rect: Rect): void;
-    /** Dims everything but the rectangle (null clears it), with its callout. */
+    /** Dims everything but the rectangle (null clears it), with its callout; it follows the element when given one. */
     spotlight(target: {
         rect: Rect;
         callout: Callout | null;
+        element?: Element | null;
     } | null): void;
     /** A title or closing card over the screen; null clears it. */
     card(card: {

@@ -9,6 +9,7 @@ import { FakeClock, type RunClocks } from "../../runtime/src/clock.ts";
 import { type Command, Director, type DirectorDeps, type Snapshot } from "../../runtime/src/director.ts";
 import { type ActionPhase, type Executor, isCosmetic } from "../../runtime/src/executor.ts";
 import { type FilmEvent, filmOrderProblems } from "../../runtime/src/film-events.ts";
+import type { AudioPort, Cue, VoiceManifest } from "../../runtime/src/narration.ts";
 import { readingMs } from "../../runtime/src/narrative.ts";
 import type { Action, Ready, Tour } from "../../runtime/src/schema.ts";
 import { journalKey, memoryStore, type RunState } from "../../runtime/src/state.ts";
@@ -87,7 +88,7 @@ function anchorCss(r: Ready | undefined): string | null {
   return typeof r.anchor === "string" ? r.anchor : (r.anchor.css ?? null);
 }
 
-function bench(options: { tour?: Tour; screen?: string[]; state?: RunState | null; speed?: number; doc?: number } = {}): Bench {
+function bench(options: { tour?: Tour; screen?: string[]; state?: RunState | null; speed?: number; doc?: number; audio?: AudioPort; manifest?: VoiceManifest; checkpoint?: DirectorDeps["checkpoint"] } = {}): Bench {
   const tour = options.tour ?? TOUR;
   const pace = new FakeClock(options.speed ?? 1);
   const wall = new FakeClock(1);
@@ -168,6 +169,9 @@ function bench(options: { tour?: Tour; screen?: string[]; state?: RunState | nul
     viewport: () => ({ w: 1280, h: 720, dpr: 1.5 }),
     newRunId: () => "run-1",
     ...(options.doc !== undefined ? { doc: options.doc } : {}),
+    ...(options.audio ? { audio: options.audio } : {}),
+    ...(options.manifest ? { manifest: options.manifest } : {}),
+    ...(options.checkpoint ? { checkpoint: options.checkpoint } : {}),
   };
   const director = new Director(deps);
   const b: Bench = {
@@ -431,4 +435,104 @@ test("a blocked action in film mode raises film:error naming the beat", async ()
   assert.ok(err && err.type === "film:error" && err.beat === "fx-1-a" && /Save/.test(err.message));
   assert.deepEqual(b.run()?.ended, { reason: "error" });
   assert.deepEqual(filmOrderProblems(b.events), []);
+});
+
+/** A voice that records what it was asked to play: no element, no network. */
+function fakeAudio(muted = false): AudioPort & { played: string[] } {
+  let m = muted;
+  const played: string[] = [];
+  return {
+    played,
+    get muted() {
+      return m;
+    },
+    setMuted(v) {
+      m = v;
+    },
+    async play(cue: Cue) {
+      if (cue.audio) played.push(cue.audio.hash);
+    },
+    preload() {},
+    pause() {},
+    resume() {},
+    stop() {},
+  };
+}
+
+const MANIFEST: VoiceManifest = {
+  v: 1,
+  id: "fx-voice",
+  tour: "fx",
+  clips: [
+    { beat: "fx-1-a", text: "One.", hash: "h-one", file: "one.mp3", durationMs: 2400 },
+    { beat: "fx-2-a", text: "Three.", hash: "h-three", file: "three.mp3", durationMs: 1900 },
+  ],
+};
+
+test("muting never changes timing: the same sentences start at the same times, and the clips still play", async () => {
+  const timings = async (muted: boolean) => {
+    const audio = fakeAudio(muted);
+    const b = bench({ audio, manifest: MANIFEST });
+    b.director.start({ mode: "watch" });
+    await b.until((s) => s?.status === "done");
+    const starts = b.snapshots.map((s, i) => [s.caption?.text ?? null, b.stamps[i]] as const).filter(([t], i, all) => t && t !== all[i - 1]?.[0]);
+    return { starts, played: audio.played, muted: b.run()?.muted };
+  };
+  const loud = await timings(false);
+  const quiet = await timings(true);
+  assert.deepEqual(quiet.starts, loud.starts);
+  assert.deepEqual(loud.played, ["h-one", "h-three"]);
+  assert.deepEqual(quiet.played, loud.played, "a muted tour still plays its clips, silently");
+  assert.equal(quiet.muted, true);
+  // A clip's duration, not the reading estimate, sets its sentence's length.
+  const one = loud.starts.findIndex(([t]) => t === "One.");
+  const held = (loud.starts[one + 1]?.[1] ?? 0) - (loud.starts[one]?.[1] ?? 0);
+  assert.ok(Math.abs(held - 2400) <= 50, `"One." held ${held} ms for its 2400 ms clip`);
+});
+
+test("a mute command toggles the voice and shows in the snapshot", async () => {
+  const audio = fakeAudio();
+  const b = bench({ audio, manifest: MANIFEST });
+  b.director.start({ mode: "watch" });
+  await b.until((s) => s?.caption?.text === "One.");
+  b.dispatch({ type: "mute" });
+  assert.equal(audio.muted, true);
+  assert.equal(b.run()?.muted, true);
+  b.dispatch({ type: "mute" });
+  assert.equal(b.run()?.muted, false);
+});
+
+test("rehearse checkpoints: one per beat, after its ready, and before a navigating action leaves the page", async () => {
+  const seen: { beat: string; acted: string[] }[] = [];
+  let b: Bench | null = null;
+  b = bench({
+    checkpoint: async ({ beat }) => {
+      seen.push({ beat: beat.id, acted: [...(b as Bench).acted] });
+    },
+  });
+  b.director.start({ mode: "watch" });
+  await b.until((s) => s?.status === "done");
+  assert.deepEqual(
+    seen.map((x) => x.beat),
+    ["fx-1-a", "fx-1-b", "fx-2-a", "fx-3-a"],
+  );
+  const nav = seen.find((x) => x.beat === "fx-2-a");
+  assert.ok(nav && !nav.acted.includes("publish"), `the navigating beat's still comes before its page load: ${JSON.stringify(nav)}`);
+  assert.ok(seen.find((x) => x.beat === "fx-1-a")?.acted.includes("save"), "an ordinary beat's still comes after its actions");
+});
+
+test("a resume that entered the step afresh still runs the beat's navigating action", async () => {
+  // The step's own page load (entering /two) resumes at stage "begin": nothing was dispatched yet.
+  const b = bench({
+    doc: 2,
+    state: {
+      v: 1, runId: "run-1", tourId: "fx", mode: "watch", speed: 1, stepIndex: 1, beatIndex: 0,
+      at: { action: 0, sentence: 0, speaking: null, stage: "begin" }, entered: false, target: null,
+      journal: [SAVE], seq: 0, doc: 1, rolling: false, filmBeats: 0, paused: false, pointer: null, startedAt: 1_700_000_000_000,
+    },
+  });
+  b.director.resume(b.store.current as RunState);
+  await b.until((s) => s?.status === "done");
+  assert.ok(b.acted.includes("publish"), `publish ran: ${JSON.stringify(b.acted)}`);
+  assert.deepEqual([...b.director.journal], [SAVE, PUBLISH]);
 });

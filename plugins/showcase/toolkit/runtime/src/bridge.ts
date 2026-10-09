@@ -6,44 +6,13 @@
  */
 import type { FileData } from "./dom-events.ts";
 import { GO_KEY, HOST_BINDING, type FilmEvent } from "./film-events.ts";
+import type { AssetData, AssetKind, Checkpoint, HostMessage, InputRequest } from "./protocol.ts";
 import type { RunState } from "./state.ts";
 
-export type MouseButton = "left" | "right" | "middle";
-
-/** What the runtime asks the host's input devices for. Coordinates are top-viewport CSS pixels. */
-export type InputRequest =
-  | { kind: "move"; x: number; y: number; steps?: number }
-  | { kind: "click"; x: number; y: number; button?: MouseButton; count?: number }
-  | { kind: "down"; x: number; y: number; button?: MouseButton }
-  | { kind: "up"; x: number; y: number; button?: MouseButton }
-  | { kind: "wheel"; x: number; y: number; dx: number; dy: number }
-  /** A key press in Playwright's spelling: `Enter`, `Control+K`, `a`. */
-  | { kind: "key"; key: string }
-  /** Characters typed one by one, at the host's end. */
-  | { kind: "type"; text: string; delayMs?: number }
-  /** A trusted click on a file input, with the host answering the chooser from `files`. */
-  | { kind: "upload"; x: number; y: number; files: string[] };
-
-export type HostMessage =
-  | { type: "input"; input: InputRequest }
-  | { type: "state"; op: "load" }
-  | { type: "state"; op: "save"; state: RunState }
-  | { type: "state"; op: "clear" }
-  | { type: "asset"; path: string }
-  | { type: "event"; event: FilmEvent }
-  | { type: "log"; level: "info" | "warn"; message: string }
-  /** The runtime has booted in this document (and whether it found a run to resume). */
-  | { type: "ready"; doc: number; resumed: boolean; url: string }
-  /** The director's state changed: what the host's progress and tests read. */
-  | { type: "snapshot"; snapshot: unknown };
+export type { AssetData, AssetKind, Checkpoint, HostMessage, InputRequest, MouseButton } from "./protocol.ts";
 
 export type HostFn = (msg: HostMessage) => Promise<unknown>;
 
-export interface AssetData {
-  name: string;
-  type: string;
-  base64: string;
-}
 
 export interface Bridge {
   /** Whether a host is bound. Without one, input is synthetic and state lives in sessionStorage. */
@@ -52,11 +21,13 @@ export interface Bridge {
   loadState(): Promise<unknown>;
   saveState(state: RunState): void;
   clearState(): void;
-  asset(path: string): Promise<FileData>;
+  asset(path: string, kind?: AssetKind): Promise<FileData>;
   event(event: FilmEvent): void;
   log(level: "info" | "warn", message: string): void;
   ready(info: { doc: number; resumed: boolean; url: string }): void;
   snapshot(snapshot: unknown): void;
+  checkpoint(checkpoint: Checkpoint): Promise<void>;
+  exit(): void;
 }
 
 function decode(base64: string): Uint8Array {
@@ -89,14 +60,18 @@ export function createBridge(win: Window = window): Bridge {
     loadState: () => send({ type: "state", op: "load" }),
     saveState: (state) => fire({ type: "state", op: "save", state }),
     clearState: () => fire({ type: "state", op: "clear" }),
-    async asset(path) {
-      const a = (await send({ type: "asset", path })) as AssetData;
+    async asset(path, kind) {
+      const a = (await send({ type: "asset", path, ...(kind ? { kind } : {}) })) as AssetData;
       return { name: a.name, type: a.type, bytes: decode(a.base64) };
     },
     event: (event) => fire({ type: "event", event }),
     log: (level, message) => fire({ type: "log", level, message }),
     ready: (info) => fire({ type: "ready", ...info }),
     snapshot: (snapshot) => fire({ type: "snapshot", snapshot }),
+    async checkpoint(checkpoint) {
+      await send({ type: "checkpoint", checkpoint });
+    },
+    exit: () => fire({ type: "exit" }),
   };
 }
 

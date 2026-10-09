@@ -25,61 +25,17 @@ import { ActionError, type ActionPhase, type CameraFrame, type Executor, type In
 import type { FilmEventInput } from "./film-events.ts";
 import { type AudioPort, type Cue, cuesMs, narrationFingerprint, narrationLines, schedule, speak, type VoiceManifest } from "./narration.ts";
 import { NO_OVERLAY, type OverlayPort } from "./overlay-port.ts";
+import type { Blocked, Command, EndReason, Mode, Snapshot, Status } from "./protocol.ts";
 import { READY_TIMEOUT_MS } from "./ready.ts";
 import type { Action, Beat, Ready, Step, Tour } from "./schema.ts";
 import { journalKey, type Position, type RunState, STATE_VERSION, type StateStore } from "./state.ts";
+
+export type { Blocked, Command, EndReason, Mode, Snapshot, Status } from "./protocol.ts";
 import { NO_TIMELINE, type Timeline } from "./timeline.ts";
 
 export const DEFAULT_DWELL_MS = 600;
 /** Film mode: once the host rolls, a wait that isn't over in 15 s is an error, not a wait. */
 export const FILM_WAIT_MS = 15_000;
-
-export type Mode = "watch" | "film";
-export type Status = "idle" | "starting" | "entering" | "armed" | "playing" | "paused" | "blocked" | "ending" | "done";
-export type EndReason = "finished" | "left" | "error";
-
-export interface Blocked {
-  what: "anchor" | "ready" | "error";
-  message: string;
-  action: string | null;
-  anchor: string | null;
-}
-
-export interface Snapshot {
-  runId: string;
-  tourId: string;
-  mode: Mode;
-  status: Status;
-  stepIndex: number;
-  stepId: string;
-  stepCount: number;
-  beatIndex: number;
-  beatId: string | null;
-  beatCount: number;
-  speed: number;
-  paused: boolean;
-  rolling: boolean;
-  doc: number;
-  blocked: Blocked | null;
-  caption: { beat: string; index: number; text: string } | null;
-  ended: { reason: EndReason } | null;
-  journal: string[];
-  at: Position;
-  /** The report's notes so far (synthetic fallbacks). */
-  notes: string[];
-}
-
-export type Command =
-  | { type: "pause" }
-  | { type: "resume" }
-  | { type: "next" }
-  | { type: "back" }
-  | { type: "jump"; stepIndex: number }
-  | { type: "retry" }
-  | { type: "skip" }
-  | { type: "end" }
-  | { type: "go" }
-  | { type: "mute"; muted?: boolean };
 
 export interface DirectorWaitOptions {
   signal?: AbortSignal;
@@ -114,6 +70,8 @@ export interface DirectorDeps {
   /** This document's number: the state's `doc` after a load. */
   doc?: number;
   newRunId?: () => string;
+  /** Rehearse: called once a beat's tracks are done and its `ready` is met, before its dwell. The beat waits for it. */
+  checkpoint?: (where: { stepIndex: number; beatIndex: number; step: Step; beat: Beat }) => Promise<void>;
 }
 
 type Phase = "start" | "prepare" | "enter" | "beat" | "ready" | "finish";
@@ -185,6 +143,7 @@ export class Director {
       journal: [...r.journal],
       at: { ...s.at },
       notes: [...r.notes],
+      muted: this.deps.audio?.muted ?? false,
     };
   }
 
@@ -479,6 +438,9 @@ export class Director {
     const nav = actions.length > 0 && actions[actions.length - 1]?.navigates ? actions.length - 1 : -1;
     const cues = schedule(beat, { tour: this.deps.tour.id, ...(this.deps.manifest !== undefined ? { manifest: this.deps.manifest } : {}) });
     const overlay = this.deps.overlay ?? NO_OVERLAY;
+    // Only a run resumed past its navigating action dispatched it in the document before: a
+    // resume that entered the step afresh (the step's own page load) still has it to do.
+    const navDispatched = resumed && at.stage === "nav";
 
     if (at.stage === "begin") {
       if (beat.card) overlay.card({ title: beat.card.title, lines: beat.card.lines ?? [] });
@@ -559,12 +521,14 @@ export class Director {
       at.stage = nav >= 0 ? "nav" : "ready";
       at.action = nav >= 0 ? nav : actions.length;
       this.persist();
+      // A beat that leaves the page is checked before it does: its still is of its own screen.
+      if (nav >= 0) await this.checkpoint(signal, step, beat);
     }
 
     if (at.stage === "nav" && nav >= 0) {
       const action = actions[nav] as Action;
       at.action = nav;
-      if (resumed) {
+      if (navDispatched) {
         // Dispatched in the document before the load: wait for what it was to do, don't do it again.
         const key = journalKey(step.id, beat.id, action.id);
         if (action.done && !r.journal.has(key)) await this.wait(action.done, signal);
@@ -584,6 +548,7 @@ export class Director {
       if (beat.ready) await this.wait(beat.ready, signal);
       at.stage = "dwell";
       this.persist();
+      if (nav < 0) await this.checkpoint(signal, step, beat);
     }
     const waitedMs = Math.max(0, wall.now() - began);
     await pace.sleep(beat.dwellMs ?? DEFAULT_DWELL_MS, signal);
@@ -893,6 +858,14 @@ export class Director {
       r.timeline.emit({ ...event, beat: r.beatId });
     } else r.timeline.emit(event as FilmEventInput);
     this.persist();
+  }
+
+  /** Rehearse: the beat's still and checks, before it dwells (or before it leaves the page). */
+  private async checkpoint(signal: AbortSignal, step: Step, beat: Beat): Promise<void> {
+    const r = this.must();
+    if (!this.deps.checkpoint) return;
+    await this.deps.checkpoint({ stepIndex: r.state.stepIndex, beatIndex: r.state.beatIndex, step, beat });
+    throwIfAborted(signal);
   }
 
   private beatStart(step: Step, beat: Beat): void {

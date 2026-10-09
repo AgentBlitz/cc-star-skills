@@ -190,3 +190,71 @@ export function renderStoryboard(tour: Tour): string {
   );
   return out.join("\n");
 }
+
+// ——— The storyboard page ———
+
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/**
+ * The storyboard as a page (`storyboard --html`): each beat's narration and actions beside its
+ * still from the last rehearsal. `stills` maps a beat id to an image path relative to the page.
+ */
+export function renderStoryboardHtml(tour: Tour, stills: Record<string, string>, note = ""): string {
+  const m = tour.meta;
+  const budget = budgetFor(m);
+  const beats = beatsOf(tour);
+  const narr = tourNarrationMs(tour) / 1000;
+  let t = 0;
+  const rows = beats.map(({ step, beat }, i) => {
+    const start = clock(t);
+    t += beatPlanMs(beat);
+    const still = stills[beat.id];
+    const sentences = (beat.narration ?? []).map((s) => `<p>${esc(sentenceText(s))}</p>`).join("");
+    const actions = [beat.card ? `card “${beat.card.title}”` : "", ...(beat.actions ?? []).map(actionSummary)].filter(Boolean);
+    return `<section class="beat">
+  <div class="still">${still ? `<a href="${esc(still)}"><img src="${esc(still)}" alt="${esc(beat.id)}" loading="lazy"></a>` : `<div class="none">no still yet: run <code>showcase storyboard ${esc(tour.id)} --stills</code></div>`}</div>
+  <div class="text">
+    <h2><span>${i + 1}</span> ${esc(beat.id)}${beat.id === m.rules?.firstToCut ? " ✂" : ""} <small>${esc(start)} · ${esc(step.id)}${step.path ? ` · ${esc(step.path)}` : ""}</small></h2>
+    ${sentences || "<p class=\"quiet\">(no narration)</p>"}
+    ${actions.length ? `<ul>${actions.map((a) => `<li><code>${esc(a)}</code></li>`).join("")}</ul>` : ""}
+  </div>
+</section>`;
+  });
+  return `<!doctype html>
+<html lang="${esc(m.language)}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(tour.title)} · storyboard</title>
+<style>
+  body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: #0f172a; background: #f8fafc; }
+  header { padding: 28px 32px 8px; }
+  header h1 { margin: 0 0 6px; font-size: 26px; }
+  header p { margin: 2px 0; color: #475569; }
+  main { padding: 8px 32px 40px; display: grid; gap: 18px; }
+  .beat { display: grid; grid-template-columns: minmax(320px, 46%) 1fr; gap: 20px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; }
+  .still img { width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; display: block; }
+  .none { aspect-ratio: 16 / 9; display: grid; place-items: center; background: #f1f5f9; border-radius: 8px; color: #64748b; padding: 12px; text-align: center; }
+  h2 { margin: 0 0 8px; font-size: 17px; }
+  h2 span { display: inline-block; min-width: 1.6em; color: #2563eb; }
+  h2 small { font-weight: 400; color: #64748b; font-size: 13px; margin-left: 6px; }
+  .text p { margin: 0 0 6px; }
+  .quiet { color: #94a3b8; }
+  ul { margin: 8px 0 0; padding-left: 18px; color: #475569; font-size: 13px; }
+  @media (max-width: 800px) { .beat { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>${esc(tour.title)}</h1>
+  <p>${esc(m.kind)} · for ${esc(m.audience)} · afterwards: ${esc(m.afterwards)}${m.takeaway ? ` · ${esc(m.takeaway)}` : ""}</p>
+  <p>${beats.length} beats · narration ${narr.toFixed(1)} s (target ${Number(budget.narration.min.toFixed(1))}–${Number(budget.narration.max.toFixed(1))} s) · ${tourWords(tour)} words</p>
+  ${note ? `<p>${esc(note)}</p>` : ""}
+</header>
+<main>
+${rows.join("\n")}
+</main>
+</body>
+</html>
+`;
+}

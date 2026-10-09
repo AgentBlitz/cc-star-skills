@@ -6,23 +6,10 @@
  */
 import { type Clock, throwIfAborted } from "./clock.ts";
 import { readingMs } from "./narrative.ts";
+import type { VoiceClip, VoiceManifest } from "./protocol.ts";
 import { type Beat, sentenceText } from "./schema.ts";
 
-/** One synthesised sentence. A draft of Session 6's manifest: enough for lookup and timing. */
-export interface VoiceClip {
-  beat: string;
-  text: string;
-  hash: string;
-  file: string;
-  durationMs: number;
-}
-
-export interface VoiceManifest {
-  v: 1;
-  id: string;
-  tour: string;
-  clips: VoiceClip[];
-}
+export type { VoiceClip, VoiceManifest } from "./protocol.ts";
 
 /** The clip for a sentence: by tour, beat and exact text. */
 export function findVoice(manifest: VoiceManifest | null | undefined, tour: string, beat: string, text: string): VoiceClip | null {

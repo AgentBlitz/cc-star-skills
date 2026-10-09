@@ -458,6 +458,129 @@
     return parts.join(" ") || "an anchor";
   }
 
+  // toolkit/runtime/src/audio.ts
+  var AUDIO_GRACE_MS = 300;
+  var MUTED_KEY = "showcase:muted";
+  function createBridgeAudio(options) {
+    const { bridge, document: doc, storage } = options;
+    const win = doc.defaultView;
+    const stats = { played: [], failed: [] };
+    const urls = /* @__PURE__ */ new Map();
+    let muted = options.muted ?? false;
+    try {
+      const kept = storage?.getItem(MUTED_KEY);
+      if (kept === "true") muted = true;
+      else if (kept === "false" && options.muted === void 0) muted = false;
+    } catch {
+    }
+    let el = null;
+    let held = false;
+    const element = () => {
+      if (el) return el;
+      if (!win) return null;
+      el = new win.Audio();
+      el.preload = "auto";
+      el.muted = muted;
+      return el;
+    };
+    const load = (file) => {
+      let p = urls.get(file);
+      if (!p) {
+        p = bridge.asset(file, "voice").then((data) => {
+          const View = win ?? globalThis;
+          const blob = new View.Blob([data.bytes], { type: data.type || "audio/mpeg" });
+          return View.URL.createObjectURL(blob);
+        }).catch((e) => {
+          stats.failed.push(`${file}: ${e instanceof Error ? e.message : String(e)}`);
+          return null;
+        });
+        urls.set(file, p);
+      }
+      return p;
+    };
+    if (bridge.present && options.manifest) {
+      const files = [...new Set(options.manifest.clips.map((c) => c.file))];
+      void (async () => {
+        for (const f of files) await load(f);
+      })();
+    }
+    return {
+      stats,
+      get element() {
+        return el;
+      },
+      get muted() {
+        return muted;
+      },
+      setMuted(m) {
+        muted = m;
+        if (el) el.muted = m;
+        try {
+          storage?.setItem(MUTED_KEY, String(m));
+        } catch {
+        }
+      },
+      preload(cue) {
+        if (cue.audio && bridge.present) void load(cue.audio.file);
+      },
+      async play(cue, signal) {
+        if (!cue.audio || !bridge.present) return;
+        const a = element();
+        if (!a) return;
+        held = false;
+        await new Promise((resolve2) => {
+          let done = false;
+          const finish = () => {
+            if (done) return;
+            done = true;
+            options.clearTimeout(timer);
+            a.removeEventListener("playing", finish);
+            signal?.removeEventListener("abort", finish);
+            resolve2();
+          };
+          const timer = options.setTimeout(finish, AUDIO_GRACE_MS);
+          signal?.addEventListener("abort", finish, { once: true });
+          a.addEventListener("playing", finish);
+          void load(cue.audio.file).then((url) => {
+            if (!url || signal?.aborted) {
+              finish();
+              return;
+            }
+            a.src = url;
+            a.muted = muted;
+            a.currentTime = 0;
+            stats.played.push(cue.audio.hash);
+            const p = a.play();
+            if (p) p.catch((e) => stats.failed.push(`play: ${e instanceof Error ? e.message : String(e)}`));
+          });
+        });
+      },
+      pause() {
+        if (el && !el.paused) {
+          el.pause();
+          held = true;
+        }
+      },
+      resume() {
+        if (el && held) {
+          held = false;
+          void el.play()?.catch(() => {
+          });
+        }
+      },
+      stop() {
+        held = false;
+        if (el) {
+          el.pause();
+          try {
+            el.currentTime = 0;
+          } catch {
+          }
+        }
+      }
+    };
+  }
+
   // toolkit/runtime/src/film-events.ts
   var FILM_VERSION = 1;
   var HOST_BINDING = "__showcaseHost";
@@ -496,14 +619,18 @@
       loadState: () => send({ type: "state", op: "load" }),
       saveState: (state) => fire({ type: "state", op: "save", state }),
       clearState: () => fire({ type: "state", op: "clear" }),
-      async asset(path) {
-        const a = await send({ type: "asset", path });
+      async asset(path, kind) {
+        const a = await send({ type: "asset", path, ...kind ? { kind } : {} });
         return { name: a.name, type: a.type, bytes: decode(a.base64) };
       },
       event: (event) => fire({ type: "event", event }),
       log: (level, message) => fire({ type: "log", level, message }),
       ready: (info) => fire({ type: "ready", ...info }),
-      snapshot: (snapshot) => fire({ type: "snapshot", snapshot })
+      snapshot: (snapshot) => fire({ type: "snapshot", snapshot }),
+      async checkpoint(checkpoint) {
+        await send({ type: "checkpoint", checkpoint });
+      },
+      exit: () => fire({ type: "exit" })
     };
   }
   function waitForGo(win = window) {
@@ -1675,7 +1802,7 @@
         scrollToCentre(el);
         await frame();
       }
-      overlay.spotlight({ rect: rectOf(el), callout: action.callout ?? null });
+      overlay.spotlight({ rect: rectOf(el), callout: action.callout ?? null, element: el });
     }
     async function perform(action, instant, signal) {
       switch (action.kind) {
@@ -1773,7 +1900,7 @@
                 scrollToCentre(el);
                 await frame();
               }
-              overlay.spotlight({ rect: rectOf(el), callout: null });
+              overlay.spotlight({ rect: rectOf(el), callout: null, element: el });
             }
           }
           deps.onPhase?.(action, "skipped");
@@ -4117,7 +4244,8 @@
         ended: r.ended,
         journal: [...r.journal],
         at: { ...s.at },
-        notes: [...r.notes]
+        notes: [...r.notes],
+        muted: this.deps.audio?.muted ?? false
       };
     }
     /** The writes this run has made. */
@@ -4225,11 +4353,11 @@
       return run;
     }
     // ——— Commands ———
-    dispatch = (command) => {
+    dispatch = (command2) => {
       const r = this.run;
       if (!r) return;
       const over = r.base === "done" || r.base === "ending";
-      switch (command.type) {
+      switch (command2.type) {
         case "pause":
           if (r.state.mode === "watch" && !over) this.pause();
           return;
@@ -4240,7 +4368,7 @@
           this.go?.();
           return;
         case "mute":
-          this.deps.audio?.setMuted(command.muted ?? !this.deps.audio.muted);
+          this.deps.audio?.setMuted(command2.muted ?? !this.deps.audio.muted);
           this.publish();
           return;
         case "end":
@@ -4250,7 +4378,7 @@
           break;
       }
       if (over || r.base === "starting") return;
-      switch (command.type) {
+      switch (command2.type) {
         case "next":
           this.launch((s) => this.jump(s, r.state.stepIndex + 1));
           return;
@@ -4258,7 +4386,7 @@
           this.launch((s) => this.jump(s, Math.max(0, r.state.stepIndex - 1)));
           return;
         case "jump":
-          if (command.stepIndex >= 0 && command.stepIndex < this.deps.tour.steps.length) this.launch((s) => this.jump(s, command.stepIndex));
+          if (command2.stepIndex >= 0 && command2.stepIndex < this.deps.tour.steps.length) this.launch((s) => this.jump(s, command2.stepIndex));
           return;
         case "retry":
           if (r.base === "blocked") this.recover("retry");
@@ -4392,6 +4520,7 @@
       const nav = actions.length > 0 && actions[actions.length - 1]?.navigates ? actions.length - 1 : -1;
       const cues = schedule(beat, { tour: this.deps.tour.id, ...this.deps.manifest !== void 0 ? { manifest: this.deps.manifest } : {} });
       const overlay = this.deps.overlay ?? NO_OVERLAY;
+      const navDispatched = resumed && at.stage === "nav";
       if (at.stage === "begin") {
         if (beat.card) overlay.card({ title: beat.card.title, lines: beat.card.lines ?? [] });
         this.beatStart(step, beat);
@@ -4468,11 +4597,12 @@
         at.stage = nav >= 0 ? "nav" : "ready";
         at.action = nav >= 0 ? nav : actions.length;
         this.persist();
+        if (nav >= 0) await this.checkpoint(signal, step, beat);
       }
       if (at.stage === "nav" && nav >= 0) {
         const action = actions[nav];
         at.action = nav;
-        if (resumed) {
+        if (navDispatched) {
           const key = journalKey(step.id, beat.id, action.id);
           if (action.done && !r.journal.has(key)) await this.wait(action.done, signal);
           if (action.effect === "write") this.journalOf(r).add(key);
@@ -4490,6 +4620,7 @@
         if (beat.ready) await this.wait(beat.ready, signal);
         at.stage = "dwell";
         this.persist();
+        if (nav < 0) await this.checkpoint(signal, step, beat);
       }
       const waitedMs = Math.max(0, wall.now() - began);
       await pace.sleep(beat.dwellMs ?? DEFAULT_DWELL_MS, signal);
@@ -4780,6 +4911,13 @@
       } else r.timeline.emit(event);
       this.persist();
     }
+    /** Rehearse: the beat's still and checks, before it dwells (or before it leaves the page). */
+    async checkpoint(signal, step, beat) {
+      const r = this.must();
+      if (!this.deps.checkpoint) return;
+      await this.deps.checkpoint({ stepIndex: r.state.stepIndex, beatIndex: r.state.beatIndex, step, beat });
+      throwIfAborted(signal);
+    }
     beatStart(step, beat) {
       const r = this.must();
       r.beatId = beat.id;
@@ -4854,67 +4992,643 @@
     }
   };
 
-  // toolkit/runtime/src/overlay-stub.ts
-  var OVERLAY_TAG = "showcase-overlay";
-  var CSS2 = `
-  :host { all: initial; position: fixed; inset: 0; width: 100vw; height: 100vh; margin: 0; padding: 0; border: 0;
-    background: transparent; overflow: visible; pointer-events: none; z-index: 2147483647; display: block; }
-  .pointer { position: absolute; left: 0; top: 0; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
-    background: rgb(255 255 255 / 0.9); border: 2px solid rgb(0 0 0 / 0.75); box-shadow: 0 1px 6px rgb(0 0 0 / 0.4);
-    will-change: transform; }
-  .pointer[hidden] { display: none; }
-  .ripple { position: absolute; left: 0; top: 0; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%;
-    border: 2px solid rgb(59 130 246); opacity: 0; pointer-events: none; }
+  // toolkit/runtime/src/inspect.ts
+  var OUTLINE_ROLES = /* @__PURE__ */ new Set([
+    "button",
+    "link",
+    "textbox",
+    "searchbox",
+    "checkbox",
+    "radio",
+    "combobox",
+    "listbox",
+    "switch",
+    "slider",
+    "spinbutton",
+    "menuitem",
+    "menuitemcheckbox",
+    "menuitemradio",
+    "tab",
+    "option",
+    "heading",
+    "dialog",
+    "alertdialog",
+    "region",
+    "navigation",
+    "main",
+    "form",
+    "search",
+    "banner",
+    "contentinfo",
+    "complementary",
+    "img",
+    "figure",
+    "table",
+    "status",
+    "alert",
+    "progressbar",
+    "listitem",
+    "tabpanel",
+    "menu",
+    "toolbar",
+    "grid",
+    "row",
+    "cell"
+  ]);
+  var NEED_NAME = /* @__PURE__ */ new Set(["region", "form", "listitem", "row", "cell", "img", "figure", "table", "menu", "toolbar", "tabpanel", "grid"]);
+  function cssPath(el) {
+    if (el.id && /^[A-Za-z][\w-]*$/.test(el.id)) return `#${el.id}`;
+    const tag = el.tagName.toLowerCase();
+    const name = el.getAttribute("name");
+    if (name && /^[\w-]+$/.test(name)) return `${tag}[name="${name}"]`;
+    const cls = [...el.classList].filter((c) => /^[A-Za-z][\w-]*$/.test(c)).slice(0, 2);
+    if (cls.length) return `${tag}.${cls.join(".")}`;
+    return null;
+  }
+  function testIdOf(el) {
+    return el.getAttribute("data-testid") ?? el.getAttribute("data-test-id") ?? el.getAttribute("data-test");
+  }
+  function labelText(el) {
+    const tag = el.tagName;
+    if (tag !== "INPUT" && tag !== "SELECT" && tag !== "TEXTAREA") return null;
+    const labels = el.labels;
+    const first = labels?.[0];
+    return first ? squash(first.textContent) || null : null;
+  }
+  function suggestAnchor(el, ctx, frame) {
+    const role = roleOf(el);
+    const name = squash(accessibleName(el, role));
+    const withFrame = (a) => frame ? { ...a, frame } : a;
+    const finds = (a) => {
+      try {
+        return resolve(a, ctx) === el;
+      } catch {
+        return false;
+      }
+    };
+    const tries = [];
+    if (role && name) {
+      tries.push({ a: withFrame({ role, name }), by: "role" });
+      tries.push({ a: withFrame({ role, name, exact: true }), by: "role" });
+    }
+    const label = labelText(el);
+    if (label) tries.push({ a: withFrame({ label }), by: "label" });
+    const tid = testIdOf(el);
+    if (tid) tries.push({ a: withFrame({ testId: tid }), by: "testId" });
+    const text = squash(el.innerText ?? el.textContent);
+    if (text && text.length <= 60) tries.push({ a: withFrame({ text }), by: "text" });
+    const css = cssPath(el);
+    if (css) tries.push({ a: withFrame({ css }), by: "css" });
+    for (const t of tries) if (finds(t.a)) return { anchor: t.a, by: t.by };
+    if (role && name) {
+      for (let nth = 1; nth < 20; nth++) {
+        const a = withFrame({ role, name, exact: true, nth });
+        if (finds(a)) return { anchor: a, by: "role" };
+      }
+    }
+    return null;
+  }
+  function outline(doc, options = {}) {
+    const limit = options.limit ?? 400;
+    const ctx = { document: doc, anchors: {} };
+    const items = [];
+    const frames = /* @__PURE__ */ new Map();
+    frames.set(doc, null);
+    for (const d of documentsOf(doc)) {
+      if (d === doc) continue;
+      const frameEl = d.defaultView?.frameElement;
+      const sel = frameEl ? frameEl.id ? `#${frameEl.id}` : frameEl.getAttribute("title") ? `iframe[title="${frameEl.getAttribute("title")}"]` : "iframe" : "iframe";
+      frames.set(d, sel);
+    }
+    for (const [d, frame] of frames) {
+      const stack = [];
+      for (const el of queryDeep(d, "*")) {
+        if (items.length >= limit) return items;
+        if (el.closest("showcase-overlay, showcase-controls")) continue;
+        const role = roleOf(el);
+        if (!role || !OUTLINE_ROLES.has(role)) continue;
+        const visible = isVisible(el);
+        if (!visible && !options.hidden) continue;
+        const name = squash(accessibleName(el, role));
+        if (!name && NEED_NAME.has(role)) continue;
+        while (stack.length && !stack[stack.length - 1]?.contains(el)) stack.pop();
+        const s = suggestAnchor(el, ctx, frame);
+        const item = { role, name, depth: stack.length, visible, frame, anchor: s?.anchor ?? null, by: s?.by ?? null };
+        if (role === "heading") {
+          const m = /^H([1-6])$/.exec(el.tagName);
+          const level = Number(el.getAttribute("aria-level") ?? (m ? m[1] : 2));
+          if (Number.isFinite(level)) item.level = level;
+        }
+        items.push(item);
+        stack.push(el);
+      }
+    }
+    return items;
+  }
+  function visibleText(doc) {
+    const parts = [];
+    for (const d of documentsOf(doc)) {
+      const body = d.body;
+      if (body) parts.push(body.innerText ?? body.textContent ?? "");
+      for (const el of queryDeep(d, "input, textarea, select")) {
+        if (!isVisible(el) || el.closest("showcase-overlay, showcase-controls")) continue;
+        const type = (el.getAttribute("type") ?? "").toLowerCase();
+        if (type === "password" || type === "hidden") continue;
+        if (el.tagName === "SELECT") {
+          const s = el;
+          parts.push(s.selectedOptions[0]?.text ?? "");
+        } else parts.push(el.value ?? "");
+      }
+    }
+    return parts.filter(Boolean).join("\n");
+  }
+
+  // toolkit/runtime/src/overlay/place.ts
+  var CALLOUT_GAP = 12;
+  var clamp = (v, lo, hi) => Math.min(Math.max(v, lo), Math.max(lo, hi));
+  function placeCallout(target, size, frame, gap = CALLOUT_GAP) {
+    const minX = gap;
+    const maxX = frame.w - size.w - gap;
+    const minY = frame.top + gap;
+    const maxY = frame.h - frame.bottom - size.h - gap;
+    const centreX = clamp(target.x + target.w / 2 - size.w / 2, minX, maxX);
+    const centreY = clamp(target.y + target.h / 2 - size.h / 2, minY, maxY);
+    const below = target.y + target.h + gap;
+    if (below + size.h <= frame.h - frame.bottom - gap) return { x: centreX, y: below, side: "below" };
+    const above = target.y - gap - size.h;
+    if (above >= minY) return { x: centreX, y: above, side: "above" };
+    const right = target.x + target.w + gap;
+    if (right + size.w <= frame.w - gap) return { x: right, y: centreY, side: "right" };
+    const left = target.x - gap - size.w;
+    if (left >= minX) return { x: left, y: centreY, side: "left" };
+    return { x: clamp(target.x + gap, minX, maxX), y: clamp(target.y + gap, minY, maxY), side: "inside" };
+  }
+
+  // toolkit/runtime/src/overlay/styles.ts
+  var FONT_FAMILY = "Showcase UI";
+  var FONT_CSS = `
+@font-face { font-family: "${FONT_FAMILY}"; font-weight: 400; src: local("Inter"), local("Inter Regular"), local("SF Pro Text"), local("Helvetica Neue"), local("Segoe UI"), local("Roboto"), local("Arial"); }
+@font-face { font-family: "${FONT_FAMILY}"; font-weight: 600; src: local("Inter SemiBold"), local("Inter Semi Bold"), local("SF Pro Text Semibold"), local("HelveticaNeue-Medium"), local("Segoe UI Semibold"), local("Roboto Medium"), local("Arial Bold"); }
 `;
-  function createOverlayStub(options = {}) {
-    const doc = options.document ?? document;
-    const speed = options.speed ?? (() => 1);
-    const host = doc.createElement(OVERLAY_TAG);
-    host.setAttribute("popover", "manual");
-    host.setAttribute("aria-hidden", "true");
-    const root = host.attachShadow({ mode: "open" });
+  var FONT = `"${FONT_FAMILY}", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+  var OVERLAY_CSS = `
+:host { all: initial; position: fixed; inset: 0; width: 100vw; height: 100vh; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; pointer-events: none;
+  z-index: 2147483647; display: block; font-family: ${FONT}; color-scheme: light; }
+:host::backdrop { display: none; }
+.layer { position: absolute; inset: 0; pointer-events: none; }
+[hidden] { display: none !important; }
+
+.card, .end { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 28px; padding: 6vh 8vw; box-sizing: border-box; text-align: center; color: #f8fafc;
+  background: radial-gradient(120% 120% at 20% 10%, #1e3a8a 0%, #0f172a 55%, #020617 100%); }
+.card h1, .end h1 { margin: 0; font: 600 clamp(32px, 5.2vh, 64px)/1.15 ${FONT}; letter-spacing: -0.01em; max-width: 22ch; text-wrap: balance; }
+.card ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.card li { font: 400 clamp(20px, 2.8vh, 34px)/1.3 ${FONT}; color: #cbd5e1; }
+.end p { margin: 0; font: 400 clamp(16px, 2.2vh, 24px)/1.4 ${FONT}; color: #cbd5e1; }
+.end .kicker { font: 600 14px/1 ${FONT}; letter-spacing: 0.24em; text-transform: uppercase; color: #93c5fd; }
+
+.spot { position: absolute; left: 0; top: 0; width: 0; height: 0; border-radius: 10px;
+  box-shadow: 0 0 0 200vmax rgb(2 6 23 / 0.5); outline: 3px solid rgb(255 255 255 / 0.95); outline-offset: 1px;
+  transition: left 180ms ease-out, top 180ms ease-out, width 180ms ease-out, height 180ms ease-out; }
+.callout { position: absolute; left: 0; top: 0; box-sizing: border-box; max-width: min(340px, 80vw); padding: 12px 16px;
+  border-radius: 12px; background: #ffffff; color: #0f172a; box-shadow: 0 10px 30px rgb(2 6 23 / 0.35);
+  border-left: 4px solid #2563eb; }
+.callout h2 { margin: 0 0 4px; font: 600 17px/1.3 ${FONT}; }
+.callout p { margin: 0; font: 400 15px/1.45 ${FONT}; color: #334155; }
+
+.pointer { position: absolute; left: 0; top: 0; width: 30px; height: 30px; will-change: transform;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.45)); }
+.pointer svg { display: block; width: 30px; height: 30px; overflow: visible; }
+.ripple { position: absolute; left: 0; top: 0; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%;
+  border: 3px solid #2563eb; box-sizing: border-box; opacity: 0; }
+
+.captions { position: absolute; left: 0; right: 0; bottom: 92px; display: flex; justify-content: center; padding: 0 24px; }
+:host([data-controls="off"]) .captions { bottom: 36px; }
+.caption { margin: 0; box-sizing: border-box; max-width: min(92vw, calc(42ch + 1.6em)); padding: 0.32em 0.8em;
+  border-radius: 10px; background: rgb(15 23 42 / 0.92); color: #ffffff; text-align: center; text-wrap: balance;
+  font: 600 clamp(18px, 2.6vh, 30px)/1.35 ${FONT}; font-variant-numeric: tabular-nums; box-shadow: 0 6px 20px rgb(0 0 0 / 0.3); }
+
+:host([data-motion="reduce"]) .spot, :host([data-motion="none"]) .spot { transition: none; }
+`;
+  var CONTROLS_CSS = `
+:host { all: initial; position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 2147483647;
+  display: block; pointer-events: auto; font-family: ${FONT}; color-scheme: light; margin: 0; padding: 0; }
+:host([data-acting]) { pointer-events: none; }
+:host([data-acting]) .bar { pointer-events: none; }
+[hidden] { display: none !important; }
+.bar { display: flex; align-items: center; gap: 2px; padding: 6px; border-radius: 999px; background: rgb(15 23 42 / 0.94);
+  color: #f8fafc; box-shadow: 0 8px 24px rgb(2 6 23 / 0.4); user-select: none; -webkit-user-select: none; }
+button { all: unset; box-sizing: border-box; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
+  cursor: pointer; color: inherit; }
+button:hover { background: rgb(255 255 255 / 0.14); }
+button svg { width: 20px; height: 20px; fill: currentColor; }
+button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px/1 ${FONT}; }
+.label { padding: 0 10px; font: 600 13px/1 ${FONT}; color: #cbd5e1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stuck { max-width: 36ch; padding: 0 10px; font: 400 13px/1.3 ${FONT}; color: #fecaca; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sep { width: 1px; height: 22px; margin: 0 4px; background: rgb(255 255 255 / 0.2); }
+`;
+
+  // toolkit/runtime/src/overlay/top-layer.ts
+  var GUARDED = ["pointerdown", "pointerup", "mousedown", "mouseup", "click", "dblclick", "auxclick", "contextmenu", "focusin", "focusout", "touchstart", "touchend", "wheel"];
+  var KEY2 = "__showcaseTopLayer";
+  function installTopLayer(win) {
+    const w = win;
+    const held = w[KEY2];
+    if (held) return held;
+    const listeners = /* @__PURE__ */ new Set();
+    const owned = /* @__PURE__ */ new WeakSet();
+    let control = null;
+    let busy = false;
+    const changed = () => {
+      if (busy) return;
+      busy = true;
+      try {
+        for (const fn of [...listeners]) {
+          try {
+            fn();
+          } catch {
+          }
+        }
+      } finally {
+        busy = false;
+      }
+    };
+    const owns = (el2) => !!el2 && owned.has(el2);
+    const dialog = win.HTMLDialogElement?.prototype;
+    if (dialog?.showModal) {
+      const showModal = dialog.showModal;
+      dialog.showModal = function() {
+        showModal.call(this);
+        changed();
+      };
+    }
+    const el = win.HTMLElement?.prototype;
+    if (el?.showPopover) {
+      const showPopover = el.showPopover;
+      el.showPopover = function(...args) {
+        showPopover.apply(this, args);
+        if (!owns(this)) changed();
+      };
+    }
+    if (el?.togglePopover) {
+      const togglePopover = el.togglePopover;
+      el.togglePopover = function(...args) {
+        const r = togglePopover.apply(this, args);
+        if (!owns(this)) changed();
+        return r;
+      };
+    }
+    const element = win.Element?.prototype;
+    if (element?.requestFullscreen) {
+      const requestFullscreen = element.requestFullscreen;
+      element.requestFullscreen = function(options) {
+        return requestFullscreen.call(this, options).then((v) => {
+          changed();
+          return v;
+        });
+      };
+    }
+    win.addEventListener(
+      "toggle",
+      (e) => {
+        if (!owns(e.target)) changed();
+      },
+      true
+    );
+    win.addEventListener("close", (e) => {
+      if (!owns(e.target)) changed();
+    }, true);
+    win.document.addEventListener("fullscreenchange", changed);
+    for (const type of GUARDED) {
+      win.addEventListener(
+        type,
+        (e) => {
+          const path = e.composedPath();
+          if (!path.some(owns)) return;
+          if (type === "mousedown" || type === "pointerdown" || type === "touchstart") {
+            if (e.cancelable && type === "mousedown") e.preventDefault();
+          }
+          if (type === "click") control?.(path, e);
+          e.stopImmediatePropagation();
+        },
+        { capture: true, passive: false }
+      );
+    }
+    const api = {
+      onChange(fn) {
+        listeners.add(fn);
+        return () => listeners.delete(fn);
+      },
+      own(e) {
+        owned.add(e);
+      },
+      owns,
+      onControl(fn) {
+        control = fn;
+      }
+    };
+    Object.defineProperty(win, KEY2, { value: api, configurable: false, enumerable: false, writable: false });
+    return api;
+  }
+  function topmostModal(doc, order) {
+    const open = [...doc.querySelectorAll("dialog[open]")].filter((d) => safeMatches(d, ":modal"));
+    const known = order.filter((d) => open.includes(d));
+    const next = [...known, ...open.filter((d) => !known.includes(d))];
+    order.splice(0, order.length, ...next);
+    return next.at(-1) ?? null;
+  }
+  function topmostAutoPopover(doc, order, mine) {
+    const open = [...doc.querySelectorAll("[popover]")].filter((p) => !mine(p) && safeMatches(p, ":popover-open") && (p.getAttribute("popover") || "auto") === "auto");
+    const known = order.filter((p) => open.includes(p));
+    const next = [...known, ...open.filter((p) => !known.includes(p))];
+    order.splice(0, order.length, ...next);
+    return next.at(-1) ?? null;
+  }
+  function safeMatches(el, selector) {
     try {
-      const sheet = new CSSStyleSheet();
-      sheet.replaceSync(CSS2);
-      root.adoptedStyleSheets = [sheet];
+      return el.matches(selector);
+    } catch {
+      return false;
+    }
+  }
+
+  // toolkit/runtime/src/overlay/index.ts
+  var OVERLAY_TAG = "showcase-overlay";
+  var CONTROLS_TAG = "showcase-controls";
+  function make2(doc, tag, attrs = {}, ...children) {
+    const el = doc.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    for (const c of children) if (c) el.append(c);
+    return el;
+  }
+  var SVG = "http://www.w3.org/2000/svg";
+  function icon(doc, d) {
+    const svg = doc.createElementNS(SVG, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    const path = doc.createElementNS(SVG, "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+    return svg;
+  }
+  var ICONS = {
+    back: "M6 5h2v14H6zM20 5v14L9 12z",
+    next: "M16 5h2v14h-2zM4 5l11 7-11 7z",
+    play: "M7 4.5v15L19.5 12z",
+    pause: "M6.5 5h4v14h-4zM13.5 5h4v14h-4z",
+    sound: "M4 9h4l5-4v14l-5-4H4zM16 8.5a5 5 0 0 1 0 7l-1.4-1.4a3 3 0 0 0 0-4.2zM18.4 6a8.5 8.5 0 0 1 0 12L17 16.6a6.5 6.5 0 0 0 0-9.2z",
+    muted: "M4 9h4l5-4v14l-5-4H4zM16.3 8.9l1.4-1.4 2.1 2.1 2.1-2.1 1.4 1.4-2.1 2.1 2.1 2.1-1.4 1.4-2.1-2.1-2.1 2.1-1.4-1.4 2.1-2.1z",
+    exit: "M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z"
+  };
+  function pointerSvg(doc) {
+    const svg = doc.createElementNS(SVG, "svg");
+    svg.setAttribute("viewBox", "0 0 30 30");
+    svg.setAttribute("aria-hidden", "true");
+    const path = doc.createElementNS(SVG, "path");
+    path.setAttribute("d", "M1.5 1.5 L1.5 23 L7.2 17.6 L11.4 27 L15.3 25.3 L11.2 16.1 L19 16.1 Z");
+    path.setAttribute("fill", "#0f172a");
+    path.setAttribute("stroke", "#ffffff");
+    path.setAttribute("stroke-width", "2");
+    path.setAttribute("stroke-linejoin", "round");
+    svg.append(path);
+    return svg;
+  }
+  function sheetOf(doc, css) {
+    try {
+      const View = doc.defaultView;
+      const sheet = new (View?.CSSStyleSheet ?? CSSStyleSheet)();
+      sheet.replaceSync(css);
+      return sheet;
+    } catch {
+      return null;
+    }
+  }
+  var FONT_MARK = "__showcaseFonts";
+  function declareFonts(doc) {
+    const d = doc;
+    if (d[FONT_MARK]) return;
+    const sheet = sheetOf(doc, FONT_CSS);
+    if (!sheet) return;
+    try {
+      doc.adoptedStyleSheets = [...doc.adoptedStyleSheets, sheet];
+      d[FONT_MARK] = true;
     } catch {
     }
-    const pointer = doc.createElement("div");
-    pointer.className = "pointer";
-    if (options.visible === false) pointer.hidden = true;
-    const ripple = doc.createElement("div");
-    ripple.className = "ripple";
-    root.append(pointer, ripple);
-    let at = null;
-    let travel = null;
+  }
+  function createOverlay(options) {
+    const doc = options.document ?? document;
+    const win = doc.defaultView;
+    const speed = options.speed ?? (() => 1);
+    const ui = options.ui;
+    const top = options.topLayer ?? null;
+    const raf = options.natives?.requestAnimationFrame ?? ((fn) => win ? win.requestAnimationFrame(fn) : 0);
+    const caf = options.natives?.cancelAnimationFrame ?? ((id) => win?.cancelAnimationFrame(id));
+    const MO = options.natives?.MutationObserver ?? win?.MutationObserver ?? MutationObserver;
+    let reduced = options.reducedMotion ?? false;
+    if (!reduced && ui === "watch") {
+      try {
+        reduced = !!win?.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      } catch {
+        reduced = false;
+      }
+    }
+    const wantsControls = options.controls ?? ui === "watch";
+    const wantsCaptions = options.captions ?? ui !== "film";
+    declareFonts(doc);
+    const host = make2(doc, OVERLAY_TAG, { popover: "manual", "aria-hidden": "true", "data-ui": ui, "data-controls": wantsControls ? "on" : "off" });
+    if (reduced) host.setAttribute("data-motion", "reduce");
+    const root = host.attachShadow({ mode: "open" });
+    const sheet = sheetOf(doc, OVERLAY_CSS);
+    if (sheet) root.adoptedStyleSheets = [sheet];
+    const card = make2(doc, "div", { class: "card", hidden: "" });
+    const spot = make2(doc, "div", { class: "spot", hidden: "" });
+    const callout = make2(doc, "div", { class: "callout", hidden: "" });
+    const pointer = make2(doc, "div", { class: "pointer", hidden: "" }, pointerSvg(doc));
+    const ripple = make2(doc, "div", { class: "ripple" });
+    const captionText = make2(doc, "p", { class: "caption", "aria-live": "polite" });
+    const captions = make2(doc, "div", { class: "captions", hidden: "" }, captionText);
+    const end = make2(doc, "div", { class: "end", hidden: "" });
+    const layer = make2(doc, "div", { class: "layer" }, card, spot, callout, captions, end, ripple, pointer);
+    root.append(layer);
+    top?.own(host);
+    let controlsHost = null;
+    let croot = null;
+    const buttons = {};
+    let label = null;
+    let stuck = null;
+    if (wantsControls) {
+      controlsHost = make2(doc, CONTROLS_TAG, { "data-showcase": "controls" });
+      croot = controlsHost.attachShadow({ mode: "open" });
+      const csheet = sheetOf(doc, CONTROLS_CSS);
+      if (csheet) croot.adoptedStyleSheets = [csheet];
+      const button = (c, name, d, text) => {
+        const b = make2(doc, "button", { type: "button", tabindex: "-1", "data-c": c, "aria-label": name, title: name });
+        if (d) b.append(icon(doc, d));
+        if (text) {
+          b.className = "text";
+          b.append(text);
+        }
+        buttons[c] = b;
+        return b;
+      };
+      label = make2(doc, "span", { class: "label" });
+      stuck = make2(doc, "span", { class: "stuck", hidden: "" });
+      const retry = button("retry", "Retry", null, "Retry");
+      const skip = button("skip", "Skip", null, "Skip");
+      retry.hidden = true;
+      skip.hidden = true;
+      const bar = make2(
+        doc,
+        "div",
+        { class: "bar", role: "toolbar", "aria-label": "Tour controls" },
+        button("back", "Back (←)", ICONS.back),
+        button("toggle", "Pause (Space)", ICONS.pause),
+        button("next", "Next (→)", ICONS.next),
+        label,
+        stuck,
+        retry,
+        skip,
+        make2(doc, "span", { class: "sep" }),
+        button("mute", "Mute (M)", ICONS.sound),
+        button("exit", "Exit (Esc)", ICONS.exit)
+      );
+      croot.append(bar);
+      top?.own(controlsHost);
+      const act = (path) => {
+        const b = path.find((n) => n.dataset?.c);
+        const c = b?.dataset.c;
+        if (c) options.onCommand?.(c);
+      };
+      if (top) top.onControl(act);
+      else {
+        bar.addEventListener("mousedown", (e) => e.preventDefault());
+        bar.addEventListener("click", (e) => {
+          act(e.composedPath());
+          e.stopPropagation();
+        });
+      }
+      root.append(controlsHost);
+    }
+    const owns = (el) => el === host || host.contains(el) || root.contains(el) || !!controlsHost && (el === controlsHost || controlsHost.contains(el) || !!croot?.contains(el));
+    const modals = [];
+    const autos = [];
+    function placeControls() {
+      if (!controlsHost) return;
+      let target = null;
+      try {
+        target = doc.fullscreenElement ?? topmostModal(doc, modals) ?? topmostAutoPopover(doc, autos, (el) => el === host);
+      } catch {
+        target = null;
+      }
+      const want = target ?? root;
+      if (controlsHost.parentNode !== want) want.append(controlsHost);
+    }
     function attach() {
       const html = doc.documentElement;
       if (!html) return;
       if (host.parentNode !== html) html.append(host);
       try {
-        if (!host.matches(":popover-open")) host.showPopover();
+        if (!safeMatches(host, ":popover-open")) host.showPopover();
+      } catch {
+      }
+    }
+    function raise() {
+      placeControls();
+      if (!host.isConnected) attach();
+      try {
+        if (safeMatches(host, ":popover-open")) host.hidePopover();
+        host.showPopover();
       } catch {
       }
     }
     attach();
-    const observer = new MutationObserver(() => {
-      if (!host.isConnected) attach();
+    placeControls();
+    const unsubscribe = top?.onChange(raise) ?? (() => {
     });
-    if (doc.documentElement) observer.observe(doc.documentElement, { childList: true });
+    let pending = 0;
+    const observer = new MO(() => {
+      if (!host.isConnected) {
+        raise();
+        return;
+      }
+      if (controlsHost && !pending) {
+        pending = raf(() => {
+          pending = 0;
+          placeControls();
+        });
+      }
+    });
+    if (controlsHost) observer.observe(doc, { childList: true, subtree: true, attributes: true, attributeFilter: ["open", "popover"] });
+    else if (doc.documentElement) observer.observe(doc.documentElement, { childList: true });
+    let at = null;
+    let travel = null;
+    const drawPointer = options.pointer !== false;
     const place = (x, y) => {
       pointer.style.transform = `translate(${x}px, ${y}px)`;
       ripple.style.transform = `translate(${x}px, ${y}px)`;
+      if (drawPointer) pointer.hidden = false;
     };
-    return {
+    let spotted = null;
+    let follow = 0;
+    let lastRect = null;
+    const PAD = 6;
+    const same = (a, b) => Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5 && Math.abs(a.w - b.w) < 0.5 && Math.abs(a.h - b.h) < 0.5;
+    function drawSpot(r) {
+      Object.assign(spot.style, { left: `${r.x - PAD}px`, top: `${r.y - PAD}px`, width: `${r.w + PAD * 2}px`, height: `${r.h + PAD * 2}px` });
+      if (!spotted?.callout) {
+        callout.hidden = true;
+        return;
+      }
+      callout.hidden = false;
+      const vw = win?.innerWidth ?? 1280;
+      const vh = win?.innerHeight ?? 720;
+      const foot = (wantsControls ? 80 : 0) + (wantsCaptions && !captions.hidden ? 72 : 0);
+      const size = { w: callout.offsetWidth, h: callout.offsetHeight };
+      const p = placeCallout({ x: r.x - PAD, y: r.y - PAD, w: r.w + PAD * 2, h: r.h + PAD * 2 }, size, { w: vw, h: vh, top: 0, bottom: foot });
+      callout.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px)`;
+      callout.setAttribute("data-side", p.side);
+    }
+    function followLoop() {
+      follow = 0;
+      if (!spotted) return;
+      const el = spotted.el;
+      if (el?.isConnected) {
+        const r = rectOf(el);
+        if (!lastRect || !same(r, lastRect)) {
+          lastRect = r;
+          drawSpot(r);
+        }
+      }
+      follow = raf(followLoop);
+    }
+    function setCaption(text) {
+      if (!wantsCaptions) return;
+      captionText.textContent = text ?? "";
+      captions.hidden = text === null;
+    }
+    function fillCard(el, c) {
+      el.replaceChildren();
+      if (!c) {
+        el.hidden = true;
+        return;
+      }
+      el.append(make2(doc, "h1", {}, c.title));
+      if (c.lines.length) el.append(make2(doc, "ul", {}, ...c.lines.map((l) => make2(doc, "li", {}, l))));
+      el.hidden = false;
+    }
+    const overlay = {
+      host,
+      controlsHost,
       async pointerTo(rect, signal) {
-        const to = { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 };
-        const from = at ?? { x: doc.defaultView?.innerWidth ?? 0, y: (doc.defaultView?.innerHeight ?? 0) / 2 };
+        const to = { x: Math.round(rect.x + rect.w / 2), y: Math.round(rect.y + rect.h / 2) };
+        const from = at ?? { x: Math.round((win?.innerWidth ?? 0) / 2), y: Math.round((win?.innerHeight ?? 0) / 2) };
         if (!at) place(from.x, from.y);
-        const dist = Math.hypot(to.x - from.x, to.y - from.y);
-        const ms = Math.min(700, Math.max(120, dist * 0.9)) / speed();
         travel?.cancel();
         if (signal?.aborted) throw new Aborted();
-        if (typeof pointer.animate !== "function") {
+        const dist = Math.hypot(to.x - from.x, to.y - from.y);
+        const ms = Math.min(700, Math.max(120, dist * 0.9)) / Math.max(0.1, speed());
+        if (reduced || typeof pointer.animate !== "function" || dist < 1) {
           place(to.x, to.y);
           at = to;
           return;
@@ -4935,42 +5649,112 @@
           signal?.removeEventListener("abort", stop);
         }
         place(to.x, to.y);
-        ripple.style.transform = `translate(${to.x}px, ${to.y}px)`;
         try {
           a.cancel();
         } catch {
         }
+        if (travel === a) travel = null;
         at = to;
       },
       press() {
-        if (!at || typeof ripple.animate !== "function") return;
-        ripple.animate([{ opacity: 0.9, transform: `translate(${at.x}px, ${at.y}px) scale(0.4)` }, { opacity: 0, transform: `translate(${at.x}px, ${at.y}px) scale(1.4)` }], {
-          duration: 320 / speed(),
-          easing: "ease-out"
-        });
+        if (!at || reduced || typeof ripple.animate !== "function") return;
+        ripple.animate(
+          [
+            { opacity: 0.95, transform: `translate(${at.x}px, ${at.y}px) scale(0.35)` },
+            { opacity: 0, transform: `translate(${at.x}px, ${at.y}px) scale(1.5)` }
+          ],
+          { duration: 360 / Math.max(0.1, speed()), easing: "ease-out" }
+        );
       },
-      spotlight() {
+      spotlight(target) {
+        if (follow) caf(follow);
+        follow = 0;
+        lastRect = null;
+        if (!target) {
+          spotted = null;
+          spot.hidden = true;
+          callout.hidden = true;
+          callout.replaceChildren();
+          return;
+        }
+        spotted = { el: target.element ?? null, rect: target.rect, callout: target.callout };
+        callout.replaceChildren();
+        if (target.callout) callout.append(make2(doc, "h2", {}, target.callout.title), make2(doc, "p", {}, target.callout.body));
+        spot.hidden = false;
+        lastRect = target.rect;
+        drawSpot(target.rect);
+        if (spotted.el) follow = raf(followLoop);
       },
-      card() {
+      card(c) {
+        if (c) overlay.spotlight(null);
+        fillCard(card, c);
+        pointer.style.visibility = c ? "hidden" : "";
       },
-      caption() {
+      caption(text) {
+        if (text === null && options.lingerCaptions) return;
+        setCaption(text);
+      },
+      clearCaption() {
+        setCaption(null);
       },
       acting(on) {
-        if (on) host.setAttribute("data-acting", "");
-        else host.removeAttribute("data-acting");
+        for (const el of [host, controlsHost]) {
+          if (!el) continue;
+          if (on) el.setAttribute("data-acting", "");
+          else el.removeAttribute("data-acting");
+        }
       },
-      owns: (el) => el === host || host.contains(el) || root.contains(el),
+      owns,
       pointer: () => at,
       movePointer(x, y) {
-        at = { x, y };
-        place(x, y);
+        at = { x: Math.round(x), y: Math.round(y) };
+        place(at.x, at.y);
       },
+      view(v) {
+        if (controlsHost) {
+          const toggle = buttons.toggle;
+          if (toggle) {
+            const playing = !v.paused && v.status !== "blocked" && v.status !== "done";
+            toggle.replaceChildren(icon(doc, playing ? ICONS.pause : ICONS.play));
+            const name = playing ? "Pause (Space)" : "Play (Space)";
+            toggle.setAttribute("aria-label", name);
+            toggle.setAttribute("title", name);
+          }
+          const mute = buttons.mute;
+          if (mute) {
+            mute.replaceChildren(icon(doc, v.muted ? ICONS.muted : ICONS.sound));
+            mute.setAttribute("aria-label", v.muted ? "Unmute (M)" : "Mute (M)");
+          }
+          if (label) label.textContent = v.stepCount ? `${Math.min(v.stepIndex + 1, v.stepCount)} / ${v.stepCount}` : "";
+          if (stuck) {
+            stuck.textContent = v.blocked ?? "";
+            stuck.hidden = !v.blocked;
+          }
+          if (buttons.retry) buttons.retry.hidden = !v.blocked;
+          if (buttons.skip) buttons.skip.hidden = !v.blocked;
+        }
+        if (ui === "watch" && v.ended === "finished") {
+          end.replaceChildren(
+            make2(doc, "span", { class: "kicker" }, "That's the tour"),
+            make2(doc, "h1", {}, options.title ?? "Thanks for watching"),
+            make2(doc, "p", {}, wantsControls ? "Press Esc to close, or ← to go back." : "")
+          );
+          end.hidden = false;
+        } else end.hidden = true;
+      },
+      raise,
       destroy() {
+        unsubscribe();
         observer.disconnect();
+        if (follow) caf(follow);
+        if (pending) caf(pending);
         travel?.cancel();
+        if (top) top.onControl(null);
+        controlsHost?.remove();
         host.remove();
       }
     };
+    return overlay;
   }
 
   // toolkit/runtime/src/index.ts
@@ -4996,7 +5780,38 @@
     const here = `${win.location.pathname}${win.location.search}`;
     return here === path || win.location.pathname === path;
   }
-  async function bootDirector(win, api, config, n, adapters) {
+  function uiOf(config) {
+    return config.mode === "film" ? "film" : config.rehearse ? "rehearse" : "watch";
+  }
+  function command(api, bridge, c) {
+    const snap = api.snapshot();
+    if (!snap) return;
+    switch (c) {
+      case "toggle":
+        api.dispatch({ type: snap.paused ? "resume" : "pause" });
+        return;
+      case "back":
+        api.dispatch({ type: "back" });
+        return;
+      case "next":
+        api.dispatch({ type: "next" });
+        return;
+      case "mute":
+        api.dispatch({ type: "mute" });
+        return;
+      case "retry":
+        api.dispatch({ type: "retry" });
+        return;
+      case "skip":
+        api.dispatch({ type: "skip" });
+        return;
+      case "exit":
+        if (snap.status === "done") bridge.exit();
+        else api.dispatch({ type: "end" });
+        return;
+    }
+  }
+  async function bootDirector(win, api, config, n, adapters, top) {
     const doc = win.document;
     const bridge = createBridge(win);
     let storage = null;
@@ -5011,8 +5826,58 @@
     const docNumber = resumed && prior ? prior.doc + 1 : 1;
     const ctx = { document: doc, anchors: config.tour.anchors ?? {} };
     let speed = config.speed ?? 1;
-    const overlay = createOverlayStub({ document: doc, speed: () => speed, visible: config.pointer !== false });
+    const ui = uiOf(config);
+    const overlay = createOverlay({
+      document: doc,
+      topLayer: top,
+      natives: n,
+      speed: () => speed,
+      ui,
+      pointer: config.pointer !== false,
+      lingerCaptions: ui === "rehearse",
+      ...ui === "rehearse" ? { reducedMotion: true } : {},
+      title: config.tour.title,
+      onCommand: (c) => command(api, bridge, c)
+    });
+    api.overlay = overlay;
     if (resumed && prior?.pointer) overlay.movePointer(prior.pointer.x, prior.pointer.y);
+    let audio = null;
+    if (ui === "watch") {
+      audio = createBridgeAudio({
+        bridge,
+        document: doc,
+        manifest: config.manifest ?? null,
+        ...config.muted !== void 0 ? { muted: config.muted } : {},
+        storage,
+        setTimeout: n.setTimeout,
+        clearTimeout: n.clearTimeout
+      });
+      const a = audio;
+      api.audio = {
+        get played() {
+          return a.stats.played;
+        },
+        get failed() {
+          return a.stats.failed;
+        },
+        get muted() {
+          return a.muted;
+        }
+      };
+    }
+    const publish = (snapshot) => {
+      bridge.snapshot(snapshot);
+      if (!snapshot) return;
+      overlay.view({
+        status: snapshot.status,
+        stepIndex: snapshot.stepIndex,
+        stepCount: snapshot.stepCount,
+        paused: snapshot.paused,
+        muted: snapshot.muted,
+        blocked: snapshot.blocked ? snapshot.blocked.message : null,
+        ended: snapshot.ended?.reason ?? null
+      });
+    };
     const timers = { now: n.perfNow, setTimeout: n.setTimeout, clearTimeout: n.clearTimeout };
     const director = new Director({
       tour: config.tour,
@@ -5054,8 +5919,18 @@
       store,
       timeline: (stamp) => createTimeline({ stamp, t: () => n.timeOrigin + n.perfNow(), wall: n.dateNow, window: win, ...bridge.present ? { send: (e) => bridge.event(e) } : {} }),
       manifest: config.manifest ?? null,
+      audio,
       overlay,
-      publish: (snapshot) => bridge.snapshot(snapshot),
+      publish,
+      ...ui === "rehearse" && bridge.present ? {
+        checkpoint: async ({ stepIndex, beatIndex, step, beat }) => {
+          await nextFrame(n);
+          await nextFrame(n);
+          const card = beat.card ? { title: beat.card.title, lines: beat.card.lines ?? [] } : null;
+          await bridge.checkpoint({ stepIndex, beatIndex, step: step.id, beat: beat.id, narration: (beat.narration ?? []).map(sentenceText), card });
+          overlay.clearCaption();
+        }
+      } : {},
       now: n.dateNow,
       viewport: () => ({ w: win.innerWidth, h: win.innerHeight, dpr: win.devicePixelRatio || 1 }),
       filmReady: (signal) => filmReady(n, signal, doc),
@@ -5081,6 +5956,7 @@
     const w = win;
     if (w[API_KEY]) return w[API_KEY];
     const n = captureNatives(win);
+    const top = installTopLayer(win);
     const adapters = /* @__PURE__ */ new Map();
     let bootedResolve = () => {
     };
@@ -5092,7 +5968,7 @@
       booted: new Promise((resolve2) => {
         bootedResolve = resolve2;
       }),
-      dispatch: (command) => api.director?.dispatch(command),
+      dispatch: (command2) => api.director?.dispatch(command2),
       snapshot: () => api.director?.snapshot ?? null,
       events: () => api.director?.events ?? [],
       start: async (config) => {
@@ -5102,22 +5978,42 @@
           api.director.start({ mode: c.mode, speed: c.speed ?? 1, ...c.from ? { from: c.from } : {} });
           return;
         }
-        await bootDirector(win, api, { ...c, autostart: true }, n, adapters);
+        await bootDirector(win, api, { ...c, autostart: true }, n, adapters, top);
       },
       actions: {
         register: (name, fn) => {
           adapters.set(name, fn);
         },
         has: (name) => adapters.has(name)
-      }
+      },
+      overlay: null,
+      audio: null,
+      inspect: (options) => outline(win.document, options),
+      visibleText: () => visibleText(win.document)
     };
     Object.defineProperty(win, API_KEY, { value: api, configurable: true, enumerable: false, writable: false });
+    const watching = () => {
+      const snap = api.snapshot();
+      return snap && snap.mode === "watch" && api.config && uiOf(api.config) === "watch" ? snap : null;
+    };
     win.addEventListener(
       "pointerdown",
       (e) => {
-        const snap = api.snapshot();
-        if (!snap || snap.mode !== "watch" || snap.status !== "playing") return;
+        const snap = watching();
+        if (!snap || snap.status !== "playing") return;
         if (isViewerInput(api, n, e)) api.dispatch({ type: "pause" });
+      },
+      true
+    );
+    const KEYS = { " ": "toggle", Spacebar: "toggle", ArrowLeft: "back", ArrowRight: "next", m: "mute", M: "mute", Escape: "exit" };
+    win.addEventListener(
+      "keydown",
+      (e) => {
+        const c = KEYS[e.key];
+        if (!c || e.altKey || e.ctrlKey || e.metaKey || !watching() || !isViewerInput(api, n, e)) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (!e.repeat) command(api, createBridge(win), c);
       },
       true
     );
@@ -5128,7 +6024,7 @@
         done();
         return;
       }
-      bootDirector(win, api, config, n, adapters).then(done, (e) => {
+      bootDirector(win, api, config, n, adapters, top).then(done, (e) => {
         createBridge(win).log("warn", `boot failed: ${e instanceof Error ? e.message : String(e)}`);
         done();
       });

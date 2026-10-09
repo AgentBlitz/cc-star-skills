@@ -1,0 +1,98 @@
+{
+  "$schema": "../../../schema/tour.schema.json",
+  "showcase": 1,
+  "id": "fixture-tour",
+  "title": "Ledgerly in a minute",
+  "meta": {
+    "kind": "walkthrough",
+    "audience": "team",
+    "afterwards": "try",
+    "takeaway": "Revenue, reports and people, in one place.",
+    "language": "en-GB",
+    "length": { "targetSec": 60, "narration": { "min": 0, "max": 600 }, "beats": { "min": 1, "max": 50 } }
+  },
+  "anchors": {
+    "cookies": { "role": "region", "name": "Cookie consent" },
+    "invite": { "role": "dialog", "name": "Invite people" }
+  },
+  "steps": [
+    {
+      "id": "dashboard",
+      "title": "The dashboard",
+      "path": "/index.html",
+      "ready": { "kind": "visible", "anchor": { "role": "heading", "name": "Good morning" } },
+      "beats": [
+        {
+          "id": "open",
+          "card": { "title": "Ledgerly in a minute", "lines": ["Where revenue stands", "Who can see it"] },
+          "narration": ["Here is Ledgerly, the finance dashboard your team already uses."],
+          "dwellMs": 400
+        },
+        {
+          "id": "cookies",
+          "narration": ["First, accept the cookie notice, so it stays out of the way."],
+          "actions": [
+            { "id": "accept", "kind": "click", "target": { "role": "button", "name": "Accept cookies" }, "effect": "write", "done": { "kind": "absent", "anchor": "@cookies" } }
+          ]
+        },
+        {
+          "id": "revenue",
+          "narration": ["Revenue is tracking four per cent ahead of plan this quarter."],
+          "actions": [
+            { "id": "spot", "kind": "spotlight", "target": { "text": "Revenue is tracking" }, "callout": { "title": "On plan", "body": "Ahead of plan, every week this quarter." } }
+          ]
+        },
+        {
+          "id": "invite",
+          "narration": ["Inviting a colleague takes one click.", { "text": "Choose what they can do, and they're in.", "after": "open" }],
+          "actions": [
+            { "id": "open", "kind": "click", "target": { "role": "button", "name": "Invite people" }, "effect": "write", "done": { "kind": "visible", "anchor": "@invite" } },
+            { "id": "role", "kind": "spotlight", "target": { "role": "button", "name": "Add as editor" }, "callout": { "title": "Roles", "body": "Viewers read; editors change reports." } }
+          ]
+        },
+        {
+          "id": "close-invite",
+          "narration": ["Close the dialog when you're done."],
+          "actions": [
+            { "id": "close", "kind": "click", "target": { "role": "button", "name": "Close", "within": "@invite" }, "effect": "write", "done": { "kind": "absent", "anchor": "@invite" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reports",
+      "title": "Reports",
+      "path": "/list.html",
+      "ready": { "kind": "visible", "anchor": { "role": "heading", "name": "Reports" } },
+      "beats": [
+        {
+          "id": "list",
+          "narration": ["Every report your team shares lives in one list.", "Open the pipeline to see who owns it."],
+          "actions": [
+            { "id": "spot-list", "kind": "spotlight", "target": { "css": "ul.report-list" } },
+            { "id": "pipeline", "kind": "click", "target": { "role": "link", "name": "Pipeline" }, "navigates": true, "effect": "write", "done": { "kind": "url", "path": "/detail.html", "params": { "id": "3" } } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "detail",
+      "title": "A report",
+      "path": "/detail.html",
+      "ready": { "kind": "text", "anchor": { "role": "heading", "name": "Pipeline" }, "contains": "Pipeline" },
+      "beats": [
+        {
+          "id": "detail",
+          "narration": ["The owner and the trend are right there."],
+          "actions": [{ "id": "spot-owner", "kind": "spotlight", "target": { "role": "heading", "name": "Pipeline" } }]
+        },
+        {
+          "id": "close",
+          "card": { "title": "Try it on your own reports", "lines": ["ledgerly.example/start"] },
+          "narration": ["That's Ledgerly. Try it on your own reports today."],
+          "dwellMs": 2000
+        }
+      ]
+    }
+  ]
+}

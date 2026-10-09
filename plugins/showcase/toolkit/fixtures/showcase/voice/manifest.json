@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "id": "fixture-voice",
+  "tour": "fixture-tour",
+  "clips": [
+    {
+      "beat": "open",
+      "text": "Here is Ledgerly, the finance dashboard your team already uses.",
+      "hash": "fixture-open-0",
+      "file": "open-0.mp3",
+      "durationMs": 600
+    }
+  ]
+}

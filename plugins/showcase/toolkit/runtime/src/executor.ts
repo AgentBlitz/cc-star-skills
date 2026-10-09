@@ -709,7 +709,7 @@ export function createExecutor(deps: ExecutorDeps): Executor {
       scrollToCentre(el);
       await frame();
     }
-    overlay.spotlight({ rect: rectOf(el), callout: action.callout ?? null });
+    overlay.spotlight({ rect: rectOf(el), callout: action.callout ?? null, element: el });
   }
 
   async function perform(action: Action, instant: boolean, signal?: AbortSignal): Promise<InputMode | null> {
@@ -812,7 +812,7 @@ export function createExecutor(deps: ExecutorDeps): Executor {
               scrollToCentre(el);
               await frame();
             }
-            overlay.spotlight({ rect: rectOf(el), callout: null });
+            overlay.spotlight({ rect: rectOf(el), callout: null, element: el });
           }
         }
         deps.onPhase?.(action, "skipped");

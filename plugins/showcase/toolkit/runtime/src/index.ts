@@ -1,25 +1,30 @@
 /**
  * The showcase runtime (PLAN §2.1, D7, D16): one framework-agnostic engine that runs injected
- * (Watch and film, through the host) or vendored in-app (Session 10). This module is the ESM
- * entry for vendoring and the API the IIFE (`inject.ts`) boots from. The external boot reads
- * the config the host injects as `window.__showcaseConfig`, captures the real timers before
- * any app code, and starts or resumes the run once the document is ready.
+ * (Watch, rehearse and film, through the host) or vendored in-app (Session 10). This module is
+ * the ESM entry for vendoring and the API the IIFE (`inject.ts`) boots from. The external boot
+ * reads the config the host injects as `window.__showcaseConfig`, captures the real timers and
+ * installs the top-layer watch and the control guard before any app code, and starts or resumes
+ * the run once the document is ready.
  */
 import { type AnchorContext, describeAnchor } from "./anchors.ts";
-import { type Acting, createBridge, waitForGo } from "./bridge.ts";
+import { type AudioStats, type BridgeAudio, createBridgeAudio } from "./audio.ts";
+import { type Acting, type Bridge, createBridge, waitForGo } from "./bridge.ts";
 import { captureNatives, isTopFrame, type Natives, nextFrame } from "./capture.ts";
 import { createClocks, whenAborted } from "./clock.ts";
 import { type Command, Director, type Mode, type Snapshot } from "./director.ts";
 import { createExecutor, type InputMode } from "./executor.ts";
 import { API_KEY, type FilmEvent } from "./film-events.ts";
+import { type OutlineItem, type OutlineOptions, outline, visibleText } from "./inspect.ts";
 import type { VoiceManifest } from "./narration.ts";
-import { createOverlayStub } from "./overlay-stub.ts";
+import { type ControlCommand, createOverlay, type Overlay, type OverlayUi } from "./overlay/index.ts";
+import { installTopLayer, type TopLayer } from "./overlay/top-layer.ts";
 import { contextOf, waitFor } from "./ready.ts";
-import type { Tour } from "./schema.ts";
+import { sentenceText, type Tour } from "./schema.ts";
 import { hostStore, type RunState, type StateStore, storageStore } from "./state.ts";
 import { createTimeline } from "./timeline.ts";
 
 export * from "./anchors.ts";
+export * from "./audio.ts";
 export * from "./bridge.ts";
 export * from "./capture.ts";
 export * from "./clock.ts";
@@ -27,10 +32,13 @@ export * from "./director.ts";
 export * from "./dom-events.ts";
 export * from "./executor.ts";
 export * from "./film-events.ts";
+export * from "./inspect.ts";
 export * from "./narration.ts";
 export * from "./narrative.ts";
+export * from "./overlay/index.ts";
+export * from "./overlay/place.ts";
+export * from "./overlay/top-layer.ts";
 export * from "./overlay-port.ts";
-export * from "./overlay-stub.ts";
 export * from "./ready.ts";
 export * from "./schema.ts";
 export * from "./state.ts";
@@ -56,6 +64,10 @@ export interface BootConfig {
   manifest?: VoiceManifest | null;
   /** Start as soon as the document is ready (default). Otherwise the host calls `__showcase.start()`. */
   autostart?: boolean;
+  /** A rehearsal (Watch mode, headless): no controls, captions held for each beat's still, a checkpoint per beat. */
+  rehearse?: boolean;
+  /** Start with the voice muted (`watch --muted`). */
+  muted?: boolean;
 }
 
 export type AdapterFn = (args?: Record<string, unknown>) => unknown | Promise<unknown>;
@@ -76,6 +88,14 @@ export interface ShowcaseApi {
   start(config?: BootConfig): Promise<void>;
   /** The adapter registry (`showcase.actions.register`): what `invoke` actions call. */
   actions: { register(name: string, fn: AdapterFn): void; has(name: string): boolean };
+  /** The overlay in this document, once a run has booted. */
+  overlay: Overlay | null;
+  /** What the voice has played (Watch). */
+  audio: (AudioStats & { muted: boolean }) | null;
+  /** The page outlined by role and name, with suggested anchors (`showcase inspect`). */
+  inspect(options?: OutlineOptions): OutlineItem[];
+  /** The text a viewer can see now (`rehearse`'s spoken-number and deny-list checks). */
+  visibleText(): string;
 }
 
 type Realm = Window & typeof globalThis;
@@ -103,7 +123,41 @@ function samePath(win: Window, path: string): boolean {
 }
 
 /** Builds the director for a document and starts or resumes the run. */
-async function bootDirector(win: Realm, api: ShowcaseApi, config: BootConfig, n: Natives, adapters: Map<string, AdapterFn>): Promise<void> {
+function uiOf(config: BootConfig): OverlayUi {
+  return config.mode === "film" ? "film" : config.rehearse ? "rehearse" : "watch";
+}
+
+/** A control or a viewer's key, as a director command. */
+function command(api: ShowcaseApi, bridge: Bridge, c: ControlCommand): void {
+  const snap = api.snapshot();
+  if (!snap) return;
+  switch (c) {
+    case "toggle":
+      api.dispatch({ type: snap.paused ? "resume" : "pause" });
+      return;
+    case "back":
+      api.dispatch({ type: "back" });
+      return;
+    case "next":
+      api.dispatch({ type: "next" });
+      return;
+    case "mute":
+      api.dispatch({ type: "mute" });
+      return;
+    case "retry":
+      api.dispatch({ type: "retry" });
+      return;
+    case "skip":
+      api.dispatch({ type: "skip" });
+      return;
+    case "exit":
+      if (snap.status === "done") bridge.exit();
+      else api.dispatch({ type: "end" });
+      return;
+  }
+}
+
+async function bootDirector(win: Realm, api: ShowcaseApi, config: BootConfig, n: Natives, adapters: Map<string, AdapterFn>, top: TopLayer): Promise<void> {
   const doc = win.document;
   const bridge = createBridge(win);
   let storage: Storage | null = null;
@@ -118,8 +172,58 @@ async function bootDirector(win: Realm, api: ShowcaseApi, config: BootConfig, n:
   const docNumber = resumed && prior ? prior.doc + 1 : 1;
   const ctx: AnchorContext = { document: doc, anchors: config.tour.anchors ?? {} };
   let speed = config.speed ?? 1;
-  const overlay = createOverlayStub({ document: doc, speed: () => speed, visible: config.pointer !== false });
+  const ui = uiOf(config);
+  const overlay = createOverlay({
+    document: doc,
+    topLayer: top,
+    natives: n,
+    speed: () => speed,
+    ui,
+    pointer: config.pointer !== false,
+    lingerCaptions: ui === "rehearse",
+    ...(ui === "rehearse" ? { reducedMotion: true } : {}),
+    title: config.tour.title,
+    onCommand: (c) => command(api, bridge, c),
+  });
+  api.overlay = overlay;
   if (resumed && prior?.pointer) overlay.movePointer(prior.pointer.x, prior.pointer.y);
+  let audio: BridgeAudio | null = null;
+  if (ui === "watch") {
+    audio = createBridgeAudio({
+      bridge,
+      document: doc,
+      manifest: config.manifest ?? null,
+      ...(config.muted !== undefined ? { muted: config.muted } : {}),
+      storage,
+      setTimeout: n.setTimeout,
+      clearTimeout: n.clearTimeout,
+    });
+    const a = audio;
+    api.audio = {
+      get played() {
+        return a.stats.played;
+      },
+      get failed() {
+        return a.stats.failed;
+      },
+      get muted() {
+        return a.muted;
+      },
+    };
+  }
+  const publish = (snapshot: Snapshot | null) => {
+    bridge.snapshot(snapshot);
+    if (!snapshot) return;
+    overlay.view({
+      status: snapshot.status,
+      stepIndex: snapshot.stepIndex,
+      stepCount: snapshot.stepCount,
+      paused: snapshot.paused,
+      muted: snapshot.muted,
+      blocked: snapshot.blocked ? snapshot.blocked.message : null,
+      ended: snapshot.ended?.reason ?? null,
+    });
+  };
   const timers = { now: n.perfNow, setTimeout: n.setTimeout, clearTimeout: n.clearTimeout };
 
   const director = new Director({
@@ -163,8 +267,20 @@ async function bootDirector(win: Realm, api: ShowcaseApi, config: BootConfig, n:
     store,
     timeline: (stamp) => createTimeline({ stamp, t: () => n.timeOrigin + n.perfNow(), wall: n.dateNow, window: win, ...(bridge.present ? { send: (e) => bridge.event(e) } : {}) }),
     manifest: config.manifest ?? null,
+    audio,
     overlay,
-    publish: (snapshot) => bridge.snapshot(snapshot),
+    publish,
+    ...(ui === "rehearse" && bridge.present
+      ? {
+          checkpoint: async ({ stepIndex, beatIndex, step, beat }) => {
+            await nextFrame(n);
+            await nextFrame(n);
+            const card = beat.card ? { title: beat.card.title, lines: beat.card.lines ?? [] } : null;
+            await bridge.checkpoint({ stepIndex, beatIndex, step: step.id, beat: beat.id, narration: (beat.narration ?? []).map(sentenceText), card });
+            overlay.clearCaption();
+          },
+        }
+      : {}),
     now: n.dateNow,
     viewport: () => ({ w: win.innerWidth, h: win.innerHeight, dpr: win.devicePixelRatio || 1 }),
     filmReady: (signal) => filmReady(n, signal, doc),
@@ -197,6 +313,8 @@ export function boot(win: Realm = window as Realm): ShowcaseApi | null {
   const w = win as unknown as Record<string, unknown>;
   if (w[API_KEY]) return w[API_KEY] as ShowcaseApi;
   const n = captureNatives(win);
+  // Before any app code: the top-layer watch and the control guard (S-D2, S-D3).
+  const top = installTopLayer(win);
   const adapters = new Map<string, AdapterFn>();
   let bootedResolve = () => {};
   const api: ShowcaseApi = {
@@ -217,7 +335,7 @@ export function boot(win: Realm = window as Realm): ShowcaseApi | null {
         api.director.start({ mode: c.mode, speed: c.speed ?? 1, ...(c.from ? { from: c.from } : {}) });
         return;
       }
-      await bootDirector(win, api, { ...c, autostart: true }, n, adapters);
+      await bootDirector(win, api, { ...c, autostart: true }, n, adapters, top);
     },
     actions: {
       register: (name, fn) => {
@@ -225,16 +343,38 @@ export function boot(win: Realm = window as Realm): ShowcaseApi | null {
       },
       has: (name) => adapters.has(name),
     },
+    overlay: null,
+    audio: null,
+    inspect: (options) => outline(win.document, options),
+    visibleText: () => visibleText(win.document),
   };
   Object.defineProperty(win, API_KEY, { value: api, configurable: true, enumerable: false, writable: false });
 
-  // A viewer's click pauses a Watch tour (PLAN §2.1 "acting window"). Registered before any app code.
+  const watching = () => {
+    const snap = api.snapshot();
+    return snap && snap.mode === "watch" && api.config && uiOf(api.config) === "watch" ? snap : null;
+  };
+  // A viewer's click pauses a Watch tour (PLAN §2.1 "acting window"). Registered before any app
+  // code, after the guard, so a click on the controls never gets here.
   win.addEventListener(
     "pointerdown",
     (e) => {
-      const snap = api.snapshot();
-      if (!snap || snap.mode !== "watch" || snap.status !== "playing") return;
+      const snap = watching();
+      if (!snap || snap.status !== "playing") return;
       if (isViewerInput(api, n, e)) api.dispatch({ type: "pause" });
+    },
+    true,
+  );
+  // The viewer's keys in Watch (PLAN §2.2): Space pauses, ← and → step, M mutes, Esc exits.
+  const KEYS: Record<string, ControlCommand> = { " ": "toggle", Spacebar: "toggle", ArrowLeft: "back", ArrowRight: "next", m: "mute", M: "mute", Escape: "exit" };
+  win.addEventListener(
+    "keydown",
+    (e) => {
+      const c = KEYS[e.key];
+      if (!c || e.altKey || e.ctrlKey || e.metaKey || !watching() || !isViewerInput(api, n, e)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (!e.repeat) command(api, createBridge(win), c);
     },
     true,
   );
@@ -247,7 +387,7 @@ export function boot(win: Realm = window as Realm): ShowcaseApi | null {
       done();
       return;
     }
-    bootDirector(win, api, config, n, adapters).then(done, (e) => {
+    bootDirector(win, api, config, n, adapters, top).then(done, (e) => {
       createBridge(win).log("warn", `boot failed: ${e instanceof Error ? e.message : String(e)}`);
       done();
     });

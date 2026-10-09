@@ -24,73 +24,14 @@ import { type RunClocks } from "./clock.ts";
 import { type ActionPhase, type CameraFrame, type Executor, type InputMode } from "./executor.ts";
 import { type AudioPort, type VoiceManifest } from "./narration.ts";
 import { type OverlayPort } from "./overlay-port.ts";
-import type { Action, Ready, Tour } from "./schema.ts";
-import { type Position, type RunState, type StateStore } from "./state.ts";
+import type { Command, Mode, Snapshot } from "./protocol.ts";
+import type { Action, Beat, Ready, Step, Tour } from "./schema.ts";
+import { type RunState, type StateStore } from "./state.ts";
+export type { Blocked, Command, EndReason, Mode, Snapshot, Status } from "./protocol.ts";
 import { type Timeline } from "./timeline.ts";
 export declare const DEFAULT_DWELL_MS = 600;
 /** Film mode: once the host rolls, a wait that isn't over in 15 s is an error, not a wait. */
 export declare const FILM_WAIT_MS = 15000;
-export type Mode = "watch" | "film";
-export type Status = "idle" | "starting" | "entering" | "armed" | "playing" | "paused" | "blocked" | "ending" | "done";
-export type EndReason = "finished" | "left" | "error";
-export interface Blocked {
-    what: "anchor" | "ready" | "error";
-    message: string;
-    action: string | null;
-    anchor: string | null;
-}
-export interface Snapshot {
-    runId: string;
-    tourId: string;
-    mode: Mode;
-    status: Status;
-    stepIndex: number;
-    stepId: string;
-    stepCount: number;
-    beatIndex: number;
-    beatId: string | null;
-    beatCount: number;
-    speed: number;
-    paused: boolean;
-    rolling: boolean;
-    doc: number;
-    blocked: Blocked | null;
-    caption: {
-        beat: string;
-        index: number;
-        text: string;
-    } | null;
-    ended: {
-        reason: EndReason;
-    } | null;
-    journal: string[];
-    at: Position;
-    /** The report's notes so far (synthetic fallbacks). */
-    notes: string[];
-}
-export type Command = {
-    type: "pause";
-} | {
-    type: "resume";
-} | {
-    type: "next";
-} | {
-    type: "back";
-} | {
-    type: "jump";
-    stepIndex: number;
-} | {
-    type: "retry";
-} | {
-    type: "skip";
-} | {
-    type: "end";
-} | {
-    type: "go";
-} | {
-    type: "mute";
-    muted?: boolean;
-};
 export interface DirectorWaitOptions {
     signal?: AbortSignal;
     timeoutMs: number;
@@ -137,6 +78,13 @@ export interface DirectorDeps {
     /** This document's number: the state's `doc` after a load. */
     doc?: number;
     newRunId?: () => string;
+    /** Rehearse: called once a beat's tracks are done and its `ready` is met, before its dwell. The beat waits for it. */
+    checkpoint?: (where: {
+        stepIndex: number;
+        beatIndex: number;
+        step: Step;
+        beat: Beat;
+    }) => Promise<void>;
 }
 export declare class Director {
     private readonly deps;
@@ -207,6 +155,8 @@ export declare class Director {
     /** Skipping a beat's readiness: on to the next beat. */
     private after;
     private film;
+    /** Rehearse: the beat's still and checks, before it dwells (or before it leaves the page). */
+    private checkpoint;
     private beatStart;
     private beatEnd;
     /** Film: where the camera frames (recorded in v1, used from v1.1). Outside a filmed beat, nothing. */

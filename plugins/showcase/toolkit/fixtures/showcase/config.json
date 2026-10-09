@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schema/config.schema.json",
+  "showcase": 1,
+  "app": {
+    "start": "node --disable-warning=ExperimentalWarning serve.ts --port {port}",
+    "url": "http://127.0.0.1:{port}",
+    "health": "/index.html"
+  },
+  "browser": {
+    "scale": 1.5,
+    "colorScheme": "light",
+    "locale": "en-GB",
+    "timezone": "Europe/London",
+    "clock": { "fixed": "2026-10-09T09:30:00+01:00" },
+    "block": ["*://analytics.example/*"],
+    "hide": []
+  },
+  "voice": {
+    "dir": "showcase/voice"
+  },
+  "privacy": {
+    "deny": ["ledgerly-internal.example", { "pattern": "\\b\\d{3}-\\d{3}-\\d{4}\\b" }]
+  }
+}

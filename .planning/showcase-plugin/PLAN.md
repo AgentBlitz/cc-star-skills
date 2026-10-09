@@ -1,6 +1,6 @@
 # showcase plugin: narrated product films and self-playing tours for any web app
 
-> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **4 of 13 sessions done.** Next: **Session 5 (R2, the overlay, host, Watch, rehearse and inspect)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
+> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **5 of 13 sessions done.** Next: **Session 6 (V1, voice)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
 
 ## 1. Context
 
@@ -198,14 +198,16 @@ film:end       {}   |   film:error { beat?, message, anchor? }
 | `shim` | Writes `~/.local/bin/showcase`, which runs the newest installed version, for terminal use |
 | `init` | Scaffolds `showcase/` from the templates, adds the ignore lines and copies the schemas |
 | `docs [topic]` | Prints a reference doc. Roadmap sessions and your own terminal use it, because the skill isn't model-invocable (D18) |
-| `inspect <url>` | Outlines a page by role and name and suggests anchors |
-| `auth` | Records a sign-in in a headed browser into `showcase/.auth/` (mode 600, ignored) as Playwright `storageState` |
+| `inspect <url\|path> [--hidden] [--limit]` | Outlines a page by role and name and suggests anchors, each checked to resolve back to its element. A path opens on the repo's app |
+| `auth [path]` | Records a sign-in in a headed browser into `showcase/.auth/state.json` (dir 700, file 600, ignored) as Playwright `storageState`; it ends when the window closes or Enter is pressed |
 | `check <tour>` | Static, no network: schema; length budgets; captions (2 × 42); the spoken-number rule; `firstToCut`; card holds; the `navigates` rule; whether the storyboard and voice are current. Prints rule ids, with `--json` |
-| `rehearse <tour> [--speed] [--synthetic]` | A fast headless run with no capture, and Claude's authoring loop. It resolves every anchor, checks each spoken number against that beat's on-screen text, scans visible text for deny-list strings and saves a still per beat. On failure it saves a screenshot, a DOM excerpt and candidate anchors |
-| `storyboard <tour> [--stills] [--html]` | Generates `showcase/storyboard/<tour>.md`. `--html` writes a page with the stills to `out/` |
+| `rehearse <tour> [--speed] [--synthetic] [--out]` | A fast headless run (×10 by default) with no capture, and Claude's authoring loop. It resolves every anchor, checks each spoken number against that beat's on-screen text, scans visible text for deny-list strings and saves a still per beat to `out/<id>/rehearse/`. On failure it saves a screenshot, a DOM excerpt, the page's outline and candidate anchors. The report is `out/<id>/rehearse.json` |
+| `storyboard <tour> [--stills] [--html] [--out-dir]` | Generates `showcase/storyboard/<tour>.md` (never dependent on the stills). `--stills` rehearses for them; `--html` writes `out/<id>/storyboard.html` with them |
 | `voice <tour> [--audition] [--draft\|--final] [--check] [--yes] [--redo beat/n] [--prune] [--dry-run]` and `voices --list` | See 2.4 |
-| `watch <tour> [--speed] [--muted] [--from <step>] [--detach]` | The live demo: headed and maximised (`viewport: null`). Space pauses; ← and → step; M mutes; Esc exits; a viewer's click pauses |
+| `watch <tour> [--speed] [--muted] [--from <step>] [--detach] [--manifest]` | The live demo: headed and maximised (`viewport: null`). Space pauses; ← and → step; M mutes; Esc exits; a viewer's click pauses. A finished tour holds its end card until the viewer closes it. `--detach` returns the pid, a log and `out/<id>/watch.json` |
 | `film <tour> [--draft] [--strict] [--video-only] [--in-app] [--refresh-snapshot] [--detach]` | See 2.5. `--detach` writes `progress.json`, because the Bash tool stops after 10 minutes |
+
+Every command that brings the app up (`rehearse`, `watch`, `inspect` with a path, `auth`, `storyboard --stills`) also takes `--base <url>` (an app already running: no lifecycle, no lock), `--build` (run `app.build` first; off by default outside `film`) and `--no-reset` (skip `snapshot` and `reset`). App commands run with `sh -c` in the directory holding `showcase/`; `{port}` and `{url}` are filled in (Session 5).
 | `brief` | Writes `showcase/BRIEF.md` from the current state, for `/planning:roadmap` |
 | `runtime vendor [--framework next\|react\|html] [--to <dir>]` | See 2.6. It's idempotent and version-stamped |
 
@@ -617,6 +619,7 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
   - In `tsconfig`: `erasableSyntaxOnly`, `verbatimModuleSyntax`, `allowImportingTsExtensions`, `noEmit`, `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`.
   - `toolkit/spikes/` has its own `tsconfig.json`, which adds the DOM lib for its `page.evaluate` code; `npm run typecheck` checks both, so Node code still sees no DOM globals (Session 2).
   - `toolkit/runtime/` (browser code) and `toolkit/host/` (Node, with the DOM lib for the runtime's types; it also takes `toolkit/test/runtime/`) have their own too, and the root excludes them (Session 4). `npm run typecheck` runs all four.
+  - The CLI's commands import the host, so the host's import graph stays free of DOM types: what the host and the page say to each other (the binding's messages, the snapshot and commands, the voice manifest and `inspect`'s outline) is in `runtime/src/protocol.ts`, types only, and in-page work is called by name (`__showcase.inspect()`, `__showcase.visibleText()`) (Session 5).
 - **C4 · The runtime** imports nothing from Node or any framework (a test enforces it). `dist/` is rebuilt with `npm run build:runtime` and must be fresh (a test enforces the stamp).
 - **C5 · Timing is driven by narration:** a sentence lasts `durationMs` from the manifest, else `readingMs`. Muting never changes timing.
 - **C6 · Writes are idempotent:** every `write` has `done`, and fast-forward and re-show never write twice.
@@ -931,6 +934,16 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
 - `npm test` and `npm run typecheck` pass.
 
 **Runtime:** opus / high — top-layer, trusted-input and process-lifecycle quirks; part of the gate is reading screens back
+
+- **As built (2026-10-09):** as planned, plus what later sessions build on:
+  - **The overlay** is `runtime/src/overlay/` (`index.ts`, `top-layer.ts`, `place.ts`, `styles.ts`), replacing the stub. The bootstrap installs the top-layer patches (`showModal`, `showPopover`, `togglePopover`, `requestFullscreen`; `toggle`, `close`, `fullscreenchange`) and the control guard (a window capture listener per pointer, mouse, focus, touch and wheel type) before any app code; the overlay subscribes to both. Its DOM is built with `createElement` (Trusted Types). The UI is `watch` (controls, captions, end card), `rehearse` (no controls; captions linger for the beat's still; no motion) or `film` (popover only, no captions, D15). A spotlight follows its element (a frame loop) with its callout placed by Compass's `placeCallout`; a card hides the spotlight and the pointer.
+  - **Watch keys and controls** go through one `command()`: toggle, back, next, mute, exit, retry, skip. Esc on a finished tour sends the host `exit`.
+  - **Audio** (`runtime/src/audio.ts`): clips come through the binding as `asset` with `kind: "voice"` (resolved in the manifest's dir), play from Blob URLs on one `<audio>`, `play` resolves on `playing` or after 300 ms; mute is `muted` only and is kept in sessionStorage across loads. All of a manifest's clips are fetched ahead. The snapshot carries `muted`.
+  - **Rehearse checkpoints:** the director's `checkpoint` dep is awaited after a beat's `ready`, or after its tracks when it has a navigating action (so the still is of its own screen), via the binding's `checkpoint` message. `rehearse` checks spoken numbers by value (`lib/screen-checks.ts`: digits, words, percent, magnitudes; times and codes as text) and the deny-list against `__showcase.visibleText()` (body text of the page and same-origin frames plus visible field values) and a card's text.
+  - **The host** is `host/{launch,app,project,rehearse,watch,inspect,auth}.ts`. `launch.ts` takes `tour: null` for a page with the API only (inspect, auth). Init scripts go config → runtime → same-tab → hide → `setFixedTime` → test scripts. Unrequested file choosers are cancelled; an `upload` aimed at a button answers the chooser it opens. The lock is `showcase/.cache/host.lock` (taken over from a dead pid); `stop()` waits for the whole process group, then SIGKILLs. `SHOWCASE_RUN_MARKER` puts `--showcase-run=<marker>` on Chromium's command line (a test aid).
+  - **The voice manifest** for Watch is `--manifest`, else `<voice.dir>/manifest.json` when its `tour` matches. Session 6 owns the format and may change the lookup (`host/project.ts › voiceFor`).
+  - **The fixture project** `toolkit/fixtures/showcase/` (config with `{port}`, `fixture-tour` of 8 beats over 3 pages, its storyboard, a hand-made draft manifest and one 0.6 s clip) is what rehearse, watch and Session 6's audition run on.
+  - **A Session 4 fix:** a run resumed after a step's own page load treated the first beat's navigating action as already dispatched; only a resume at stage `nav` does now.
 
 ### Phase C — Voice and film
 
