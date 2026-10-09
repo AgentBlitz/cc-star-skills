@@ -1,0 +1,24 @@
+schema_version: "1.0"
+name: brief-file
+description: >-
+  `showcase brief` writes showcase/BRIEF.md from the current state, for /planning:roadmap
+  (PLAN §2.7 P5).
+tags: [cli, brief]
+execution:
+  prompt: >-
+    Run exactly this one command with the Bash tool, then tell me what it wrote:
+    showcase init && showcase brief
+  model: sonnet
+  max_turns: 4
+  timeout_seconds: 120
+  allowed_tools: [Bash]
+runs: 1
+graders:
+  - type: file_exists
+    name: brief-written
+    path: showcase/BRIEF.md
+  - type: regex
+    name: brief-has-generated-blocks
+    target: { source: file, path: showcase/BRIEF.md }
+    pattern: "<!-- showcase:begin app -->\\n\\| \\| \\|[\\s\\S]*Determinism levers set"
+expected_outcome: showcase/BRIEF.md exists, from the template, with the app block filled in.

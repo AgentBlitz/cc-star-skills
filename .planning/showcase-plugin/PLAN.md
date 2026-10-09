@@ -1,6 +1,6 @@
 # showcase plugin: narrated product films and self-playing tours for any web app
 
-> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **10 of 13 sessions done.** Next: **Session 11 (S1, the skill and integration)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
+> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **11 of 13 sessions done.** Next: **Session 12 (P1, Star I: the film and live demo), by hand, run from Star**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
 
 ## 1. Context
 
@@ -208,7 +208,7 @@ film:end       {}   |   film:error { beat?, message, anchor? }
 | `film <tour> [--draft] [--strict] [--video-only] [--in-app] [--refresh-snapshot] [--detach]` | See 2.5. `--detach` writes `progress.json`, because the Bash tool stops after 10 minutes |
 
 Every command that brings the app up (`rehearse`, `watch`, `inspect` with a path, `auth`, `storyboard --stills`) also takes `--base <url>` (an app already running: no lifecycle, no lock), `--build` (run `app.build` first; off by default outside `film`) and `--no-reset` (skip `snapshot` and `reset`). App commands run with `sh -c` in the directory holding `showcase/`; `{port}` and `{url}` are filled in (Session 5).
-| `brief` | Writes `showcase/BRIEF.md` from the current state, for `/planning:roadmap` |
+| `brief [--check]` | Writes `showcase/BRIEF.md` from the current state, for `/planning:roadmap`. *As built (Session 11):* the first run copies `templates/BRIEF.md`; every run regenerates only the `tours` and `app` blocks between `<!-- showcase:begin/end … -->` markers and keeps the skill's own sections; nothing is dated; `--check` exits 1 when the blocks are out of date |
 | `runtime vendor [--framework next\|react\|html] [--to <dir>]` | See 2.6. It's idempotent and version-stamped |
 
 **`showcase/config.json`** holds:
@@ -516,6 +516,12 @@ AskUserQuestion rounds, at most four questions each, with the recommended option
 | `roadmap-brief.md` | What `BRIEF.md` must hold: every answer verbatim and the budgets; the tour and storyboard with their approval status; the narrative rules; app facts (start, routes, determinism levers, frozen vs allowed code); toolkit gates per session; open items; the checkpoint protocol; a suggested session cut; end-to-end verification |
 
 **`templates/`:** `config.json`, `tour.{pitch,walkthrough,spotlight,howto}.json`, `BRIEF.md`, `env.template`.
+
+*As built (Session 11):*
+- **Evals** (`evals/<case>/case.yaml`, claude 2.1.285): `keys-status-canary`, `headless-round-1`, `storyboard-file`, `brief-file`. Run them with `bash evals/run.sh [options]`, not bare `claude plugin eval plugins/showcase`: eval runs get a sealed HOME, so `"dependencies": ["planning"]` can't be satisfied and the plugin isn't loaded at all, and the plugin's `bin/` isn't on the runs' PATH. The wrapper evaluates a staged copy without the dependency line, with its `bin/` first on PATH, `--no-publish --trust-plugin --allow-tools Bash`. A case's `env` may only set `EVAL_*` names, so the canary reaches the CLI as `OPENROUTER_API_KEY="$EVAL_CANARY_KEY"`; macOS's `/usr/bin/git` can't run in the eval sandbox, so the cases don't `git init`.
+- **`claude plugin details` doesn't model `disable-model-invocation`**: it reports ~132 always-on tokens for `/showcase`, and the same figure with or without the flag on a control skill. A direct check (asking a headless session to list its invocable skills) shows `/showcase` absent from the model's listing, as D18 intends; the control skill without the flag is listed.
+- `SKILL.md` falls back to `${CLAUDE_PLUGIN_ROOT}/bin/showcase` when a shell can't find `showcase`.
+- The interview takes "afterwards" as an argument too (`decide`, `try`, `understand`, `champion`), so `/showcase pitch 2min film+demo decide` settles Round 1.
 
 ### 2.10 Footprint in a target repo
 

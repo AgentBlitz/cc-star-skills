@@ -8,6 +8,7 @@ How a tour becomes a finished, verified film: `showcase film <tour>` plays the t
 2. `showcase voice <tour>` (or `--draft`): every sentence has a clip. A sentence with no clip lasts its reading time and is silent, which `--strict` refuses.
 3. `showcase rehearse <tour>`: the anchors hold and no deny-list text is on screen. The film's verify reads the last rehearse; with none, or one older than the tour, it warns.
 4. Film the **production build**: `app.build` runs first (skip it with `--no-build`). A `start` that looks like a dev server is noted, because dev overlays and hot reloads show up in the video.
+5. The app is deterministic: data pinned, clock fixed, third parties blocked (`showcase docs determinism`).
 
 ## The pipeline
 
@@ -28,7 +29,7 @@ voice clips ─► mixed in Node at sentence:start − t0 ─► two-pass loudno
 ## Command
 
 ```
-showcase film <tour> [--strict] [--video-only] [--detach] [--capture auto|main|worker]
+showcase film <tour> [--strict] [--video-only] [--in-app] [--detach] [--capture auto|main|worker]
                      [--keep-frames] [--out <dir>] [--base <url>] [--no-build] [--no-reset] [--json]
 ```
 
@@ -36,7 +37,8 @@ showcase film <tour> [--strict] [--video-only] [--detach] [--capture auto|main|w
 |---|---|
 | `--strict` | Any warning fails the film (exit 1) |
 | `--video-only` | The picture and `timeline.json` only: no sound, captions, sidecars or verify |
-| `--detach` | Run in the background (the Bash tool stops commands after 10 minutes); prints the pid, a log and `progress.json`. Poll `progress.json` until `phase` is `done` or `failed` |
+| `--in-app` | Film the app's own vendored tour from `?showcase=<id>&showcaseMode=film`, injecting nothing (`showcase docs in-app`) |
+| `--detach` | Run in the background (the Bash tool stops commands after 10 minutes); prints the pid, a log and `progress.json`. Poll `progress.json` until `phase` is `done` or `failed`, in one foreground loop: don't end the turn to wait |
 | `--capture` | `auto` (default: the main thread, a worker on a raw CDP socket if the event loop lags), `main`, `worker` |
 | `--keep-frames` | Keep the captured JPEGs in `out/<id>/.capture/` |
 | `--out` | Where the outputs go (default `showcase/out/<id>/`). Rehearse writes there too: keep them together |

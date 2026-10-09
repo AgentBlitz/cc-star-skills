@@ -125,4 +125,4 @@ Errors fail `check` (exit 1); warnings are printed.
 
 ## The storyboard
 
-`showcase storyboard <tour>` writes `showcase/storyboard/<id>.md`: a meta header, a beats table (planned start, step and path, actions, narration, words, seconds) and the pacing against the preset. It's generated, never edited; its first lines carry a hash of the tour's content (key order, whitespace and `$schema` don't count), and `check` reports T015 when they differ.
+`showcase storyboard <tour>` writes `showcase/storyboard/<id>.md`: a meta header, a beats table (planned start, step and path, actions, narration, words, seconds) and the pacing against the preset. `--stills` rehearses the tour for a still per beat, and `--html` writes `showcase/out/<id>/storyboard.html` with them: the page the storyboard round (Round 4) shows. It's generated, never edited; its first lines carry a hash of the tour's content (key order, whitespace and `$schema` don't count), and `check` reports T015 when they differ.

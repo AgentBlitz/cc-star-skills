@@ -1,6 +1,6 @@
 {
   "name": "cc-star-skills",
-  "description": "Kam Star's Claude Code plugins: multi-session build planning (roadmap/calibrate-roadmap/session/wrapup/handoff/autopilot/archive-roadmap) and an embedded-AI-copilot build wizard.",
+  "description": "Kam Star's Claude Code plugins: multi-session build planning (roadmap/calibrate-roadmap/session/wrapup/handoff/autopilot/archive-roadmap), an embedded-AI-copilot build wizard, and narrated product films and tours for any web app (showcase).",
   "owner": { "name": "Kam Star", "email": "kam@kamstar.net" },
   "plugins": [
     {
@@ -17,6 +17,14 @@
       "version": "1.0.1",
       "license": "MIT",
       "description": "Interactive wizard that builds an embedded, tool-calling AI copilot into an existing web app (build-copilot).",
+      "author": { "name": "Kam Star" }
+    },
+    {
+      "name": "showcase",
+      "source": "./plugins/showcase",
+      "version": "0.9.0",
+      "license": "MIT",
+      "description": "Interview-led wizard that makes a narrated, captioned, verified product film of any web app from one tour file, plus a self-playing live demo and an in-app guided tour (showcase).",
       "author": { "name": "Kam Star" }
     }
   ]

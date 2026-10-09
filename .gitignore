@@ -6,3 +6,4 @@ node_modules/
 **/showcase/.cache/
 **/showcase/.auth/
 plugins/showcase/toolkit/test/.out/
+plugins/showcase/evals/results/

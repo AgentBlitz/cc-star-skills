@@ -1,0 +1,40 @@
+schema_version: "1.0"
+name: headless-round-1
+description: >-
+  A headless `/showcase` with no answers prints Round 1 (outcomes) and stops: no exploring, no
+  files written, no guessed answers (PLAN D13).
+tags: [wizard, headless]
+execution:
+  prompt: /showcase:showcase
+  model: sonnet
+  max_turns: 8
+  timeout_seconds: 240
+  allowed_tools: [Read, Glob, Grep, Skill]
+runs: 2
+graders:
+  - type: regex
+    name: names-round-1
+    target: last_message
+    pattern: Round 1
+  - type: regex
+    name: asks-what-else
+    target: last_message
+    pattern: The narrated film is always made\. What else\?
+  - type: regex
+    name: asks-kind-and-length
+    target: last_message
+    pattern: What kind of video\?[\s\S]*How long\?
+  - type: regex
+    name: offers-arguments
+    target: last_message
+    pattern: /showcase pitch
+  - type: tool_used
+    name: no-explorers
+    tool: Agent
+    min: 0
+    max: 0
+  - type: file_exists
+    name: nothing-scaffolded
+    path: showcase/config.json
+    exists: false
+expected_outcome: Round 1's four questions with their options, the arguments that answer them, then a stop.

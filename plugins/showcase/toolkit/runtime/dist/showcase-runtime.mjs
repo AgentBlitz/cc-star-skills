@@ -6260,7 +6260,7 @@ function syntheticGaps(tour) {
 }
 
 // toolkit/runtime/src/index.ts
-var RUNTIME_VERSION = true ? "0.1.0" : "dev";
+var RUNTIME_VERSION = true ? "0.9.0" : "dev";
 var STILL_MS = 400;
 async function filmReady(n, signal, doc) {
   await doc.fonts?.ready;

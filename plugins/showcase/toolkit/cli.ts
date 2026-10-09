@@ -5,6 +5,7 @@
  */
 import { parseArgs } from "node:util";
 import { auth } from "./commands/auth.ts";
+import { brief } from "./commands/brief.ts";
 import { check } from "./commands/check.ts";
 import { doctor } from "./commands/doctor.ts";
 import { film } from "./commands/film.ts";
@@ -23,7 +24,7 @@ import { watch } from "./commands/watch.ts";
 import { createLog } from "./lib/log.ts";
 import { describeError, redact } from "./lib/redact.ts";
 
-export const COMMANDS: readonly Command[] = [doctor, keys, shim, docs, init, check, storyboard, rehearse, watch, film, inspect, auth, voice, voices, runtime];
+export const COMMANDS: readonly Command[] = [doctor, keys, shim, docs, init, check, storyboard, rehearse, watch, film, inspect, auth, voice, voices, brief, runtime];
 
 function help(): string {
   const width = Math.max(...COMMANDS.map((c) => c.name.length));

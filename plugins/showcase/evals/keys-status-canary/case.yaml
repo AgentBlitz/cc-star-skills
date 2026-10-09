@@ -1,0 +1,36 @@
+schema_version: "1.0"
+name: keys-status-canary
+description: >-
+  `showcase keys status` with a canary OPENROUTER_API_KEY in the environment reports it as set
+  and its source, and the canary never appears anywhere in the run (PLAN §2.3, C1).
+tags: [keys, secrets]
+execution:
+  prompt: >-
+    Run exactly this command with the Bash tool:
+    OPENROUTER_API_KEY="$EVAL_CANARY_KEY" showcase keys status
+    Then tell me, in one line, whether OPENROUTER_API_KEY is set and where it comes from.
+  model: sonnet
+  max_turns: 4
+  timeout_seconds: 120
+  allowed_tools: [Bash]
+  env:
+    # Only EVAL_* names can be set here; the command passes it on as the key.
+    EVAL_CANARY_KEY: sk-or-v1-EVALCANARY-5f0e7d2c9b8a4613
+runs: 1
+graders:
+  - type: regex
+    name: canary-never-appears
+    target: trace
+    pattern: EVALCANARY
+    match: not_contains
+  - type: tool_used
+    name: ran-keys-status
+    tool: Bash
+    input_match: showcase keys status
+    min: 1
+  - type: regex
+    name: reports-set-from-environment
+    target: last_message
+    pattern: "\\bset\\b[\\s\\S]*environment|environment[\\s\\S]*\\bset\\b"
+    flags: i
+expected_outcome: The key is reported as set (environment); its value is never printed.

@@ -14,6 +14,35 @@ tour sentence ─► lexicon ─► TTS (OpenRouter | say | fake) ─► raw cac
 - **Processing:** the chain above, with a duration check (the MP3 may not drift more than 50 ms from the WAV). The settings are fixed; they are part of every clip's file name, so changing one re-processes everything from the raw cache without new spend.
 - **Clips** are named by hash (`864a38ac24d17b34.mp3`), so tours can share one `voice.dir`.
 
+## Keys
+
+One key, `OPENROUTER_API_KEY`, reaches every narrator. It lives in one user-level file, read in every repo, so it travels with the user rather than with the code:
+
+```
+${SHOWCASE_CONFIG_DIR:-${XDG_CONFIG_HOME:-~/.config}/showcase}/.env      file 600, directory 700
+```
+
+- **Precedence:** the process environment, then the repo's `.env.local` (only the names showcase knows, and only if `git check-ignore` confirms the file is ignored), then the user file.
+- **A file with looser permissions is refused**, with the `chmod` to fix it printed.
+- The template also lists the narrator overrides, `FFMPEG_PATH`, `FFPROBE_PATH` and `SHOWCASE_CACHE_DIR`, and reserves `ELEVENLABS_API_KEY`, `OPENAI_API_KEY`, `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` (commented out) for direct providers later.
+
+| Command | Does |
+|---|---|
+| `showcase keys status` | Each variable: `set` or `unset`, and where from (`OPENROUTER_API_KEY  set  (user file)`). Never a value |
+| `showcase keys init` | Creates the directory and file with the right modes and commented template lines, no key |
+| `showcase keys import <file>` | Copies only the `OPENROUTER_API_KEY` line from another file (a repo's `.env.local`), without printing it. `--force` replaces one already set |
+| `showcase keys test` | Checks the key with OpenRouter's free `GET /api/v1/key`, never a synthesis |
+| `showcase keys set` | Asks for the key with hidden input. It refuses without a terminal, so only the user's own terminal can run it |
+
+**Claude's rules:**
+
+- **Never ask for the key in chat, and never print, read or `cat` the key file**, a `.env*` file or `showcase/.auth/`. The plugin's hook denies any tool call that names them.
+- To set it, the user runs `showcase shim` (once, for `~/.local/bin/showcase`) and then `showcase keys set` **in their own terminal**, or edits the file themselves.
+- `keys import` only with the user's go, naming the file they chose.
+- Without the key everything still works on the draft voice; only the narrator and the audition's paid voices need it.
+
+Inside the toolkit, only `lib/env.ts` reads keys and only the OpenRouter provider sends one; every error passes through `redact()`; the app server gets its environment minus showcase's keys, and ffmpeg and Chromium a minimal allowlist.
+
 ## Voices
 
 | Voice | What | Cost | Needs |
@@ -24,7 +53,6 @@ tour sentence ─► lexicon ─► TTS (OpenRouter | say | fake) ─► raw cac
 
 - `SHOWCASE_TTS_MODEL`, `SHOWCASE_TTS_VOICE`, `SHOWCASE_TTS_INSTRUCTIONS` and `SHOWCASE_TTS_SPEED` override the narrator for one run (process environment, an ignored `.env.local`, or the user key file).
 - `voice.draft` is `{provider: "say" | "fake", voice?}`.
-- Never ask the user for the key in chat. They run `showcase keys set` in their own terminal. `showcase keys status` shows whether it is set, never its value.
 
 ## Commands
 
@@ -106,6 +134,14 @@ Keys are sorted and nothing is timestamped, so a re-run that changes nothing cha
 - **Format chain:** wav → mp3 → pcm. A 400 that names the format moves to the next one; the one that works is remembered per model (also on disk, in the raw cache's `formats.json`), so only a model's first sentence probes. Some models (Gemini's) answer only in `pcm`: raw signed 16-bit little-endian, 24 kHz mono.
 - **Retries:** network errors, timeouts, 429 and 5xx, three times, after 1, 3 and 9 s (or the `Retry-After`, capped at two minutes).
 - **Never retried:** 401 and 403 (a rejected key) and 402 (no credits). Their bodies are never read or printed, and one of them stops the queue so nothing more is spent.
+
+## Cost
+
+- **Drafts, `say` and the fake are free**, and so are `voices --list`, `keys test` and `voice --check`.
+- **The narrator** is billed by OpenRouter per character, at the model's own rate: a two-minute film is about 1,500 characters, typically a few cents. Check the model's price on OpenRouter before a long film.
+- **The pre-scan:** run `showcase voice <tour>` without `--yes` first. A run that needs paid calls is refused, saying how many sentences and characters it would send (`--dry-run` lists the sentences). Show those numbers to the user and get their go before adding `--yes`.
+- **Caps:** `--max-chars` (default `voice.maxChars`, else 20,000) refuses a bigger run even with `--yes`; the audition stays under 1,500 characters across all voices.
+- **Nothing is paid for twice:** raw audio is cached by synth key, so re-processing, a lexicon change on other sentences, or a re-render costs nothing. Only edited sentences and `--redo` takes are new spend.
 
 ## Where things live
 

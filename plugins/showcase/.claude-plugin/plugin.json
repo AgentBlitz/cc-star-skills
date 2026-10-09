@@ -1,8 +1,8 @@
 {
   "name": "showcase",
-  "version": "0.1.0",
+  "version": "0.9.0",
   "license": "MIT",
-  "description": "Narrated product films and self-playing tours for any web app — an interview-led wizard that writes a tour, voices it through OpenRouter TTS, drives the real app in Playwright and cuts a captioned, verified MP4, a live demo and an in-app guided tour from one tour file.",
+  "description": "Narrated product films, live demos and in-app tours for any web app, from one tour file. /showcase interviews you, writes the tour, voices it through OpenRouter TTS (or a free draft voice), drives the real app in Playwright and cuts a captioned, verified 1080p MP4.",
   "author": { "name": "Kam Star", "email": "kam@kamstar.net" },
   "homepage": "https://github.com/AgentBlitz/cc-star-skills",
   "repository": "https://github.com/AgentBlitz/cc-star-skills",

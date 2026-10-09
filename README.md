@@ -7,6 +7,7 @@ marketplace only registers the catalogue; you enable the plugins you want.
 |--------|-------------------|
 | `planning` | Multi-session build-planning skills (`/roadmap`, `/calibrate-roadmap`, `/session`, `/wrapup`, `/handoff`, `/autopilot`, `/archive-roadmap`). |
 | `copilot` | A wizard (`/build-copilot`) that embeds a tool-calling AI copilot into a web app. |
+| `showcase` | A wizard (`/showcase`) that makes a narrated, captioned, verified product film of any web app from one tour file, plus a self-playing live demo and an in-app guided tour. |
 
 ## The `planning` plugin
 
@@ -265,15 +266,132 @@ router, ORM, auth, and settings UI are all discovered, not assumed. The LLM
 endpoint (LM Studio / vLLM / cloud) is a runtime setting configured in the admin
 panel the wizard builds, so no provider is hardcoded.
 
+## The `showcase` plugin
+
+| Skill | What it does |
+|-------|--------------|
+| `/showcase` | Interview-led wizard that takes you from "what should this video do?" to a finished film of **your** web app: a narrated 1080p MP4 with burned-in captions, an SRT, a timecoded script, a still per beat and a verification report. Every screen is the real app, driven by a visible pointer in Playwright; the narration sets the timing. The same tour file plays as a self-playing live demo and can ship inside the product as an in-app guided tour. |
+
+Run `/showcase` **inside the web app's repo** (not this marketplace). It asks in short
+rounds — what else you want besides the film, what the viewer should do afterwards, the
+kind of video (pitch, walkthrough, feature spotlight, how-to) and its length — explores the
+app with three agents, then asks about the story, the narrator and what must never be on
+screen. It drafts the tour, rehearses it until it's clean, shows you a storyboard with real
+stills, voices it, films it and reads every still back against its sentence. You approve
+three things, and only you: the storyboard, the narrator and the final cut. It resumes from
+whatever `showcase/` already holds, and arguments skip questions
+(`/showcase pitch 2min film+demo decide`).
+
+| Subcommand | What it does |
+|------------|--------------|
+| `/showcase keys` | Check or set up the voice key (the user-level file) |
+| `/showcase watch <tour>` | Play the live demo in a headed browser |
+| `/showcase film <tour>` | Refresh stale voice, render, read back, then the final-cut round |
+| `/showcase review <tour>` | The notes loop: notes → checklist → fixes → re-render |
+| `/showcase brief` | Write `showcase/BRIEF.md` for `/planning:roadmap` |
+| `/showcase in-app` | Vendor the runtime and wire the in-app tour (changes app code) |
+| `/showcase doctor` | Check the prerequisites |
+
+**Which one?** `/showcase` = the whole wizard, from the interview to the final cut ·
+`/showcase film` = re-render after a change · `/showcase review` = you have notes on a cut ·
+`/showcase brief` = the job is too big for one session, so hand it to `/roadmap` ·
+`/showcase in-app` = put the tour inside the product.
+
+`/showcase` is user-invoked only (`disable-model-invocation: true`), so it costs nothing in
+the skill listing of every session; the price is that Claude won't suggest it unprompted.
+
+### Requirements
+
+- **Node 24 or later**: the CLI runs its TypeScript natively, with no build step.
+- **ffmpeg from Homebrew** (`brew install ffmpeg`; 8.0 or later, with libass, loudnorm and
+  libx264). `FFMPEG_PATH` and `FFPROBE_PATH` point elsewhere.
+- **Chromium**: `showcase doctor --install --yes` installs `playwright-core` (pinned) and its
+  Chromium into `~/.cache/showcase/`; installed plugins carry no `node_modules`.
+- **macOS `say`** for the free draft voice (elsewhere a test tone stands in).
+- The `planning` plugin, for the roadmap hand-off (a declared dependency).
+
+`/showcase doctor` (or `showcase doctor`) checks all of it.
+
+### The voice key
+
+One key, `OPENROUTER_API_KEY`, reaches every narrator voice (ElevenLabs, Gemini, MAI and
+more through OpenRouter). It lives in **one user-level file**, read in every repo, never in a
+repo and never in chat:
+
+```
+${XDG_CONFIG_HOME:-~/.config}/showcase/.env      # file 600, directory 700
+```
+
+- `showcase keys set` — type it with hidden input, **in your own terminal** (it refuses
+  without one).
+- `showcase keys import <repo>/.env.local` — copy just that line from a file you already have.
+- `showcase keys status` shows whether it's set and where from (process environment →
+  an ignored `.env.local` → the user file), never the value; `showcase keys test` checks it
+  for free.
+
+Without a key everything works on the draft voice; drafts are watermarked until a narrator
+is approved. The plugin's `PreToolUse` hook denies any tool call that names the key file or
+a recorded sign-in.
+
+### The CLI and `shim`
+
+The skill drives a CLI, `showcase`, which is on the Bash tool's `PATH` whenever the plugin
+is enabled: `doctor`, `keys`, `init`, `check`, `storyboard`, `rehearse`, `watch`, `film`,
+`voice`, `voices`, `inspect`, `auth`, `brief`, `runtime vendor` and `docs`. Every command takes
+`--help` and `--json`. To use it in your own terminal (for `keys set`, say), run
+`showcase shim` once: it writes `~/.local/bin/showcase`, which always runs the newest
+installed version. `showcase docs <topic>` prints the method (tour format, narrative rules,
+determinism, voice, film, in-app, interview, roadmap brief).
+
+### What it adds to your repo
+
+| Path | In git? | Holds |
+|------|---------|-------|
+| `showcase/config.json` | yes | How to run the app, browser, voice, film and privacy settings |
+| `showcase/tours/<id>.json` | yes | The tour: the only source |
+| `showcase/storyboard/<id>.md` | yes | Generated from the tour; `check` fails if it's stale |
+| `showcase/voice/` | yes | The voice manifest and MP3 clips (about 1 MB per two minutes), so a re-render needs no key |
+| `showcase/.schema/` | yes | The JSON Schemas, for editor validation |
+| `showcase/BRIEF.md` | yes | The roadmap hand-off, when there is one |
+| `showcase/out/` | no | Films, SRTs, scripts, stills, contact sheets, reports |
+| `showcase/.cache/` | no | Raw TTS audio, captured frames, data snapshots |
+| `showcase/.auth/` | no | Recorded sign-ins (mode 600) |
+
+`showcase init` writes the ignore lines. The in-app path also adds the vendored runtime, an
+adapter (Next, React or plain HTML), the entry point, any `data-showcase` anchors with
+their test, and `public/showcase/`.
+
+### Big jobs go to a roadmap, with checkpoints
+
+The wizard finishes in one session only when it's a film and/or live demo, one tour of
+three minutes or less, and the app can be made repeatable with config alone. Anything
+bigger (an in-app tour, several tours, determinism that needs app code) ends with
+`showcase/BRIEF.md` — every answer verbatim, the budgets, the app facts and a suggested
+session cut — and you run `/planning:roadmap showcase/BRIEF.md` in a fresh session.
+Roadmap sessions use the `showcase` CLI and `showcase docs`, and each review point
+(storyboard, narrator, final cut) is a ⛔ `Needs decision:` row, so `/autopilot` stops
+cleanly there and the next interactive `/session` asks you.
+
+### Cost
+
+Everything is free except the narrator. The draft voice, rehearsals, storyboards, films,
+`keys test` and the voice catalogue cost nothing. The narrator is billed by OpenRouter per
+character at the model's rate — a two-minute film is about 1,500 characters, typically a
+few cents — and the narrator audition (nine British voices, three lines each) stays under
+1,500 characters. Paid calls need `--yes`, honour `--max-chars`, and the skill shows you the
+count first. Raw audio is cached, so re-renders never pay twice.
+
 ## Install
 
 ```text
 /plugin marketplace add AgentBlitz/cc-star-skills
 /plugin install planning@cc-star-skills
 /plugin install copilot@cc-star-skills
+/plugin install showcase@cc-star-skills
 ```
 
-Each plugin installs independently — take one, both, or neither. Adding the
+Each plugin installs independently — take any of them, or none (`showcase` brings
+`planning` along as its dependency). Adding the
 marketplace by itself installs nothing.
 
 (For a private repo, use the full SSH/HTTPS URL or a local clone path instead of
@@ -282,7 +400,8 @@ or `ssh-agent`.)
 
 After installing `planning`, `/roadmap`, `/calibrate-roadmap`, `/session`,
 `/wrapup`, `/handoff`, `/autopilot`, and `/archive-roadmap` are available in every project; installing
-`copilot` adds `/build-copilot`.
+`copilot` adds `/build-copilot`, and installing `showcase` adds `/showcase` (run
+`showcase doctor --install --yes` once for Chromium).
 
 ## Updating
 
@@ -297,6 +416,7 @@ its entry in `.claude-plugin/marketplace.json` and its own
 ```text
 /plugin update planning@cc-star-skills
 /plugin update copilot@cc-star-skills
+/plugin update showcase@cc-star-skills
 ```
 
 ## Layout
@@ -310,9 +430,32 @@ cc-star-skills/
     │   ├── bin/autopilot          # bare-command wrapper for the Bash tool
     │   ├── scripts/autopilot.sh
     │   └── skills/{roadmap,calibrate-roadmap,session,wrapup,handoff,autopilot,archive-roadmap}/SKILL.md
-    └── copilot/
+    ├── copilot/
+    │   ├── .claude-plugin/plugin.json
+    │   └── skills/build-copilot/
+    │       ├── SKILL.md
+    │       └── reference/design-guide.md
+    └── showcase/
         ├── .claude-plugin/plugin.json
-        └── skills/build-copilot/
-            ├── SKILL.md
-            └── reference/design-guide.md
+        ├── bin/showcase           # the CLI, on the Bash tool's PATH
+        ├── hooks/                 # PreToolUse guard: no tool call may name the key file
+        ├── skills/showcase/
+        │   ├── SKILL.md
+        │   ├── reference/         # tour-format, narrative, determinism, voice, film, in-app, interview, roadmap-brief
+        │   └── templates/         # config, tour.<kind>.json, BRIEF.md, env.template
+        ├── toolkit/               # cli.ts, commands, lib, voice, host, film, runtime (src → dist), schema, fonts, fixtures, test
+        ├── evals/                 # claude plugin eval cases + run.sh
+        └── package.json
 ```
+
+### Developing the `showcase` plugin
+
+Unlike the other plugins, `showcase` is real code with committed tests. From
+`plugins/showcase/`: `npm install` (dev dependencies only: TypeScript, esbuild,
+`playwright-core`, `@types/node`), then `npm test` (`node --test`, real Chromium and ffmpeg,
+about five minutes) and `npm run typecheck`. `npm run test:next` adds the Next.js in-app
+end-to-end test (it installs Next into the cache on first use), `npm run build:runtime`
+rebuilds the committed browser runtime (a test fails if it's stale), and
+`bash evals/run.sh` runs the `claude plugin eval` suite (it stages a copy, because eval
+runs can't resolve the `planning` dependency or see `bin/`). Render films on a quiet
+machine: the film's motion-gap check notices a busy CPU.

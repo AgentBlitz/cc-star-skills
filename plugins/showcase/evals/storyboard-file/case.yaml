@@ -1,0 +1,23 @@
+schema_version: "1.0"
+name: storyboard-file
+description: >-
+  `showcase storyboard` generates showcase/storyboard/<id>.md from a tour (PLAN §2.2).
+tags: [cli, storyboard]
+execution:
+  prompt: >-
+    Run exactly this one command with the Bash tool, then tell me what it wrote:
+    showcase init && cp "$(dirname "$(dirname "$(command -v showcase)")")/skills/showcase/templates/tour.pitch.json" showcase/tours/pitch.json && showcase storyboard pitch
+  model: sonnet
+  max_turns: 4
+  timeout_seconds: 120
+  allowed_tools: [Bash]
+runs: 1
+graders:
+  - type: file_exists
+    name: storyboard-written
+    path: showcase/storyboard/pitch.md
+  - type: regex
+    name: storyboard-marked
+    target: { source: file, path: showcase/storyboard/pitch.md }
+    pattern: "<!-- showcase:storyboard v1 sha256:[0-9a-f]{64} -->"
+expected_outcome: showcase/storyboard/pitch.md exists, with its hash mark.
