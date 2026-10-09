@@ -1,2 +1,8 @@
 .DS_Store
 node_modules/
+
+# showcase plugin: generated output, caches, sign-ins
+**/showcase/out/
+**/showcase/.cache/
+**/showcase/.auth/
+plugins/showcase/toolkit/test/.out/

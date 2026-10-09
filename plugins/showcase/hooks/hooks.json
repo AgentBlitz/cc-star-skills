@@ -1,0 +1,13 @@
+{
+  "description": "Deny any tool call that names the showcase user key file or a showcase/.auth/ sign-in (PLAN §2.3).",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Grep|Glob|Bash|Edit|Write|NotebookEdit",
+        "hooks": [
+          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/guard-keys.sh\"", "timeout": 5 }
+        ]
+      }
+    ]
+  }
+}

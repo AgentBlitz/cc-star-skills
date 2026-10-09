@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# The showcase CLI. Plugin bin/ dirs are on the Bash tool's PATH; `showcase shim`
+# puts a launcher on ~/.local/bin for the user's own terminal. Node >= 24 runs the
+# TypeScript toolkit natively (PLAN D10, D11).
+set -euo pipefail
+
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  [[ "$src" != /* ]] && src="$dir/$src"
+done
+DIR="$(cd -P "$(dirname "$src")" && pwd)"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "showcase: needs Node.js 24 or later on PATH (https://nodejs.org)." >&2
+  exit 1
+fi
+if ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 24 && process.features.typescript ? 0 : 1)' 2>/dev/null; then
+  echo "showcase: needs Node.js 24 or later with TypeScript stripping (found $(node --version))." >&2
+  exit 1
+fi
+
+exec node --disable-warning=ExperimentalWarning "$DIR/../toolkit/cli.ts" "$@"

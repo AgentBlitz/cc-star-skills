@@ -1,0 +1,17 @@
+{
+  "name": "showcase-toolkit",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "test": "node --disable-warning=ExperimentalWarning --test \"toolkit/test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "build:runtime": "echo 'build:runtime: no runtime yet (Session 4)'"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1",
+    "esbuild": "^0.28.2",
+    "playwright-core": "1.63.0",
+    "typescript": "^7.0.2"
+  }
+}
