@@ -13,7 +13,7 @@
 | 3 | T1 · Tour format and narrative rules | ✅ | `toolkit/schema/{tour,config}.schema.json`, `runtime/src/{schema,narrative}.ts`, `lib/{config,tours}.ts`, `check` · `storyboard` · `init`, 4 spine templates + config, Compass golden, 20 negative fixtures, `reference/{tour-format,narrative,interview}.md` | npm test 112/112, typecheck; golden 100.8 s / 248 words / 9 beats, no issues; `check` clean on all 4 templates; `docs tour-format` prints; plugin validate ✔ | rule ids T001–T015; `readingMs` rounds (as gods-eye); `interview.md` is a draft |
 | 4 | R1 · Runtime I: the engine | ✅ | `toolkit/runtime/src/` (capture, clock, anchors, ready, dom-events, narration, film-events, timeline, state, bridge, overlay-port + pointer stub, executor, director, index/inject), `runtime/{build,stamp}.ts`, committed `runtime/dist/` (IIFE, ESM, `.d.ts`, `STAMP`), `toolkit/host/launch.ts`, `test/runtime/{bundle,director,engine}.test.ts` (22 tests), 134 tests in all | npm test 134/134, typecheck (4 projects), stamp fresh; in Chromium on the fixture: 18 action kinds, 14 input-bearing ones trusted, 0 synthetic fallbacks; covered targets 6/6 trusted (header, banner, scroller, iframe, dialog); a 3-document film resumed from host state (4 sentences once, 3 writes once, 2 `nav`, armed once); `film:error` names beat and anchor; Back writes nothing; a deep link fast-forwards 2 writes before arming; director on a fake clock 12/12 | one binding `__showcaseHost` carries events (PLAN §2.1 updated); `navigates` is a persisted stage; re-show rule reads the journal only; `scroll until` means on screen; viewer click pauses (keys and controls in S5) |
 | 5 | R2 · Runtime II: overlay, host, Watch, rehearse and inspect | ✅ | `runtime/src/overlay/` (hybrid popover + moving controls, pointer, spotlight, callout, captions, cards, end card), `runtime/src/{audio,inspect,protocol}.ts`, `host/{app,project,rehearse,watch,inspect,auth}.ts` + full `launch.ts`, `lib/screen-checks.ts`, commands `rehearse` · `watch` · `inspect` · `auth` · `storyboard --stills --html`, `fixtures/showcase/` (config, `fixture-tour`, manifest, clip), 23 new tests, 157 in all | npm test 157/157, typecheck (4 projects), stamp fresh, plugin validate ✔; overlay over a modal (pixels + `elementFromPoint`), controls clickable in the dialog and in an auto popover, the app never sees the click; planted deny string → `invite`, unspoken number → `revenue`; `rehearse` clean 3× at ×10 (+1 via `storyboard --stills`); `inspect` role-and-name anchors; headed `watch --detach` exits cleanly on SIGTERM; no app group, Chromium or lock left; 8 stills read back | Session 4 fix: resume after a step's own load re-ran nothing (nav was skipped); still of a navigating beat taken before it leaves; card hides spotlight and pointer; `auth` not run headed (writer unit-tested) |
-| 6 | V1 · Voice | ⬜ | | | |
+| 6 | V1 · Voice | ✅ | `toolkit/voice/` (`tts/{openrouter,say,fake}`, `pool`, `keys`, `lexicon`, `audio`, `manifest`, `setup`, `pipeline`, `audition`, `catalogue`), commands `voice` · `voices`, `reference/voice.md`, `<tour>.manifest.json`, 35 new tests, 192 in all | npm test 192/192, typecheck (4 projects), plugin validate ✔; fake provider through real ffmpeg: 10 draft clips mono 24 kHz, −16 ± 1 LUFS; mocked fetch: format memory, 429 + `Retry-After`, network-error retry, 401/402 neither retried nor echoed, canary absent from every output and file; edit → `--check` missing; post setting → stale, re-processed from cache; max 3 requests in flight | audition **skipped, pending the key** (`keys status`: unset); the page was written with the draft voice only (nothing sent); manifest is per tour (`<tour>.manifest.json`) |
 | 7 | F3 · Film I: capture and video | ⬜ | | | |
 | 8 | F4 · Film II: sound, captions, outputs and verify | ⬜ | | | |
 | 9 | R1 · Checkpoint: look and feel (by hand) | ⬜ | | | |
@@ -28,7 +28,7 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 
 - [ ] **`OPENROUTER_API_KEY` in the user key file** (`~/.config/showcase/.env`).
   - Ready now (Session 1 ✅): give your go for `showcase keys import ~/_PRJ/gods-eye/.env.local`, or run `plugins/showcase/bin/showcase shim`, then `showcase keys set` in your own terminal. Check it with `showcase keys status` and `showcase keys test`.
-  - Session 6's audition gate and Session 12's final voice need it. The draft voice covers everything else.
+  - Session 6's live audition was skipped for want of it (the page and pipeline were proved with the fake and mocked fetch); run `showcase voice <tour> --audition --yes` once it is set. Session 12's final voice needs it too. The draft voice covers everything else.
 - [ ] **Review notes for Session 9** (look and feel), under Review notes below, or say "approve as-is" when it runs.
 - [ ] **Your availability** for the by-hand Sessions 9, 12 and 13.
 - [ ] **The go to push** `main` and the tag `showcase--v1.0.0` to `origin` and `GITLAB` (Session 13). Nothing is pushed before then.
@@ -212,3 +212,32 @@ Runtime: opus/high (autopilot attempt 1)
   - The plan dir's `autopilot/` run logs were again left uncommitted.
 - **PLAN.md updated:** status line, §2.2 (flags, app-command rules), C3 (`protocol.ts`), §5 Session 5 "As built".
 
+### Session 6 — V1 · Voice (2026-10-09) ✅
+
+Runtime: sonnet/high (autopilot attempt 1)
+
+- **Landed:**
+  - `toolkit/voice/`: `tts/{openrouter,say,fake}.ts`, `types.ts`, `pool.ts`, `keys.ts`, `lexicon.ts`, `audio.ts`, `manifest.ts`, `setup.ts`, `pipeline.ts`, `audition.ts`, `catalogue.ts`;
+  - the commands `voice` (`--draft --final --check --yes --max-chars --redo --prune --dry-run --audition`) and `voices --list [--model]`;
+  - `skills/showcase/reference/voice.md`;
+  - `host/project.ts › voiceFor` now looks for `<voice.dir>/<tour>.manifest.json` first, then a hand-made `manifest.json`;
+  - 35 new tests (192 in all): provider (mocked fetch), lexicon, catalogue, pipeline (real ffmpeg, fake provider), audition, and the CLI.
+- **Gate:** all checks passed except the live audition:
+  - `npm test` 192/192, `npm run typecheck` over four projects, `claude plugin validate` ✔; the runtime is untouched, so `dist/` and its stamp are unchanged;
+  - the fake provider runs through real ffmpeg: every draft clip measures mono, 24 kHz, −16 ± 1 LUFS (ebur128);
+  - mocked fetch: format memory (per model, wav → mp3 → pcm), 429 with `Retry-After` and then 1/3/9 s, a thrown-fetch and a timeout retry, 401/403/402 neither retried nor echoed (body never read), a 400 body that echoes the key is redacted, and the canary key is in no output, report, file or request body;
+  - editing a sentence flips `--check` to missing (exit 1); changing a post setting makes every clip stale and re-processes from the raw cache with no new synthesis; `--prune` then removes exactly the orphans;
+  - at most three requests are ever in flight (a peak of exactly 3 in the test);
+  - **The live audition was skipped: `keys status` shows `OPENROUTER_API_KEY` unset.** The audition path itself is tested with a mocked fetch (nine voices, 1,500-character budget, `--yes` required, cached rerun costs nothing, voices the catalogue lacks skipped unspent), and `voice --audition` without the key wrote the page with the draft voice, nothing sent.
+- **Auditioned voices:** none yet (no key). The shortlist is in `audition.ts`, checked against the live catalogue on 2026-10-09 (`voices --list`: all nine offered): `elevenlabs/eleven-v3` george, daniel, alice, lily; `microsoft/mai-voice-2.1` en-GB-Harry and en-GB-Emily (the catalogue's names carry a `:MAI-Voice-2.1` suffix); `google/gemini-3.8-flash-tts` Charon, Orus, Kore.
+- **Deviations and small choices:**
+  - **The manifest is per tour: `<voice.dir>/<tour>.manifest.json`.** The runtime's draft shape (`{v, id, tour, clips[]}`) holds one tour, and tours share a clips directory. It is extended with `narrationMs`, `voices`, `post` and, per clip, `n`, `take`, `synth`, `voice` and `spoken`; the runtime reads only the fields it had. PLAN §2.10, §5 Session 5 and the fixture lookup follow. `protocol.ts`'s comment still says "a draft"; I left it so the runtime stamp stays fresh.
+  - **`--max-chars` caps characters sent in a run**, not per sentence (the Compass check was per sentence). The default is 20,000 (or `voice.maxChars`); `--audition` defaults to 1,500.
+  - **Staleness has two halves:** the synth key and the expected file name (which carries the post settings). `POST.chain` is bumped whenever the ffmpeg chain itself changes.
+  - **Modes:** a plain `voice` keeps clips that are already current, even narrator clips with no key, and voices only what is missing as a draft (with a warning). `--check` accepts either voice unless `--final`.
+  - **A rejected key (401/403) or no credits (402) stops the queue**, so nothing more is spent; sentences already done stay cached.
+  - **The raw cache** is `showcase/.cache/tts/` (already ignored by `init`), else `~/.cache/showcase/tts/`; it includes `formats.json`.
+  - **No narrator by default:** `voice.narrator` is chosen from the audition and written to the config by the user (or by the skill in Round 5). `--final` says so when it is missing.
+  - **Pacing:** sentences under four words aren't judged for wpm. The `say` draft runs fast (up to ~250 wpm on short lines), so the table's warnings on a draft are a guide only; `voice.md` says so.
+  - Added no dependencies. `voice` doesn't touch `check`'s rules; the storyboard/voice currency line in `check` (PLAN §2.2) is left for Session 8's verify.
+- The plan dir's `autopilot/` run logs were again left uncommitted.

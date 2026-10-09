@@ -1,6 +1,6 @@
 # showcase plugin: narrated product films and self-playing tours for any web app
 
-> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **5 of 13 sessions done.** Next: **Session 6 (V1, voice)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
+> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **6 of 13 sessions done.** Next: **Session 7 (F3, film I)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
 
 ## 1. Context
 
@@ -521,7 +521,7 @@ AskUserQuestion rounds, at most four questions each, with the recommended option
 | `showcase/config.json` | committed | App, browser, voice, film and privacy settings |
 | `showcase/tours/<id>.json` | committed | The tour |
 | `showcase/storyboard/<id>.md` | committed | Generated; `check` fails if it's stale |
-| `showcase/voice/` | committed | `manifest.json` plus MP3 clips (about 1 MB per 2-minute film), so a re-render needs no key |
+| `showcase/voice/` | committed | `<tour>.manifest.json` plus MP3 clips (about 1 MB per 2-minute film), so a re-render needs no key |
 | `showcase/.schema/` | committed | Copies of the JSON Schemas, for editor validation |
 | `showcase/BRIEF.md` | committed | Roadmap path only |
 | `showcase/out/` | ignored | MP4, SRT, `script.md`, stills, contact sheet, reports, `storyboard.html`, the audition page |
@@ -941,7 +941,7 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
   - **Audio** (`runtime/src/audio.ts`): clips come through the binding as `asset` with `kind: "voice"` (resolved in the manifest's dir), play from Blob URLs on one `<audio>`, `play` resolves on `playing` or after 300 ms; mute is `muted` only and is kept in sessionStorage across loads. All of a manifest's clips are fetched ahead. The snapshot carries `muted`.
   - **Rehearse checkpoints:** the director's `checkpoint` dep is awaited after a beat's `ready`, or after its tracks when it has a navigating action (so the still is of its own screen), via the binding's `checkpoint` message. `rehearse` checks spoken numbers by value (`lib/screen-checks.ts`: digits, words, percent, magnitudes; times and codes as text) and the deny-list against `__showcase.visibleText()` (body text of the page and same-origin frames plus visible field values) and a card's text.
   - **The host** is `host/{launch,app,project,rehearse,watch,inspect,auth}.ts`. `launch.ts` takes `tour: null` for a page with the API only (inspect, auth). Init scripts go config → runtime → same-tab → hide → `setFixedTime` → test scripts. Unrequested file choosers are cancelled; an `upload` aimed at a button answers the chooser it opens. The lock is `showcase/.cache/host.lock` (taken over from a dead pid); `stop()` waits for the whole process group, then SIGKILLs. `SHOWCASE_RUN_MARKER` puts `--showcase-run=<marker>` on Chromium's command line (a test aid).
-  - **The voice manifest** for Watch is `--manifest`, else `<voice.dir>/manifest.json` when its `tour` matches. Session 6 owns the format and may change the lookup (`host/project.ts › voiceFor`).
+  - **The voice manifest** for Watch is `--manifest`, else `<voice.dir>/<tour>.manifest.json` (Session 6), else a hand-made `<voice.dir>/manifest.json` when its `tour` matches (`host/project.ts › voiceFor`).
   - **The fixture project** `toolkit/fixtures/showcase/` (config with `{port}`, `fixture-tour` of 8 beats over 3 pages, its storyboard, a hand-made draft manifest and one 0.6 s clip) is what rehearse, watch and Session 6's audition run on.
   - **A Session 4 fix:** a run resumed after a step's own page load treated the first beat's navigating action as already dispatched; only a resume at stage `nav` does now.
 
@@ -979,6 +979,21 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
 - `npm test` and `npm run typecheck` pass.
 
 **Runtime:** sonnet / high — a port of the proven gods-eye pipeline with four known fixes; mocked-fetch and ffmpeg tests
+
+**As built (Session 6).**
+- **`toolkit/voice/`:**
+  - `tts/{openrouter,say,fake}.ts` behind `TtsRequest`/`TtsResult` (`types.ts`), with the four fixes:
+    - one pool, three in flight, covering synthesis and processing (`pool.ts`);
+    - the post settings in the file name, so a changed setting makes every clip stale and re-processes from the raw cache;
+    - retries on a thrown fetch, 429 and 5xx at 1, 3 and 9 s with `Retry-After` honoured (capped at two minutes);
+    - the format chain remembered per model, and on disk in the raw cache's `formats.json`.
+    - A 401, 403 or 402 is never retried and its body is never read; it also stops the rest of the queue.
+  - `keys.ts` (`synthKey`, `fileKey`, `POST` with a `chain` version), `lexicon.ts` (a single pass, longest key first), `audio.ts` (the chain, async), `manifest.ts`, `setup.ts` (narrator + `SHOWCASE_TTS_*` overrides, draft fallback, key via `env.ts` only), `pipeline.ts` (`plan` is pure; `run` does the work; `pacing`), `audition.ts`, `catalogue.ts`.
+- **Commands:** `voice <tour>` (`--draft --final --check --yes --max-chars --redo beat/n --prune --dry-run --audition`) and `voices --list [--model]`.
+- **The manifest is `<voice.dir>/<tour>.manifest.json`, one per tour.** It is the runtime's `{v, id, tour, clips[]}` plus `narrationMs`, `voices`, `post` and, per clip, `n`, `take`, `synth`, `voice` and `spoken`. Clips are named by hash, so tours share the directory. `protocol.ts` was left alone (so `dist/` and its stamp are unchanged).
+- **Modes.** Default: the narrator if one is configured and the key is set, else the draft; clips that are already current are kept (narrator clips too, when the key is absent). `--final`: the narrator only. `--check` needs no key, network or ffmpeg and accepts either voice unless `--final`.
+- **`--max-chars`** caps characters sent to OpenRouter in a run (not per sentence); the audition's own default is 1,500.
+- Reference doc: `skills/showcase/reference/voice.md`.
 
 #### Session 7 — F3 · Film I: capture and video
 

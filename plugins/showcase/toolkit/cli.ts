@@ -15,11 +15,13 @@ import { rehearse } from "./commands/rehearse.ts";
 import { shim } from "./commands/shim.ts";
 import { storyboard } from "./commands/storyboard.ts";
 import { type Command, UsageError } from "./commands/types.ts";
+import { voice } from "./commands/voice.ts";
+import { voices } from "./commands/voices.ts";
 import { watch } from "./commands/watch.ts";
 import { createLog } from "./lib/log.ts";
 import { describeError, redact } from "./lib/redact.ts";
 
-export const COMMANDS: readonly Command[] = [doctor, keys, shim, docs, init, check, storyboard, rehearse, watch, inspect, auth];
+export const COMMANDS: readonly Command[] = [doctor, keys, shim, docs, init, check, storyboard, rehearse, watch, inspect, auth, voice, voices];
 
 function help(): string {
   const width = Math.max(...COMMANDS.map((c) => c.name.length));

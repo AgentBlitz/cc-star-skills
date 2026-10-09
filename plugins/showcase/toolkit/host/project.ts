@@ -8,6 +8,7 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { type Config, loadConfig, withDefaults } from "../lib/config.ts";
 import { repoRoot } from "../lib/paths.ts";
 import { loadTour, resolveTour, type TourFile } from "../lib/tours.ts";
+import { manifestFile } from "../voice/manifest.ts";
 import type { VoiceManifest } from "../runtime/src/protocol.ts";
 import type { Tour } from "../runtime/src/schema.ts";
 import { acquireLock, type App, type Lock, startApp } from "./app.ts";
@@ -75,12 +76,14 @@ export function browserSettings(p: Project, o: { storageState?: boolean } = {}):
 
 /**
  * The voice manifest for a tour, and the dir its clips resolve in: `--manifest`, else
- * `<voice.dir>/manifest.json` when it is this tour's. Session 6 writes it; a missing one is fine
- * (the tour reads at `readingMs`).
+ * `<voice.dir>/<tour>.manifest.json` (`showcase voice` writes it), else a hand-made
+ * `<voice.dir>/manifest.json` when it is this tour's. A missing one is fine (the tour reads at
+ * `readingMs`).
  */
 export function voiceFor(p: Project, tour: Tour, manifestArg?: string): { manifest: VoiceManifest | null; dir: string | null } {
-  const file = manifestArg ? resolve(manifestArg) : join(p.root, p.config.voice.dir, "manifest.json");
-  if (!existsSync(file)) {
+  const dir = resolve(p.root, p.config.voice.dir);
+  const file = manifestArg ? resolve(manifestArg) : [manifestFile(dir, tour.id), join(dir, "manifest.json")].find((f) => existsSync(f));
+  if (!file || !existsSync(file)) {
     if (manifestArg) throw new Error(`no manifest at ${file}`);
     return { manifest: null, dir: null };
   }
