@@ -9,7 +9,7 @@
     "afterwards": "try",
     "takeaway": "Revenue, reports and people, in one place.",
     "language": "en-GB",
-    "length": { "targetSec": 60, "narration": { "min": 0, "max": 600 }, "beats": { "min": 1, "max": 50 } }
+    "length": { "targetSec": 40, "narration": { "min": 0, "max": 600 }, "beats": { "min": 1, "max": 50 } }
   },
   "anchors": {
     "cookies": { "role": "region", "name": "Cookie consent" },

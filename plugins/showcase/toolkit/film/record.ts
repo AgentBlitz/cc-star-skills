@@ -1,6 +1,6 @@
 /**
- * `showcase film --video-only` (PLAN §2.5): one take of a tour from the real app, made into a
- * constant-frame-rate H.264 video lined up with the tour's timeline.
+ * `showcase film` (PLAN §2.5): one take of a tour from the real app, made into a constant-frame-
+ * rate H.264 video lined up with the tour's timeline, then into the finished, verified film.
  *
  * **The take.** The production build (`app.build` runs first unless `--no-build`), on its own
  * port, after `snapshot` and `reset`, once `health` answers. Headless Chromium at the configured
@@ -17,10 +17,16 @@
  * 4. A watchdog: the whole take may run `max(3 × plan, plan + 120 s)`, and 30 s without an event
  *    is a stall.
  * 5. `film:end`, then a 1.2 s tail; the capture stops and the app and browser go.
- * 6. The frames are measured (gaps, frame rate, the probe), scheduled at 30 fps and encoded.
+ * 6. The frames are measured (gaps, frame rate, the probe) and scheduled at 30 fps.
+ * 7. Unless `--video-only`: the voice is mixed and normalised, the captions and chapters are
+ *    written (`post.ts`), and the picture and the master are encoded side by side.
+ * 8. Verify (`verify.ts`): the master is measured, the stills, contact sheet, `script.md` and
+ *    report are written; `--strict` fails on any warning.
  *
- * Outputs in `showcase/out/<tour>/`: `video.mp4` and `timeline.json`; `progress.json` all along.
- * A failed take leaves `error.png` and `timeline.partial.json`.
+ * Outputs in `showcase/out/<tour>/`: `<tour>.mp4` or `<tour>-draft.mp4`, `video.mp4` (the
+ * picture), `<tour>.srt`, `script.md`, `stills/`, `contact-sheet.png`, `report.json`,
+ * `report.md` and `timeline.json`; `progress.json` all along. A failed take leaves `error.png`
+ * and `timeline.partial.json`.
  */
 import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -34,8 +40,12 @@ import { beatsOf, type Tour } from "../runtime/src/schema.ts";
 import { type Capture, type CaptureMode, type CaptureStats, JPEG_QUALITY, startCapture } from "./capture.ts";
 import { cfrCount, cfrSchedule, fpsWindows, frameGaps, percentile } from "./cfr.ts";
 import { encodeVideo, HEIGHT, killTools, patchColours, probeVideo, type VideoProbe, WIDTH } from "./encode.ts";
+import { srtProblems } from "./captions.ts";
 import type { FrameRecord } from "./frames.ts";
+import { preparePost, tourSentences, voiceInfo } from "./post.ts";
+import { scriptMd } from "./script.ts";
 import { type Spans, spans } from "./timeline.ts";
+import { denyState, isFaststart, measureMaster, probeMaster, type Report, rel, stillTimes, type VerifyCheck, verifyChecks, writeReport, writeStills } from "./verify.ts";
 
 export const FPS = 30;
 export const PRE_ROLL_MS = 750;
@@ -62,6 +72,12 @@ export interface FilmOptions {
   assetsDir?: string;
   marker?: string;
   say?: (line: string) => void;
+  /** The picture only (`--video-only`): no sound, captions, sidecars or verify. */
+  videoOnly?: boolean;
+  /** Any warning fails the film (`--strict`). */
+  strict?: boolean;
+  /** The tour's file, to tell whether the last rehearse is older than it. */
+  tourFile?: string;
 }
 
 export interface Check {
@@ -119,8 +135,11 @@ export interface TimelineFile extends Spans {
 export interface FilmResult {
   ok: boolean;
   timeline: TimelineFile | null;
-  /** The video, when one was made. */
+  /** The picture, when one was made. */
   video: string | null;
+  /** The finished film (`<tour>.mp4` or `<tour>-draft.mp4`), when one was made. */
+  master: string | null;
+  report: Report | null;
   error: string | null;
   notes: string[];
   ms: number;
@@ -183,7 +202,8 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
   const cap = join(o.out, ".capture");
   rmSync(cap, { recursive: true, force: true });
   mkdirSync(cap, { recursive: true });
-  for (const f of ["video.mp4", "timeline.json", "timeline.partial.json", "error.png"]) rmSync(join(o.out, f), { force: true });
+  const outputs = ["video.mp4", "timeline.json", "timeline.partial.json", "error.png", `${tour.id}.mp4`, `${tour.id}-draft.mp4`, `${tour.id}.srt`, "script.md", "report.json", "report.md", "contact-sheet.png", "stills", ".post"];
+  for (const f of outputs) rmSync(join(o.out, f), { recursive: true, force: true });
 
   const session = await openSession(p, {
     what: `film ${tour.id}`,
@@ -214,7 +234,7 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
       // The page is gone.
     }
     writeFileSync(join(o.out, "timeline.partial.json"), `${JSON.stringify({ v: 1, tour: tour.id, error: message, t0, ...spans(events, t0 ?? 0), notes }, null, 2)}\n`);
-    return { ok: false, timeline: null, video: null, error: message, notes, ms: Date.now() - started } satisfies FilmResult;
+    return { ok: false, timeline: null, video: null, master: null, report: null, error: message, notes, ms: Date.now() - started } satisfies FilmResult;
   };
 
   try {
@@ -351,11 +371,33 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
     const video = join(o.out, "video.mp4");
     const spanned = spans(events, t0);
     const keyframesMs = spanned.beats.map((b) => b.startMs).filter((ms) => ms > 0);
-    say(`encoding ${schedule.length} frames at ${FPS} fps`);
-    await encodeVideo({ ffmpeg, frames: schedule.map((i) => join(cap, (frames[i] as FrameRecord).file)), workDir: cap, fps: FPS, keyframes: keyframesMs.map((ms) => ms / 1000), out: video });
+    const durationMs = t1 - t0;
+    const videoMs = (schedule.length * 1000) / FPS;
+
+    // 7. The sound, captions and chapters (not with --video-only).
+    const vi = o.videoOnly ? null : voiceInfo(p, voice.manifest, spanned);
+    const master = vi ? join(o.out, `${tour.id}${vi.draft ? "-draft" : ""}.mp4`) : null;
+    const post =
+      vi && master
+        ? await (async () => {
+            progress({ phase: "mixing", frames: stats.frames });
+            say(`mixing ${spanned.sentences.filter((x) => x.audio).length} clip(s); captions and chapters`);
+            return preparePost({ ffmpeg, out: o.out, tour, spans: spanned, durationMs: videoMs, manifest: voice.manifest, voiceDir: voice.dir, draft: vi.draft });
+          })()
+        : null;
+    progress({ phase: "encoding", frames: stats.frames });
+    say(`encoding ${schedule.length} frames at ${FPS} fps${master ? ` (the picture and ${relative(o.out, master)})` : ""}`);
+    await encodeVideo({
+      ffmpeg,
+      frames: schedule.map((i) => join(cap, (frames[i] as FrameRecord).file)),
+      workDir: cap,
+      fps: FPS,
+      keyframes: keyframesMs.map((ms) => ms / 1000),
+      out: video,
+      ...(post && master ? { master: { ...post.master, out: master } } : {}),
+    });
     const vp = await probeVideo(ffprobe, video);
 
-    const durationMs = t1 - t0;
     const frameMs = 1000 / FPS;
     const captureReport: CaptureReport = {
       ...stats,
@@ -416,9 +458,70 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
     };
     writeFileSync(join(o.out, "timeline.json"), `${JSON.stringify(timeline, null, 2)}\n`);
     if (!o.keepFrames) rmSync(cap, { recursive: true, force: true });
-    const ok = checks.every((x) => x.ok);
-    progress({ phase: ok ? "done" : "failed", video: relative(o.out, video), timeline: "timeline.json", ...(ok ? {} : { error: checks.filter((x) => !x.ok).map((x) => x.id).join(", ") }) });
-    return { ok, timeline, video, error: ok ? null : `checks failed: ${checks.filter((x) => !x.ok).map((x) => x.id).join(", ")}`, notes, ms: Date.now() - started };
+
+    // 8. Verify, stills, the script and the report.
+    let report: Report | null = null;
+    if (vi && master && post) {
+      progress({ phase: "verifying" });
+      say("verifying: loudness, silences, captions against sound; stills and the contact sheet");
+      const [mp, measured] = await Promise.all([probeMaster(ffprobe, master), measureMaster(ffmpeg, { master, picture: video, sentences: spanned.sentences, fps: FPS })]);
+      const times = stillTimes(spanned.beats, spanned.sentences);
+      const { stills, contactSheet } = await writeStills(ffmpeg, master, o.out, spanned.beats, times);
+      writeFileSync(join(o.out, "script.md"), scriptMd({ tour: tour.id, title: tour.title, durationMs: videoMs, voice: vi.label, draft: vi.draft, video: relative(o.out, master), at: new Date(started).toISOString() }, spanned.beats, spanned.sentences));
+      const sentences = tourSentences(tour);
+      const picture: VerifyCheck[] = checks.map((x) => ({ id: x.id, level: x.ok ? "ok" : "fail", detail: x.detail }));
+      const all = [
+        ...picture,
+        ...verifyChecks({
+          durationMs: videoMs,
+          targetSec: tour.meta.length.targetSec,
+          measured,
+          srtProblems: srtProblems(post.srt, sentences, videoMs),
+          sentenceCount: sentences.length,
+          missingClips: post.missingClips,
+          silentSentences: spanned.sentences.filter((x) => !x.audio).length,
+          master: mp,
+          faststart: isFaststart(master),
+          beats: spanned.beats.length,
+          deny: denyState(o.out, o.tourFile ?? null),
+        }),
+      ];
+      const failed = all.filter((x) => x.level === "fail" || (o.strict && x.level === "warn"));
+      report = {
+        v: 1,
+        tour: tour.id,
+        title: tour.title,
+        at: new Date(started).toISOString(),
+        ok: failed.length === 0,
+        strict: !!o.strict,
+        draft: vi.draft,
+        draftReasons: vi.reasons,
+        voice: vi.label,
+        durationMs: videoMs,
+        outputs: {
+          film: rel(o.out, master),
+          picture: rel(o.out, video),
+          srt: `${tour.id}.srt`,
+          script: "script.md",
+          timeline: "timeline.json",
+          contactSheet: rel(o.out, contactSheet),
+          stills: stills.map((x) => relative(o.out, x)),
+        },
+        checks: all,
+        loudness: { ...measured.loudness, loudnorm: post.loudnorm },
+        silence: measured.silence,
+        sync: measured.sync,
+        stills: spanned.beats.map((b, i) => ({ beat: b.beat, atMs: times[i] as number, file: relative(o.out, stills[i] as string), narration: spanned.sentences.filter((x) => x.beat === b.beat).map((x) => x.text) })),
+        deny: denyState(o.out, o.tourFile ?? null),
+        notes,
+      };
+      writeReport(o.out, report);
+      rmSync(post.master.cwd, { recursive: true, force: true });
+    }
+    const failedIds = report ? report.checks.filter((x) => x.level === "fail" || (o.strict && x.level === "warn")).map((x) => x.id) : checks.filter((x) => !x.ok).map((x) => x.id);
+    const ok = failedIds.length === 0;
+    progress({ phase: ok ? "done" : "failed", video: relative(o.out, master ?? video), timeline: "timeline.json", ...(ok ? {} : { error: failedIds.join(", ") }) });
+    return { ok, timeline, video, master, report, error: ok ? null : `checks failed: ${failedIds.join(", ")}`, notes, ms: Date.now() - started };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     killTools();
@@ -438,11 +541,14 @@ export function filmLines(r: FilmResult): string[] {
   const t = r.timeline;
   if (!t) return [`FAILED: ${r.error ?? "unknown"}`, ...r.notes.map((n) => `  · ${n}`)];
   const c = t.capture;
+  const mark = { ok: "✓", warn: "⚠", fail: "✗" } as const;
   return [
     `${r.ok ? "ok" : "FAILED"}: ${t.tour}, ${(t.durationMs / 1000).toFixed(2)} s, ${t.frames} frames at ${t.fps} fps, ${t.beats.length} beats (${(r.ms / 1000).toFixed(1)} s)`,
+    ...(r.report ? [`  film: ${r.report.outputs.film}${r.report.draft ? ` (draft: ${r.report.draftReasons.join("; ")})` : ""} · ${r.report.voice}`] : []),
     `  capture: ${c.mode}, ${c.frameSize ?? "?"}, median ${c.fpsMedian} fps (p5 ${c.fpsP5}), page ${c.pageFps ?? "?"} fps, largest motion gap ${c.maxMotionGapMs} ms, event loop p99 ${c.eventLoopP99Ms ?? "?"} ms`,
     `  sync probe: ${t.probe.offsetMs ?? "not found"} ms · renderer: ${c.renderer}`,
-    ...t.checks.map((x) => `  ${x.ok ? "✓" : "✗"} ${x.id}: ${x.detail}`),
+    ...(r.report ? r.report.checks.map((x) => `  ${mark[x.level]} ${x.id}: ${x.detail}`) : t.checks.map((x) => `  ${x.ok ? "✓" : "✗"} ${x.id}: ${x.detail}`)),
+    ...(r.report ? ["  then read contact-sheet.png and each still in stills/ against its narration (report.md lists them)"] : []),
     ...r.notes.map((n) => `  · ${n}`),
   ];
 }

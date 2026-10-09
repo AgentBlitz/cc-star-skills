@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sync · Ledgerly</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/app.css">
+  <style>
+    /* The beep-and-flash page (Session 8): one click turns the whole page green, a step the
+       film's sync check finds in the frames. Nothing else moves, so the film can arm quickly. */
+    #flash-panel { position: fixed; inset: 0; z-index: -1; background: #fff; }
+    body.flashed #flash-panel { background: #00c853; }
+    .sync-main { display: grid; place-items: center; min-height: 80vh; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="flash-panel" aria-hidden="true"></div>
+  <main class="sync-main">
+    <section aria-labelledby="sync-title">
+      <h1 id="sync-title">Sound and picture</h1>
+      <p>Press the button: the page flashes as the voice starts.</p>
+      <p><button type="button" id="flash">Flash</button></p>
+      <p role="status" id="flash-state">Waiting</p>
+    </section>
+  </main>
+  <script>
+    document.getElementById("flash").addEventListener("click", () => {
+      document.body.classList.add("flashed");
+      document.getElementById("flash-state").textContent = "Flashed";
+    });
+  </script>
+</body>
+</html>

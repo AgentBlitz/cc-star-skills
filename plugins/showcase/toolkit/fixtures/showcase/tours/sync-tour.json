@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../schema/tour.schema.json",
+  "showcase": 1,
+  "id": "sync-tour",
+  "title": "Sound and picture",
+  "meta": {
+    "kind": "walkthrough",
+    "audience": "team",
+    "afterwards": "try",
+    "takeaway": "The voice lands with the picture.",
+    "language": "en-GB",
+    "length": { "targetSec": 10, "narration": { "min": 0, "max": 60 }, "beats": { "min": 1, "max": 5 } }
+  },
+  "steps": [
+    {
+      "id": "sync",
+      "title": "Sync",
+      "path": "/sync.html",
+      "ready": { "kind": "visible", "anchor": { "role": "heading", "name": "Sound and picture" } },
+      "beats": [
+        {
+          "id": "intro",
+          "narration": ["This page checks the voice against the picture."]
+        },
+        {
+          "id": "beep",
+          "narration": [{ "text": "Flash, and beep.", "after": "flash" }],
+          "actions": [
+            { "id": "flash", "kind": "click", "target": { "role": "button", "name": "Flash" }, "effect": "write", "done": { "kind": "visible", "anchor": { "css": "body.flashed" } } }
+          ]
+        }
+      ]
+    }
+  ]
+}

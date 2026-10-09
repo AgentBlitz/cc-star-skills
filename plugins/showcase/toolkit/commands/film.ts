@@ -1,8 +1,10 @@
 /**
- * `showcase film <tour> --video-only` (PLAN §2.2, §2.5): one take of the tour from the real app,
- * as a constant-frame-rate H.264 video lined up with `timeline.json`. `--detach` starts it in the
- * background and returns at once with its pid and `progress.json`, because the Bash tool stops a
- * command after 10 minutes.
+ * `showcase film <tour>` (PLAN §2.2, §2.5): one take of the tour from the real app, made into the
+ * finished film: the narrated, captioned MP4 (`-draft.mp4` while the narrator is unapproved or
+ * the draft voice speaks), the SRT, `script.md`, a still per beat, the contact sheet and the
+ * verify report. `--video-only` stops at the picture and `timeline.json`. `--detach` starts it
+ * in the background and returns at once with its pid and `progress.json`, because the Bash tool
+ * stops a command after 10 minutes.
  */
 import { spawn } from "node:child_process";
 import { closeSync, openSync } from "node:fs";
@@ -16,13 +18,17 @@ const CAPTURE_MODES: readonly CaptureMode[] = ["auto", "main", "worker"];
 
 export const film: Command = {
   name: "film",
-  summary: "Film a tour from the real app: a 1080p, 30 fps H.264 video and its timeline",
+  summary: "Film a tour from the real app: the narrated, captioned 1080p film, its SRT, script, stills and verify report",
   usage: [
-    "Usage: showcase film <tour> --video-only [--detach] [--json]",
+    "Usage: showcase film <tour> [--strict] [--video-only] [--detach] [--json]",
     "  Builds and starts the app on its own port (snapshot, reset, health), plays the tour headless",
-    "  in film mode, captures every frame and encodes showcase/out/<id>/video.mp4 (1920×1080, CFR",
-    "  30 fps, H.264 High, BT.709) with timeline.json beside it. Voice and captions come later.",
-    "  --video-only       the picture only (required for now)",
+    "  in film mode and captures every frame. In showcase/out/<id>/: <id>.mp4 (1920×1080, CFR 30 fps,",
+    "  H.264 High, BT.709; the voice mixed to −16 LUFS as AAC 192k; captions burned in; a chapter per",
+    "  beat), or <id>-draft.mp4 with a DRAFT watermark while the narrator is unapproved or the draft",
+    "  voice speaks; <id>.srt, script.md, stills/, contact-sheet.png, report.json and report.md;",
+    "  video.mp4 (the picture alone) and timeline.json. Voice the tour and rehearse it first.",
+    "  --strict           any warning fails the film (duration, loudness, silence, sync, voice, rehearse)",
+    "  --video-only       the picture and timeline only: no sound, captions or verify",
     "  --detach           run in the background; prints the pid, a log and progress.json",
     "  --capture <mode>   auto (default: the main thread, a worker if the event loop lags), main, worker",
     "  --keep-frames      keep the captured frames in out/<id>/.capture/",
@@ -33,6 +39,7 @@ export const film: Command = {
   ].join("\n"),
   options: {
     "video-only": { type: "boolean" },
+    strict: { type: "boolean" },
     detach: { type: "boolean" },
     capture: { type: "string" },
     "keep-frames": { type: "boolean" },
@@ -45,7 +52,7 @@ export const film: Command = {
   allowPositionals: true,
   async run({ positionals, values, log }) {
     if (positionals.length !== 1) throw new UsageError("name one tour");
-    if (!values["video-only"]) throw new UsageError("only the picture can be filmed so far: add --video-only (voice and captions come next)");
+    if (values["video-only"] && values.strict) throw new UsageError("--strict verifies the finished film: it doesn't go with --video-only");
     const capture = (values.capture ?? "auto") as CaptureMode;
     if (!CAPTURE_MODES.includes(capture)) throw new UsageError(`--capture must be one of ${CAPTURE_MODES.join(", ")}`);
     const { tf, tour } = loadValidTour(positionals[0] as string);
@@ -81,6 +88,9 @@ export const film: Command = {
       out,
       progress,
       capture,
+      tourFile: tf.file,
+      ...(values["video-only"] ? { videoOnly: true } : {}),
+      ...(values.strict ? { strict: true } : {}),
       ...(values["keep-frames"] ? { keepFrames: true } : {}),
       ...(typeof values.base === "string" ? { url: values.base } : {}),
       ...(values["no-build"] ? { build: false } : {}),

@@ -26,14 +26,21 @@ export function killTools(): void {
   children.clear();
 }
 
-export function runTool(bin: string, args: string[], o: { stdin?: string } = {}): Promise<Buffer> {
+/**
+ * Runs ffmpeg or ffprobe and resolves with its stdout, or with its stderr when `stderrToo` (the
+ * measuring filters print there). `cwd` lets filter arguments name files relatively, with no
+ * escaping.
+ */
+export function runTool(bin: string, args: string[], o: { stdin?: string; stderrToo?: boolean; cwd?: string } = {}): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const child = spawn(bin, args, { env: toolEnv(), stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn(bin, args, { env: toolEnv(), stdio: ["pipe", "pipe", "pipe"], ...(o.cwd ? { cwd: o.cwd } : {}) });
     children.add(child);
     const out: Buffer[] = [];
+    const errAll: Buffer[] = [];
     let err = "";
     child.stdout.on("data", (d: Buffer) => out.push(d));
     child.stderr.on("data", (d: Buffer) => {
+      if (o.stderrToo) errAll.push(d);
       err = (err + d.toString()).slice(-4000);
     });
     child.on("error", (e) => {
@@ -42,15 +49,23 @@ export function runTool(bin: string, args: string[], o: { stdin?: string } = {})
     });
     child.on("close", (code, signal) => {
       children.delete(child);
-      if (code === 0) resolve(Buffer.concat(out));
+      if (code === 0) resolve(Buffer.concat(o.stderrToo ? errAll : out));
       else reject(new Error(`${bin.split("/").at(-1)} failed (${signal ?? `exit ${code}`}): ${err.trim().split("\n").slice(-3).join(" | ")}`));
     });
     child.stdin.end(o.stdin ?? "");
   });
 }
 
+const SCALE = `scale=${WIDTH}:${HEIGHT}:flags=lanczos:in_color_matrix=bt601:in_range=full:out_color_matrix=bt709:out_range=limited,format=yuv420p`;
+const TAG = "setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv";
+
 /** The filter: scale to 1920×1080 if needed, BT.601 full → BT.709 limited, 4:2:0, frames tagged BT.709. */
-export const COLOUR_FILTER = `scale=${WIDTH}:${HEIGHT}:flags=lanczos:in_color_matrix=bt601:in_range=full:out_color_matrix=bt709:out_range=limited,format=yuv420p,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv`;
+export const COLOUR_FILTER = `${SCALE},${TAG}`;
+
+/** The master's filter: the same, with the ASS captions burned in after scaling (D15). Names are relative to the post dir. */
+export function masterFilter(ass: string, fontsDir: string): string {
+  return `${SCALE},ass=filename=${ass}:fontsdir=${fontsDir},${TAG}`;
+}
 
 export interface EncodeOptions {
   ffmpeg: string;
@@ -62,10 +77,56 @@ export interface EncodeOptions {
   /** Keyframes, in seconds from the start (beat starts). */
   keyframes: readonly number[];
   out: string;
+  /** The finished film, encoded alongside from the same frames. */
+  master?: MasterOptions;
 }
 
-export function encodeArgs(o: { input: string; fps: number; keyframes: readonly number[]; out: string }): string[] {
-  const kf = [...new Set([0, ...o.keyframes.map((s) => Math.max(0, Math.round(s * 1000) / 1000))])].sort((a, b) => a - b);
+export interface MasterOptions {
+  /** The post dir: the captions, fonts, audio and chapters are named relative to it. */
+  cwd: string;
+  ass: string;
+  fontsDir: string;
+  /** The normalised 48 kHz audio. */
+  audio: string;
+  /** The ffmetadata chapters. */
+  chapters: string;
+  out: string;
+}
+
+function keyframeList(keyframes: readonly number[]): string {
+  return [...new Set([0, ...keyframes.map((s) => Math.max(0, Math.round(s * 1000) / 1000))])].sort((a, b) => a - b).join(",");
+}
+
+const X264 = (keyframes: readonly number[], fps: number) => [
+  "-c:v",
+  "libx264",
+  "-preset",
+  "slow",
+  "-crf",
+  "17",
+  "-profile:v",
+  "high",
+  "-pix_fmt",
+  "yuv420p",
+  "-color_primaries",
+  "bt709",
+  "-color_trc",
+  "bt709",
+  "-colorspace",
+  "bt709",
+  "-color_range",
+  "tv",
+  "-force_key_frames",
+  keyframeList(keyframes),
+  "-r",
+  String(fps),
+];
+
+/**
+ * The master: the frames with the captions burned in, the normalised audio as AAC 192k (48 kHz
+ * stereo), a chapter per beat, faststart.
+ */
+export function masterArgs(o: { input: string; fps: number; keyframes: readonly number[] } & MasterOptions): string[] {
   return [
     "-hide_banner",
     "-loglevel",
@@ -75,38 +136,42 @@ export function encodeArgs(o: { input: string; fps: number; keyframes: readonly 
     String(o.fps),
     "-i",
     o.input,
+    "-i",
+    o.audio,
+    "-f",
+    "ffmetadata",
+    "-i",
+    o.chapters,
+    "-map",
+    "0:v",
+    "-map",
+    "1:a",
+    "-map_metadata",
+    "2",
+    "-map_chapters",
+    "2",
     "-vf",
-    COLOUR_FILTER,
-    "-c:v",
-    "libx264",
-    "-preset",
-    "slow",
-    "-crf",
-    "17",
-    "-profile:v",
-    "high",
-    "-pix_fmt",
-    "yuv420p",
-    "-color_primaries",
-    "bt709",
-    "-color_trc",
-    "bt709",
-    "-colorspace",
-    "bt709",
-    "-color_range",
-    "tv",
-    "-force_key_frames",
-    kf.join(","),
-    "-r",
-    String(o.fps),
+    masterFilter(o.ass, o.fontsDir),
+    ...X264(o.keyframes, o.fps),
+    "-c:a",
+    "aac",
+    "-b:a",
+    "192k",
+    "-ar",
+    "48000",
+    "-ac",
+    "2",
     "-movflags",
     "+faststart",
-    "-an",
     o.out,
   ];
 }
 
-/** Links the schedule into `<workDir>/cfr/NNNNNN.jpg` and encodes it. */
+export function encodeArgs(o: { input: string; fps: number; keyframes: readonly number[]; out: string }): string[] {
+  return ["-hide_banner", "-loglevel", "error", "-y", "-framerate", String(o.fps), "-i", o.input, "-vf", COLOUR_FILTER, ...X264(o.keyframes, o.fps), "-movflags", "+faststart", "-an", o.out];
+}
+
+/** Links the schedule into `<workDir>/cfr/NNNNNN.jpg` and encodes it: the picture, and the master when asked. */
 export async function encodeVideo(o: EncodeOptions): Promise<void> {
   const cfr = join(o.workDir, "cfr");
   rmSync(cfr, { recursive: true, force: true });
@@ -119,8 +184,12 @@ export async function encodeVideo(o: EncodeOptions): Promise<void> {
       copyFileSync(src, dst);
     }
   });
+  const input = join(cfr, "%06d.jpg");
   try {
-    await runTool(o.ffmpeg, encodeArgs({ input: join(cfr, "%06d.jpg"), fps: o.fps, keyframes: o.keyframes, out: o.out }));
+    await Promise.all([
+      runTool(o.ffmpeg, encodeArgs({ input, fps: o.fps, keyframes: o.keyframes, out: o.out })),
+      ...(o.master ? [runTool(o.ffmpeg, masterArgs({ input, fps: o.fps, keyframes: o.keyframes, ...o.master }), { cwd: o.master.cwd })] : []),
+    ]);
   } finally {
     rmSync(cfr, { recursive: true, force: true });
   }

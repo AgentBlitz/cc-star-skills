@@ -1,6 +1,6 @@
 # showcase plugin: narrated product films and self-playing tours for any web app
 
-> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **7 of 13 sessions done.** Next: **Session 8 (F4, film II)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
+> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **8 of 13 sessions done.** Next: **Session 9 (R1, the look-and-feel checkpoint, by hand)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
 
 ## 1. Context
 
@@ -1076,6 +1076,15 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
 - `npm test` and `npm run typecheck` pass.
 
 **Runtime:** opus / medium — well-specified post chain with measured gates (LUFS, sync, SRT equality)
+
+**As built (Session 8).**
+- **`toolkit/film/`:** `mix.ts` (the Node mixdown, two-pass loudnorm, ebur128, levels, silences, onsets), `captions.ts` (ASS and SRT from one set of cues, the SRT check), `script.ts` (ffmetadata chapters, `script.md`), `post.ts` (draft or final, the cues, `.post/`), `verify.ts` (the checks, caption-against-sound, stills and contact sheet, the report). `encode.ts` encodes the master beside the picture from the same CFR frames (one generation; captions burned in after scaling; AAC 192k 48 kHz stereo; chapters; faststart).
+- **`film <tour> [--strict]`** makes the finished film; `--video-only` is Session 7's picture-only take. Outputs: `<tour>.mp4` or `<tour>-draft.mp4` (only one is kept), `video.mp4`, `<tour>.srt`, `script.md`, `stills/NN-<beat>.png`, `contact-sheet.png`, `report.json`, `report.md`, `timeline.json`.
+- **Draft** unless every sentence has a narrator clip and `voice.narrator.approved` is set; a draft is reported, not a warning.
+- **Check levels:** failures — the picture checks, `srt`, `audio`, `faststart`, `chapters`, a deny-list hit; warnings (fatal with `--strict`) — `duration-target` (± max(5 s, 10 %)), `loudness`, `true-peak`, `silence` (between first and last sound), `av-sync`, `voiced`, a missing or stale rehearse.
+- **A voiced caption starts at its sentence's start plus the clip's 30 ms lead** (`post.leadMs`), so it lands within a frame of its sound. Font: Atkinson Hyperlegible Bold (OFL), 46 px, white on a 60 % dark box, bottom centre.
+- **Fixtures:** `sync.html` and `sync-tour` (the beep-and-flash beat); the fixture tour's target is now 40 s.
+- **Measured:** caption↔sound on the beep beat −26.7 ms (fake) / +3.3 ms (`say`); the flash 27–30 ms after the sound; masters at −16.0 ± 0.2 LUFS.
 
 ### Phase D — Review, in-app and the skill
 

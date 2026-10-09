@@ -14,7 +14,7 @@ import { parseArgs } from "node:util";
 export const APP_DIR = resolve(import.meta.dirname, "app");
 
 /** The fixture's pages, each loaded by the gate's console-error check. */
-export const PAGES = ["index.html", "list.html", "detail.html", "spa.html", "spa/settings", "frame.html"] as const;
+export const PAGES = ["index.html", "list.html", "detail.html", "spa.html", "spa/settings", "frame.html", "sync.html"] as const;
 
 const TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
