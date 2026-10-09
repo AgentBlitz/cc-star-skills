@@ -579,6 +579,10 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
 | D18 | **One skill, no always-on cost.** All installed skills share one description budget. `disable-model-invocation: true` takes `/showcase` out of the model's listing, so the cost is zero; the price is that Claude won't suggest it unprompted. Roadmap sessions use the CLI and `showcase docs <topic>` instead of loading the skill. |
 | D19 | **The v1 film is 1080p, 16:9, 30 fps, with no camera zoom or music.**<br>• The `camera` action is accepted, ignored and noted in the report.<br>• Legibility instead comes from `browser.scale`: a smaller CSS viewport at a matching DPR, so the UI renders larger, the way Compass's presenter mode does.<br>• v1.1 adds camera moves using ffmpeg's `perspective` filter (the design pass measured `zoompan` and crop+scale juddering in 2-pixel steps), plus 4K, 60 fps, other aspect ratios and music. |
 
+### Review notes — look and feel (Session 9, 2026-10-09)
+
+**Approved as-is.** The user watched the fixture film (`fixture-tour-draft.mp4`) and the live `showcase watch fixture-tour`, and read `reference/interview.md`. The verdict was "Approve as-is", with no notes and no change of narrator or caption style. The pointer, spotlight, captions, pacing, voice defaults and interview wording stand as Sessions 5–8 built them. Session 8's weak spots (the cookies step showing the notice already accepted, "the trend" spoken over a spinner, the DRAFT watermark over "Account") were not raised and are left as they are.
+
 ### Spike verdicts (Session 2 fills these in)
 
 | # | Question | Verdict | Numbers | Default chosen | Fallback |

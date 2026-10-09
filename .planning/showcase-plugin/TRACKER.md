@@ -16,7 +16,7 @@
 | 6 | V1 · Voice | ✅ | `toolkit/voice/` (`tts/{openrouter,say,fake}`, `pool`, `keys`, `lexicon`, `audio`, `manifest`, `setup`, `pipeline`, `audition`, `catalogue`), commands `voice` · `voices`, `reference/voice.md`, `<tour>.manifest.json`, 35 new tests, 192 in all | npm test 192/192, typecheck (4 projects), plugin validate ✔; fake provider through real ffmpeg: 10 draft clips mono 24 kHz, −16 ± 1 LUFS; mocked fetch: format memory, 429 + `Retry-After`, network-error retry, 401/402 neither retried nor echoed, canary absent from every output and file; edit → `--check` missing; post setting → stale, re-processed from cache; max 3 requests in flight | audition **skipped, pending the key** (`keys status`: unset); the page was written with the draft voice only (nothing sent); manifest is per tour (`<tour>.manifest.json`) |
 | 7 | F3 · Film I: capture and video | ✅ | `toolkit/film/` (`record`, `capture`, `capture-worker`, `frames`, `cfr`, `timeline`, `encode`), command `film --video-only [--detach] [--capture]`, `runtime/src/film-aids.ts` (probe, heartbeat, page frame rate), `out/<id>/{video.mp4,timeline.json,progress.json}`, 13 new tests, 205 in all | npm test 205/205, typecheck (4 projects), plugin validate ✔; fixture tour: ffprobe 1920×1080, r/avg 30/1, H.264 High, yuv420p, BT.709 matrix/transfer/primaries, range tv; duration 40.300 s vs timeline 40.289 s; no app, Chromium, ffmpeg or lock left | capture median 60 fps (p5 59), page 60 fps; largest motion gap 22.3 ms (20–27 ms over 5 takes; 1 page-load hold of 34 ms exempt); sync probe 19.7 ms (18–21); event-loop p99 11.7 ms, main thread throughout; ANGLE Metal |
 | 8 | F4 · Film II: sound, captions, outputs and verify | ✅ | `toolkit/film/{mix,captions,script,post,verify}.ts`, master encode in `encode.ts`, `film [--strict]` (`--video-only` now optional), `toolkit/fonts/` (Atkinson Hyperlegible Bold + OFL), fixture `sync.html` + `sync-tour`, `reference/film.md`, 224 tests in all (205 before) | npm test 224/224, typecheck (4 projects), plugin validate ✔; `film --strict` green on fixture-tour and sync-tour with the fake voice and with `say`; SRT = sentences; beep beat caption↔sound −26.7 ms (fake) / +3.3 ms (say), flash +27/+30 ms after the sound; fixture master −16.0/−16.1 LUFS, TP −13.6/−4.3 dBTP; contact sheet + 8 stills read back | **The fixture film for Session 9:** `plugins/showcase/toolkit/test/.out/s8-fixture/showcase/out/fixture-tour/fixture-tour-draft.mp4` (say voice, 36.8 s; contact sheet, stills, script and report beside it; ignored, regenerate per the session log) |
-| 9 | R1 · Checkpoint: look and feel (by hand) | ⛔ | | not run (headless checkpoint, D14) | Needs decision: run Session 9 interactively — watch the fixture film (`plugins/showcase/toolkit/test/.out/s8-fixture/showcase/out/fixture-tour/fixture-tour-draft.mp4`), run "showcase watch fixture-tour" (from `plugins/showcase/toolkit/test/.out/s8-fixture/`; the tour is `toolkit/fixtures/showcase/tours/fixture-tour.json`), read skills/showcase/reference/interview.md, then approve as-is or add notes under TRACKER › Review notes › Look and feel |
+| 9 | R1 · Checkpoint: look and feel (by hand) | ✅ | No code changes (approved as-is); PLAN §3 "Review notes — look and feel"; re-rendered fixture film `plugins/showcase/toolkit/test/.out/s8-fixture/showcase/out/fixture-tour/fixture-tour-draft.mp4` (ignored) | `film --strict` green on fixture-tour (largest motion gap 21.3 ms, A/V sync 16.7 ms, −16.1 LUFS, 1105/1105 frames), after two runs failed only motion-gap (235.6 ms, 147.4 ms) under host load from endpoint-security scanning; npm test 224/224; typecheck (4 projects) exit 0 | **Approved as-is** by the user after watching the fixture film and live `watch` and reading interview.md: checklist empty, nothing to close. Session 8's soft points (cookies still, "the trend" over a spinner, DRAFT over "Account") not raised, left as is |
 | 10 | I1 · The in-app path | ⬜ | | | |
 | 11 | S1 · The skill and integration | ⬜ | | | |
 | 12 | P1 · Star I: the film and live demo (by hand) | ⬜ | | | |
@@ -29,7 +29,7 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 - [ ] **`OPENROUTER_API_KEY` in the user key file** (`~/.config/showcase/.env`).
   - Ready now (Session 1 ✅): give your go for `showcase keys import ~/_PRJ/gods-eye/.env.local`, or run `plugins/showcase/bin/showcase shim`, then `showcase keys set` in your own terminal. Check it with `showcase keys status` and `showcase keys test`.
   - Session 6's live audition was skipped for want of it (the page and pipeline were proved with the fake and mocked fetch); run `showcase voice <tour> --audition --yes` once it is set. Session 12's final voice needs it too. The draft voice covers everything else.
-- [ ] **Review notes for Session 9** (look and feel), under Review notes below, or say "approve as-is" when it runs.
+- [x] **Review notes for Session 9** (look and feel): approved as-is (2026-10-09).
 - [ ] **Your availability** for the by-hand Sessions 9, 12 and 13.
 - [ ] **The go to push** `main` and the tag `showcase--v1.0.0` to `origin` and `GITLAB` (Session 13). Nothing is pushed before then.
 
@@ -37,7 +37,7 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 
 ### Look and feel (read by Session 9)
 
-(none yet: watch the fixture film, run the live demo and read `skills/showcase/reference/interview.md` when Session 9 asks, then add bullets here or say "approve as-is")
+**Approved as-is** (2026-10-09, Session 9): no notes. See PLAN §3 "Review notes — look and feel".
 
 ### Star film and live demo (Session 12, gathered in the session)
 
@@ -319,4 +319,20 @@ Runtime: opus/high (autopilot attempt 1)
 - **Stopped at once, by design** (PLAN §4 checkpoint protocol, D14): Session 9 is run by hand, and this was a headless autopilot run with no way to ask. Row 9 set to ⛔ `Needs decision: run Session 9 interactively …`; no code changed.
 - Checked before stopping: Session 8 is ✅; the fixture film exists (`plugins/showcase/toolkit/test/.out/s8-fixture/showcase/out/fixture-tour/fixture-tour-draft.mp4`, 2.6 MB, with contact sheet, SRT and rehearse output beside it); `Review notes › Look and feel` is still empty.
 - **To resume:** run `/session .planning/showcase-plugin` interactively (started with `claude --add-dir ~/_PRJ/gods-eye`). It asks the checkpoint question (Approve as-is · I have notes · A different narrator style · A different caption style), sets row 9 to 🟡 and carries on. Session 8's two soft points are worth a look in the review: the **cookies** still shows the notice already accepted, and **detail** says "the trend" over a spinner; the DRAFT watermark covers the fixture header's "Account" link.
+- The plan dir's `autopilot/` run logs were again left uncommitted.
+
+### Session 9 — R1 · Checkpoint: look and feel, by hand (2026-10-09) ✅
+
+Runtime: opus/high (interactive)
+
+- **Checkpoint resolved interactively.** `/session` turned row 9's ⛔ `Needs decision:` into the question. Ran `showcase watch fixture-tour --detach` from `toolkit/test/.out/s8-fixture/` (it played to the end card, `ended: finished`), and pointed the user to the fixture film, contact sheet, report, `reference/interview.md` and `reference/narrative.md`. The user chose **Approve as-is**, so there are no notes, no change of narrator or caption style, and **an empty checklist**. Recorded in PLAN §3 "Review notes — look and feel" and under Review notes › Look and feel.
+- **No code changed.** Session 8's soft points (the cookies still, "the trend" spoken over the fixture's spinner, the DRAFT watermark over "Account") were not raised, so they are left as they are.
+- **Gate:**
+  - Re-rendered with `showcase voice fixture-tour --draft && showcase rehearse fixture-tour && showcase film fixture-tour --strict` (say voice).
+  - The first run failed only `motion-gap`, at 235.6 ms against the 100 ms limit (`MAX_MOTION_GAP_MS`, `toolkit/film/record.ts`). It ran alongside `npm run typecheck`, with load average about 9 and the endpoint-security agents (Traps `pmd`, ManageEngine) busy.
+  - A second run on its own also failed, at 147.4 ms, at a different point in the film.
+  - A third run on its own passed every check: largest gap 21.3 ms, sync probe within limits, A/V sync 16.7 ms over 8 sentences, −16.1 LUFS, 1105/1105 frames, SRT 10 = 10 sentences.
+  - Judged a host capture stall, not a regression: no code changed, the stall moved between runs, and the clean run matches Session 8's numbers.
+  - `npm test` 224/224 (run alone); `npm run typecheck` exit 0.
+- **Watch for this:** the motion-gap check is sensitive to host load from the endpoint-security scanners, and `film.test.ts` runs `film --strict` too. Sessions 12 and 13 should render on a quiet machine and not alongside typecheck or tests. A failing motion-gap whose position moves between runs is load, not the tour.
 - The plan dir's `autopilot/` run logs were again left uncommitted.
