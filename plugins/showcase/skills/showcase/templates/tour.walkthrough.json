@@ -1,0 +1,429 @@
+{
+  "$schema": "../.schema/tour.schema.json",
+  "showcase": 1,
+  "id": "walkthrough",
+  "title": "Replace with the walkthrough's title",
+  "meta": {
+    "kind": "walkthrough",
+    "audience": "users",
+    "afterwards": "try",
+    "takeaway": "Replace with the one line the viewer should believe afterwards.",
+    "language": "en-GB",
+    "length": {
+      "targetSec": 180
+    },
+    "rules": {
+      "spokenNumbers": "on-screen-only",
+      "firstToCut": "job-8"
+    }
+  },
+  "anchors": {
+    "home": {
+      "css": "main",
+      "text": "Replace with the home screen's heading"
+    },
+    "hero": {
+      "role": "region",
+      "name": "Replace with the hero area's name"
+    },
+    "action": {
+      "role": "button",
+      "name": "Replace with the button's label"
+    },
+    "field": {
+      "label": "Replace with the field's label"
+    },
+    "result": {
+      "css": "[data-showcase=result]"
+    },
+    "detail": {
+      "testId": "replace-with-a-test-id"
+    }
+  },
+  "steps": [
+    {
+      "id": "open",
+      "title": "What this is",
+      "path": "/",
+      "beats": [
+        {
+          "id": "open",
+          "card": {
+            "title": "Replace with the product's name",
+            "lines": [
+              "Replace with what it helps people do"
+            ]
+          },
+          "narration": [
+            "Open with what the product is for, in a single plain line.",
+            "Say who it is for, and what they will be able to do after watching."
+          ],
+          "actions": [],
+          "dwellMs": 400
+        }
+      ]
+    },
+    {
+      "id": "orient",
+      "title": "Find your way around",
+      "path": "/",
+      "beats": [
+        {
+          "id": "orient",
+          "narration": [
+            {
+              "text": "Start on the home screen, and show where everything lives.",
+              "after": "orient-look"
+            },
+            "Point out the two or three places the viewer will use most.",
+            "Skip the settings: nobody watches a tour for those."
+          ],
+          "actions": [
+            {
+              "id": "orient-look",
+              "kind": "spotlight",
+              "target": "@home"
+            },
+            {
+              "id": "orient-seen",
+              "kind": "hold",
+              "ms": 2000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "job-1",
+      "title": "Job 1",
+      "path": "/",
+      "beats": [
+        {
+          "id": "job-1",
+          "narration": [
+            {
+              "text": "The first job: say what the viewer is trying to get done.",
+              "after": "job-1-do"
+            },
+            "Do it on the real screen, the way a person would.",
+            "Name each control exactly as it is labelled."
+          ],
+          "actions": [
+            {
+              "id": "job-1-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "job-1-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "job-1-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "job-2",
+      "title": "Job 2",
+      "path": "/",
+      "beats": [
+        {
+          "id": "job-2",
+          "narration": [
+            {
+              "text": "The second job: say what the viewer is trying to get done.",
+              "after": "job-2-do"
+            },
+            "Do it on the real screen, the way a person would.",
+            "Name each control exactly as it is labelled."
+          ],
+          "actions": [
+            {
+              "id": "job-2-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "job-2-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "job-2-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "job-3",
+      "title": "Job 3",
+      "path": "/",
+      "beats": [
+        {
+          "id": "job-3",
+          "narration": [
+            {
+              "text": "The third job: say what the viewer is trying to get done.",
+              "after": "job-3-do"
+            },
+            "Do it on the real screen, the way a person would.",
+            "Name each control exactly as it is labelled."
+          ],
+          "actions": [
+            {
+              "id": "job-3-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "job-3-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "job-3-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "job-4",
+      "title": "Job 4",
+      "path": "/",
+      "beats": [
+        {
+          "id": "job-4",
+          "narration": [
+            {
+              "text": "The fourth job: say what the viewer is trying to get done.",
+              "after": "job-4-do"
+            },
+            "Do it on the real screen, the way a person would.",
+            "Name each control exactly as it is labelled."
+          ],
+          "actions": [
+            {
+              "id": "job-4-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "job-4-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "job-4-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "job-5",
+      "title": "Job 5",
+      "path": "/",
+      "beats": [
+        {
+          "id": "job-5",
+          "narration": [
+            {
+              "text": "The fifth job: say what the viewer is trying to get done.",
+              "after": "job-5-do"
+            },
+            "Do it on the real screen, the way a person would.",
+            "Name each control exactly as it is labelled."
+          ],
+          "actions": [
+            {
+              "id": "job-5-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "job-5-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "job-5-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "job-6",
+      "title": "Job 6",
+      "path": "/",
+      "beats": [
+        {
+          "id": "job-6",
+          "narration": [
+            {
+              "text": "The sixth job: say what the viewer is trying to get done.",
+              "after": "job-6-do"
+            },
+            "Do it on the real screen, the way a person would.",
+            "Name each control exactly as it is labelled."
+          ],
+          "actions": [
+            {
+              "id": "job-6-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "job-6-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "job-6-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "job-7",
+      "title": "Job 7",
+      "path": "/",
+      "beats": [
+        {
+          "id": "job-7",
+          "narration": [
+            {
+              "text": "The seventh job: say what the viewer is trying to get done.",
+              "after": "job-7-do"
+            },
+            "Do it on the real screen, the way a person would.",
+            "Name each control exactly as it is labelled."
+          ],
+          "actions": [
+            {
+              "id": "job-7-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "job-7-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "job-7-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "job-8",
+      "title": "Job 8",
+      "path": "/",
+      "beats": [
+        {
+          "id": "job-8",
+          "narration": [
+            {
+              "text": "The eighth job: say what the viewer is trying to get done.",
+              "after": "job-8-do"
+            },
+            "Do it on the real screen, the way a person would.",
+            "Name each control exactly as it is labelled."
+          ],
+          "actions": [
+            {
+              "id": "job-8-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "job-8-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "job-8-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "connect",
+      "title": "How the parts connect",
+      "path": "/",
+      "beats": [
+        {
+          "id": "connect",
+          "narration": [
+            {
+              "text": "Show how the parts connect, so the whole makes sense.",
+              "after": "connect-look"
+            },
+            "One thread through the jobs is enough.",
+            "Then let the viewer try it for themselves."
+          ],
+          "actions": [
+            {
+              "id": "connect-look",
+              "kind": "spotlight",
+              "target": "@detail"
+            },
+            {
+              "id": "connect-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "close",
+      "title": "Start here",
+      "path": "/",
+      "beats": [
+        {
+          "id": "close",
+          "card": {
+            "title": "Replace with where to start",
+            "lines": [
+              "Replace with the first thing to try"
+            ]
+          },
+          "narration": [
+            "Close on the one place to start tomorrow.",
+            "Keep the card up long enough to read."
+          ],
+          "actions": [],
+          "dwellMs": 2500
+        }
+      ]
+    }
+  ]
+}

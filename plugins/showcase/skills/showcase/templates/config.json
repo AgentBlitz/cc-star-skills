@@ -1,0 +1,33 @@
+{
+  "$schema": "./.schema/config.schema.json",
+  "showcase": 1,
+  "app": {
+    "build": "npm run build",
+    "start": "npm run start -- --port {port}",
+    "url": "http://127.0.0.1:{port}",
+    "health": "/"
+  },
+  "browser": {
+    "scale": 1.5,
+    "colorScheme": "light",
+    "locale": "en-GB",
+    "timezone": "Europe/London",
+    "gpu": "preferred",
+    "block": [],
+    "hide": []
+  },
+  "voice": {
+    "draft": { "provider": "say" },
+    "lexicon": {},
+    "dir": "showcase/voice"
+  },
+  "film": {
+    "fps": 30,
+    "pointer": true,
+    "cards": true,
+    "tolerance": 0.1
+  },
+  "privacy": {
+    "deny": []
+  }
+}

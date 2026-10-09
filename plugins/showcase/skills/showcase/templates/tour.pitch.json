@@ -1,0 +1,313 @@
+{
+  "$schema": "../.schema/tour.schema.json",
+  "showcase": 1,
+  "id": "pitch",
+  "title": "Replace with the pitch's title",
+  "meta": {
+    "kind": "pitch",
+    "audience": "executives",
+    "afterwards": "decide",
+    "takeaway": "Replace with the one line the viewer should believe afterwards.",
+    "language": "en-GB",
+    "length": {
+      "targetSec": 120
+    },
+    "rules": {
+      "spokenNumbers": "on-screen-only",
+      "firstToCut": "doing-3"
+    }
+  },
+  "anchors": {
+    "home": {
+      "css": "main",
+      "text": "Replace with the home screen's heading"
+    },
+    "hero": {
+      "role": "region",
+      "name": "Replace with the hero area's name"
+    },
+    "action": {
+      "role": "button",
+      "name": "Replace with the button's label"
+    },
+    "field": {
+      "label": "Replace with the field's label"
+    },
+    "result": {
+      "css": "[data-showcase=result]"
+    },
+    "detail": {
+      "testId": "replace-with-a-test-id"
+    }
+  },
+  "steps": [
+    {
+      "id": "open",
+      "title": "The problem, in their words",
+      "path": "/",
+      "beats": [
+        {
+          "id": "open",
+          "card": {
+            "title": "Replace with the problem, in the audience's words",
+            "lines": [
+              "The first question they ask",
+              "The second question they ask"
+            ]
+          },
+          "narration": [
+            "Open on the problem, in the words your audience already uses.",
+            "Say why it matters to them this week.",
+            "Keep it short: the screens do the explaining."
+          ],
+          "actions": [],
+          "dwellMs": 400
+        }
+      ]
+    },
+    {
+      "id": "hurts",
+      "title": "Where it hurts",
+      "path": "/",
+      "beats": [
+        {
+          "id": "hurts",
+          "narration": [
+            {
+              "text": "Show where it hurts today, on the real screen.",
+              "after": "look"
+            },
+            "Name the cost in the audience's own terms, and only what the screen shows.",
+            "One clear example beats a list of features every time."
+          ],
+          "actions": [
+            {
+              "id": "look",
+              "kind": "spotlight",
+              "target": "@hero"
+            },
+            {
+              "id": "look-seen",
+              "kind": "hold",
+              "ms": 2000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "why",
+      "title": "Why it happens",
+      "path": "/",
+      "beats": [
+        {
+          "id": "why",
+          "narration": [
+            {
+              "text": "Explain why it happens, in a sentence anyone could repeat.",
+              "after": "why-look"
+            },
+            "Point at the cause on the screen while you say it.",
+            "Leave out the history: the audience wants the reason, not the story of it."
+          ],
+          "actions": [
+            {
+              "id": "why-look",
+              "kind": "spotlight",
+              "target": "@detail"
+            },
+            {
+              "id": "why-seen",
+              "kind": "hold",
+              "ms": 2000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doing-1",
+      "title": "What we're doing, part one",
+      "path": "/",
+      "beats": [
+        {
+          "id": "doing-1",
+          "narration": [
+            {
+              "text": "Now the product does the work, with a real action.",
+              "after": "press"
+            },
+            "Each doing beat performs one thing the viewer can see change.",
+            "Say what changed, not which button was pressed."
+          ],
+          "actions": [
+            {
+              "id": "press",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "changed",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "changed-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doing-2",
+      "title": "What we're doing, part two",
+      "path": "/",
+      "beats": [
+        {
+          "id": "doing-2",
+          "narration": [
+            {
+              "text": "The second action builds on the first one.",
+              "after": "type"
+            },
+            "Type real words into real fields, so the result is honest.",
+            {
+              "text": "A write needs a done check, so a rerun never repeats it.",
+              "after": "save"
+            }
+          ],
+          "actions": [
+            {
+              "id": "type",
+              "kind": "type",
+              "target": "@field",
+              "text": "Replace with what to type"
+            },
+            {
+              "id": "save",
+              "kind": "click",
+              "target": "@action",
+              "effect": "write",
+              "done": {
+                "kind": "visible",
+                "anchor": "@result"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "doing-3",
+      "title": "What we're doing, part three",
+      "path": "/",
+      "beats": [
+        {
+          "id": "doing-3",
+          "narration": [
+            {
+              "text": "A third action, if the story needs one.",
+              "after": "third"
+            },
+            "This is the first beat to cut when the film runs long.",
+            "Keep its sentences short, so cutting it leaves no gap behind."
+          ],
+          "actions": [
+            {
+              "id": "third",
+              "kind": "spotlight",
+              "target": "@detail"
+            },
+            {
+              "id": "third-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "payoff",
+      "title": "The payoff",
+      "path": "/",
+      "beats": [
+        {
+          "id": "payoff",
+          "narration": [
+            {
+              "text": "Land the payoff: what the audience gets, on the screen.",
+              "after": "payoff-look"
+            },
+            "Hold on it, and let the result speak for itself.",
+            "This is the moment the audience will remember tomorrow."
+          ],
+          "actions": [
+            {
+              "id": "payoff-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "payoff-seen",
+              "kind": "hold",
+              "ms": 2500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "choice",
+      "title": "The choice",
+      "path": "/",
+      "beats": [
+        {
+          "id": "choice",
+          "narration": [
+            "Frame the choice the audience has to make.",
+            "Offer the options plainly, with the one you recommend first.",
+            "Say what happens next for each one."
+          ],
+          "actions": [
+            {
+              "id": "choice-look",
+              "kind": "spotlight",
+              "target": "@home"
+            },
+            {
+              "id": "choice-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ask",
+      "title": "The ask",
+      "path": "/",
+      "beats": [
+        {
+          "id": "ask",
+          "card": {
+            "title": "Replace with the ask",
+            "lines": [
+              "Replace with the first option",
+              "Replace with the second option"
+            ]
+          },
+          "narration": [
+            "End on the ask: one question the room can answer today.",
+            "Tell them who to tell, and what you will do with the answer."
+          ],
+          "actions": [],
+          "dwellMs": 2500
+        }
+      ]
+    }
+  ]
+}

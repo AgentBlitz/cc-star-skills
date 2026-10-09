@@ -1,6 +1,6 @@
 # showcase plugin: narrated product films and self-playing tours for any web app
 
-> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **2 of 13 sessions done.** Next: **Session 3 (T1, the tour format)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
+> **Status:** Approved 2026-10-09 in plan mode (decisions D1–D19, §3). **3 of 13 sessions done.** Next: **Session 4 (R1, the runtime engine)**. Live status is in `TRACKER.md`, and each session's instructions are in `prompts/session-N.md`. Run the next one with `/session`.
 
 ## 1. Context
 
@@ -457,7 +457,7 @@ AskUserQuestion rounds, at most four questions each, with the recommended option
   - understand: a recap of three takeaways;
   - champion: the one-line story.
 - **Rules for every film:**
-  - `readingMs = max(1600, words × 60000 / 165 + 350)` until there are real durations;
+  - `readingMs = max(1600, round(words × 60000 / 165 + 350))` until there are real durations (rounded to the millisecond, as Compass's is; Session 3);
   - one sentence per caption, at most 2 lines of 42 characters;
   - each beat's span is at least its narration;
   - the last card holds for at least 2 s;

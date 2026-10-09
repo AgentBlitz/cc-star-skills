@@ -1,0 +1,349 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgentBlitz/cc-star-skills/plugins/showcase/config.schema.json",
+  "title": "showcase config",
+  "description": "showcase/config.json: how to run the app, the browser, the voice, the film and privacy (PLAN §2.2).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "showcase",
+    "app"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "showcase": {
+      "const": 1
+    },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "build": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The production build command, e.g. `npm run build`."
+        },
+        "start": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Starts the server. `{port}` is replaced with the port showcase allocates."
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The base URL; `{port}` as in start, e.g. `http://127.0.0.1:{port}`."
+        },
+        "health": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A path or URL that answers 2xx once the app is ready."
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Extra environment for the app server (never showcase's keys)."
+        },
+        "reset": {
+          "description": "Resets the app's data before a take: a command, or an HTTP call.",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url"
+              ],
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "method": {
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "DELETE"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "snapshot": {
+          "description": "Restores a data snapshot before a take, e.g. an SQLite `.backup`.",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url"
+              ],
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "method": {
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "DELETE"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "browser": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scale": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 2,
+          "default": 1.5,
+          "description": "DPR; the CSS viewport is 1920×1080 ÷ scale (S-D1)."
+        },
+        "viewport": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "width",
+            "height"
+          ],
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 320
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 240
+            }
+          }
+        },
+        "colorScheme": {
+          "enum": [
+            "light",
+            "dark",
+            "no-preference"
+          ],
+          "default": "light"
+        },
+        "locale": {
+          "type": "string",
+          "default": "en-GB"
+        },
+        "timezone": {
+          "type": "string",
+          "default": "Europe/London"
+        },
+        "clock": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fixed"
+          ],
+          "properties": {
+            "fixed": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T",
+              "description": "An ISO time for `clock.setFixedTime`."
+            }
+          }
+        },
+        "storageState": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A recorded sign-in under showcase/.auth/."
+        },
+        "gpu": {
+          "enum": [
+            "required",
+            "preferred"
+          ],
+          "default": "preferred",
+          "description": "`required` refuses a software renderer."
+        },
+        "block": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "URL patterns to block (analytics, chat widgets)."
+        },
+        "hide": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "CSS selectors hidden in every take (dev overlays, cookie banners)."
+        }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "narrator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "voice"
+          ],
+          "properties": {
+            "model": {
+              "type": "string",
+              "minLength": 1,
+              "description": "An OpenRouter speech model id."
+            },
+            "voice": {
+              "type": "string",
+              "minLength": 1
+            },
+            "instructions": {
+              "type": "string",
+              "minLength": 1
+            },
+            "speed": {
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 2
+            },
+            "approved": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "const": false
+                }
+              ],
+              "description": "The date the user approved this narrator; false until then (drafts are watermarked)."
+            }
+          }
+        },
+        "draft": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "enum": [
+                "say",
+                "fake"
+              ],
+              "default": "say"
+            },
+            "voice": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "lexicon": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Pronunciation fixes: written → spoken. Captions keep the written text."
+        },
+        "dir": {
+          "type": "string",
+          "default": "showcase/voice"
+        },
+        "maxChars": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Refuse a paid run that would synthesise more characters than this."
+        }
+      }
+    },
+    "film": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fps": {
+          "const": 30,
+          "default": 30
+        },
+        "pointer": {
+          "type": "boolean",
+          "default": true
+        },
+        "cards": {
+          "type": "boolean",
+          "default": true
+        },
+        "targetSec": {
+          "type": "integer",
+          "minimum": 10,
+          "description": "Overrides the tour's meta.length.targetSec for verify."
+        },
+        "tolerance": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0.1,
+          "description": "Allowed duration error, as a fraction of the target."
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deny": {
+          "type": "array",
+          "description": "Strings or patterns that must never be on screen.",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "pattern"
+                ],
+                "properties": {
+                  "pattern": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "flags": {
+                    "type": "string",
+                    "pattern": "^[imsu]*$"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

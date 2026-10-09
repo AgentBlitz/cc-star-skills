@@ -10,7 +10,7 @@
 |---|---|---|---|---|---|
 | 1 | F1 · Foundation: plugin skeleton, CLI, keys, doctor | ✅ | `plugins/showcase/` manifest 0.1.0, `bin/showcase`, `toolkit/{cli,commands,lib}`, `hooks/guard-keys.sh`, `env.template`, 53 tests | npm test 53/53, typecheck, doctor --json all ok, keys status (gods-eye: repo .env.local; scratch: user file missing), plugin validate ✔ | key not yet in user file; esbuild postinstall skipped (Session 4) |
 | 2 | F2 · Spikes and the fixture app | ✅ | `toolkit/fixtures/{serve.ts,app/}` (5 pages, every hard case, no test ids), `toolkit/spikes/` (4 spikes, prototype overlay, `results/*.json`), `fixtures.test.ts` | fixture check: 6 pages, 0 console problems; S-D1…S-D4 measured and recorded in PLAN §3; Spike 2 20/20, menu never closed; Spike 3 screenshots + `elementFromPoint` for 20 cells, contact sheet read back; npm test 60/60, typecheck | default scale 1.5 (needs `--force-device-scale-factor`), JPEG q90; overlay: the hybrid (popover draws, controls move into modal/fullscreen/auto popover); Playwright defaults for page loads |
-| 3 | T1 · Tour format and narrative rules | ⬜ | | | |
+| 3 | T1 · Tour format and narrative rules | ✅ | `toolkit/schema/{tour,config}.schema.json`, `runtime/src/{schema,narrative}.ts`, `lib/{config,tours}.ts`, `check` · `storyboard` · `init`, 4 spine templates + config, Compass golden, 20 negative fixtures, `reference/{tour-format,narrative,interview}.md` | npm test 112/112, typecheck; golden 100.8 s / 248 words / 9 beats, no issues; `check` clean on all 4 templates; `docs tour-format` prints; plugin validate ✔ | rule ids T001–T015; `readingMs` rounds (as gods-eye); `interview.md` is a draft |
 | 4 | R1 · Runtime I: the engine | ⬜ | | | |
 | 5 | R2 · Runtime II: overlay, host, Watch, rehearse and inspect | ⬜ | | | |
 | 6 | V1 · Voice | ⬜ | | | |
@@ -119,3 +119,37 @@ Runtime: opus/high (autopilot attempt 1)
   - `toolkit/spikes/` has its own `tsconfig.json` (adds the DOM lib), and `npm run typecheck` runs both. The root tsconfig excludes it.
   - Spike outputs (screenshots, sample frames, contact sheet) go to the ignored `toolkit/test/.out/spikes/`; only the small JSON results are committed.
   - The plan dir's `autopilot/` run logs were again left uncommitted.
+
+### Session 3 — T1 · Tour format and narrative rules (2026-10-09) ✅
+
+Runtime: opus/medium (autopilot attempt 1)
+
+- **Landed:**
+  - `toolkit/schema/tour.schema.json` (the single source: 18 action kinds, 10 predicates, anchors, meta) and `config.schema.json`;
+  - `toolkit/runtime/src/schema.ts`: the types, a JSON Schema subset interpreter (refuses unknown keywords; discriminated-union errors) and the cross-field checks; `narrative.ts`: `readingMs`, presets, kind factors, caption wrapping, spoken numbers, the static rules. Both browser-safe (a test checks their imports);
+  - `toolkit/lib/config.ts` (validation plus defaults) and `lib/tours.ts` (resolve by path or id, storyboard render and hash);
+  - the commands `check`, `storyboard` and `init`;
+  - `skills/showcase/templates/tour.{pitch,walkthrough,spotlight,howto}.json` and `config.json`;
+  - `toolkit/test/golden/compass-pitch.json`;
+  - `toolkit/fixtures/tours/valid-base.json` and 20 negative fixtures in `invalid/`, named for their rule;
+  - `skills/showcase/reference/{tour-format,narrative,interview}.md`;
+  - 52 new tests (112 in all).
+- **Gate:** all checks passed:
+  - `npm test` 112/112 and the typecheck;
+  - the golden: 100 808 ms of `readingMs` narration (100.8 s), 248 words, 9 beats, no issues;
+  - every negative fixture fails with exactly its rule id;
+  - `bin/showcase check` on each template: ok, no issues (pitch 105.1 s, walkthrough 138.1 s, spotlight 51.1 s, how-to 84.1 s, all inside their windows);
+  - storyboard determinism (same bytes, whatever the key order) and staleness (T015 until regenerated); `init` run twice changes nothing;
+  - `bin/showcase docs tour-format` prints the doc; `claude plugin validate` ✔.
+- **Small choices:**
+  - **Rule ids:** T001 schema · T002 duplicate ids · T003 `after` · T004 write without `done` · T005 `navigates` (not last, or a sentence waits for it) · T006 unknown `@anchor` · T007 caption · T008 narration window · T009 beat count (warning) · T010 spoken number under `none` · T011 `firstToCut` · T012 last-card hold · T013 pitch callout (warning) · T014 empty beat (warning) · T015 stale storyboard. Errors exit 1, warnings exit 0.
+  - "Spoken number": a digit, or a spelt-out quantity with a magnitude or percent; plain counts are words (keeps Compass's `none` pitch clean, as its `/\d/` test did).
+  - Between presets: narration 80–90 % of the target, beats interpolated.
+  - `press` is a long press; `key` is the keyboard.
+  - The storyboard hash ignores key order, whitespace and `$schema`. A tour outside `showcase/tours/` has storyboard state `n/a`, and `storyboard` needs `--out` for it.
+  - `init` never overwrites `config.json`; it keeps the `.schema/` copies current.
+  - `meta.approved {storyboard, narrator, final}` added to the schema for P11's approval dates.
+  - The schema JSON was produced once by a throwaway generator, for consistent action branches, and is maintained by hand from now on.
+- **Discrepancy logged:** PLAN §2.8's `readingMs` formula has no rounding; gods-eye's rounds to the millisecond, and the 100.8 s golden needs it. The code follows gods-eye.
+- The plan dir's `autopilot/` run logs were again left uncommitted.
+

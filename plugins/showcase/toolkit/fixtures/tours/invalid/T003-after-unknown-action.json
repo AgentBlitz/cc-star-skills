@@ -1,0 +1,83 @@
+{
+  "$schema": "../../../schema/tour.schema.json",
+  "showcase": 1,
+  "id": "neg",
+  "title": "A negative fixture",
+  "meta": {
+    "kind": "spotlight",
+    "audience": "team",
+    "afterwards": "try",
+    "language": "en-GB",
+    "length": {
+      "targetSec": 30,
+      "narration": {
+        "min": 0,
+        "max": 600
+      },
+      "beats": {
+        "min": 1,
+        "max": 50
+      }
+    }
+  },
+  "anchors": {
+    "query": {
+      "role": "textbox",
+      "name": "Search"
+    },
+    "go": {
+      "role": "button",
+      "name": "Search"
+    }
+  },
+  "steps": [
+    {
+      "id": "search",
+      "path": "/search",
+      "beats": [
+        {
+          "id": "ask",
+          "narration": [
+            "Ask in your own words.",
+            {
+              "text": "Star finds the session that decided it.",
+              "after": "typing"
+            }
+          ],
+          "actions": [
+            {
+              "id": "type",
+              "kind": "type",
+              "target": "@query",
+              "text": "why sqlite"
+            },
+            {
+              "id": "go",
+              "kind": "click",
+              "target": "@go",
+              "effect": "write",
+              "navigates": true,
+              "done": {
+                "kind": "url",
+                "path": "/search",
+                "params": {
+                  "q": "why sqlite"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "close",
+          "card": {
+            "title": "Try it"
+          },
+          "narration": [
+            "Try it on your own sessions."
+          ],
+          "dwellMs": 2500
+        }
+      ]
+    }
+  ]
+}

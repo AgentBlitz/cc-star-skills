@@ -1,0 +1,323 @@
+{
+  "$schema": "../.schema/tour.schema.json",
+  "showcase": 1,
+  "id": "howto",
+  "title": "Replace with: How to …",
+  "meta": {
+    "kind": "howto",
+    "audience": "users",
+    "afterwards": "understand",
+    "takeaway": "Replace with the one line the viewer should believe afterwards.",
+    "language": "en-GB",
+    "length": {
+      "targetSec": 120
+    },
+    "rules": {
+      "spokenNumbers": "on-screen-only",
+      "firstToCut": "step-4"
+    }
+  },
+  "anchors": {
+    "home": {
+      "css": "main",
+      "text": "Replace with the home screen's heading"
+    },
+    "hero": {
+      "role": "region",
+      "name": "Replace with the hero area's name"
+    },
+    "action": {
+      "role": "button",
+      "name": "Replace with the button's label"
+    },
+    "field": {
+      "label": "Replace with the field's label"
+    },
+    "result": {
+      "css": "[data-showcase=result]"
+    },
+    "detail": {
+      "testId": "replace-with-a-test-id"
+    }
+  },
+  "steps": [
+    {
+      "id": "goal",
+      "title": "The goal",
+      "path": "/",
+      "beats": [
+        {
+          "id": "goal",
+          "card": {
+            "title": "Replace with: How to …",
+            "lines": [
+              "Replace with what you'll have at the end"
+            ]
+          },
+          "narration": [
+            "Say what the viewer will have at the end, in one line.",
+            "Keep it to the outcome, not the steps."
+          ],
+          "actions": [],
+          "dwellMs": 400
+        }
+      ]
+    },
+    {
+      "id": "start",
+      "title": "Where to start",
+      "path": "/",
+      "beats": [
+        {
+          "id": "start",
+          "narration": [
+            {
+              "text": "Begin from the screen where the task starts.",
+              "after": "start-look"
+            },
+            "Say how to get here, if it isn't obvious."
+          ],
+          "actions": [
+            {
+              "id": "start-look",
+              "kind": "spotlight",
+              "target": "@home"
+            },
+            {
+              "id": "start-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-1",
+      "title": "Step 1",
+      "path": "/",
+      "beats": [
+        {
+          "id": "step-1",
+          "narration": [
+            {
+              "text": "Step one: tell the viewer what to do, in the imperative.",
+              "after": "step-1-do"
+            },
+            "Use the control's label exactly as it reads.",
+            "Then hold on the result for a moment before moving on."
+          ],
+          "actions": [
+            {
+              "id": "step-1-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "step-1-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "step-1-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-2",
+      "title": "Step 2",
+      "path": "/",
+      "beats": [
+        {
+          "id": "step-2",
+          "narration": [
+            {
+              "text": "Step two: tell the viewer what to do, in the imperative.",
+              "after": "step-2-do"
+            },
+            "Use the control's label exactly as it reads.",
+            "Then hold on the result for a moment before moving on."
+          ],
+          "actions": [
+            {
+              "id": "step-2-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "step-2-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "step-2-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-3",
+      "title": "Step 3",
+      "path": "/",
+      "beats": [
+        {
+          "id": "step-3",
+          "narration": [
+            {
+              "text": "Step three: tell the viewer what to do, in the imperative.",
+              "after": "step-3-do"
+            },
+            "Use the control's label exactly as it reads.",
+            "Then hold on the result for a moment before moving on."
+          ],
+          "actions": [
+            {
+              "id": "step-3-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "step-3-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "step-3-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-4",
+      "title": "Step 4",
+      "path": "/",
+      "beats": [
+        {
+          "id": "step-4",
+          "narration": [
+            {
+              "text": "Step four: tell the viewer what to do, in the imperative.",
+              "after": "step-4-do"
+            },
+            "Use the control's label exactly as it reads.",
+            "Then hold on the result for a moment before moving on."
+          ],
+          "actions": [
+            {
+              "id": "step-4-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "step-4-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "step-4-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step-5",
+      "title": "Step 5",
+      "path": "/",
+      "beats": [
+        {
+          "id": "step-5",
+          "narration": [
+            {
+              "text": "Step five: tell the viewer what to do, in the imperative.",
+              "after": "step-5-do"
+            },
+            "Use the control's label exactly as it reads.",
+            "Then hold on the result for a moment before moving on."
+          ],
+          "actions": [
+            {
+              "id": "step-5-do",
+              "kind": "click",
+              "target": "@action"
+            },
+            {
+              "id": "step-5-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "step-5-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "result",
+      "title": "The result",
+      "path": "/",
+      "beats": [
+        {
+          "id": "result",
+          "narration": [
+            {
+              "text": "Show the finished result, and hold on it.",
+              "after": "result-look"
+            },
+            "This is what the goal card promised."
+          ],
+          "actions": [
+            {
+              "id": "result-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "result-seen",
+              "kind": "hold",
+              "ms": 2000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recap",
+      "title": "Recap",
+      "path": "/",
+      "beats": [
+        {
+          "id": "recap",
+          "card": {
+            "title": "Recap",
+            "lines": [
+              "Replace with step one",
+              "Replace with step two",
+              "Replace with step three"
+            ]
+          },
+          "narration": [
+            "Recap the steps in one breath, then stop."
+          ],
+          "actions": [],
+          "dwellMs": 2500
+        }
+      ]
+    }
+  ]
+}

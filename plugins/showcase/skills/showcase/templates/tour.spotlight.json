@@ -1,0 +1,178 @@
+{
+  "$schema": "../.schema/tour.schema.json",
+  "showcase": 1,
+  "id": "spotlight",
+  "title": "Replace with the feature's name",
+  "meta": {
+    "kind": "spotlight",
+    "audience": "team",
+    "afterwards": "try",
+    "takeaway": "Replace with the one line the viewer should believe afterwards.",
+    "language": "en-GB",
+    "length": {
+      "targetSec": 60
+    },
+    "rules": {
+      "spokenNumbers": "on-screen-only"
+    }
+  },
+  "anchors": {
+    "home": {
+      "css": "main",
+      "text": "Replace with the home screen's heading"
+    },
+    "hero": {
+      "role": "region",
+      "name": "Replace with the hero area's name"
+    },
+    "action": {
+      "role": "button",
+      "name": "Replace with the button's label"
+    },
+    "field": {
+      "label": "Replace with the field's label"
+    },
+    "result": {
+      "css": "[data-showcase=result]"
+    },
+    "detail": {
+      "testId": "replace-with-a-test-id"
+    }
+  },
+  "steps": [
+    {
+      "id": "feature",
+      "title": "The feature",
+      "path": "/",
+      "beats": [
+        {
+          "id": "hook",
+          "narration": [
+            "Open with the hook: the question this feature answers.",
+            "Ask it the way the viewer would.",
+            "Use the viewer's words, not the product's."
+          ],
+          "actions": [
+            {
+              "id": "hook-look",
+              "kind": "spotlight",
+              "target": "@home"
+            },
+            {
+              "id": "hook-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        },
+        {
+          "id": "before",
+          "narration": [
+            "Show the old way briefly, if the contrast helps.",
+            "Keep it to one beat, and keep it honest.",
+            "The contrast should be visible, not explained."
+          ],
+          "actions": [
+            {
+              "id": "before-look",
+              "kind": "spotlight",
+              "target": "@detail"
+            },
+            {
+              "id": "before-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        },
+        {
+          "id": "moment",
+          "narration": [
+            {
+              "text": "Now the moment it works, in one continuous action.",
+              "after": "type"
+            },
+            {
+              "text": "Let the result appear on screen.",
+              "after": "go"
+            },
+            "Do not cut away while it happens."
+          ],
+          "actions": [
+            {
+              "id": "type",
+              "kind": "type",
+              "target": "@field",
+              "text": "Replace with what to type"
+            },
+            {
+              "id": "go",
+              "kind": "click",
+              "target": "@action",
+              "done": {
+                "kind": "visible",
+                "anchor": "@result"
+              }
+            }
+          ]
+        },
+        {
+          "id": "detail",
+          "narration": [
+            {
+              "text": "Point out the clever detail most people would miss.",
+              "after": "detail-look"
+            },
+            "This is the part people will repeat to a colleague."
+          ],
+          "actions": [
+            {
+              "id": "detail-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "detail-seen",
+              "kind": "hold",
+              "ms": 2000
+            }
+          ]
+        },
+        {
+          "id": "payoff",
+          "narration": [
+            "Say what it saves the viewer, in their own terms.",
+            "Time saved, mistakes avoided, or a question answered."
+          ],
+          "actions": [
+            {
+              "id": "payoff-look",
+              "kind": "spotlight",
+              "target": "@result"
+            },
+            {
+              "id": "payoff-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        },
+        {
+          "id": "cta",
+          "card": {
+            "title": "Replace with the call to action",
+            "lines": [
+              "Replace with where to find it"
+            ]
+          },
+          "narration": [
+            "Tell them where to find it, and to try it today.",
+            "Keep the card up long enough to read."
+          ],
+          "actions": [],
+          "dwellMs": 2500
+        }
+      ]
+    }
+  ]
+}

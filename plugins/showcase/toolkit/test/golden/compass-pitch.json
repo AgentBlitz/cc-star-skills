@@ -1,0 +1,914 @@
+{
+  "$schema": "../../schema/tour.schema.json",
+  "showcase": 1,
+  "id": "compass-pitch",
+  "title": "The 2-minute pitch",
+  "meta": {
+    "kind": "pitch",
+    "audience": "executives",
+    "afterwards": "decide",
+    "takeaway": "Compass turns the Monday numbers into a story the exec team can act on.",
+    "language": "en-GB",
+    "length": {
+      "targetSec": 120
+    },
+    "rules": {
+      "spokenNumbers": "none",
+      "firstToCut": "asks"
+    }
+  },
+  "anchors": {
+    "vitalStrip": {
+      "css": "[data-tour=vitalStrip]"
+    },
+    "naPulse": {
+      "css": "[data-tour=naPulse]"
+    },
+    "askOpen": {
+      "css": "[data-tour=askOpen]"
+    },
+    "dock": {
+      "css": "[data-tour=dock]"
+    },
+    "askInput": {
+      "role": "textbox",
+      "name": "Ask Compass"
+    },
+    "askSend": {
+      "role": "button",
+      "name": "Send"
+    },
+    "flyToNa": {
+      "css": "[data-tour=flyToNa]"
+    },
+    "naSettled": {
+      "css": "[data-tour=naSettled]"
+    },
+    "ngrBridge": {
+      "css": "[data-tour=ngrBridge]"
+    },
+    "answer": {
+      "css": "[data-tour=answer]"
+    },
+    "becauseChain": {
+      "css": "[data-tour=becauseChain]"
+    },
+    "chainSignal": {
+      "css": "[data-tour=chainSignal]"
+    },
+    "chainDriver": {
+      "css": "[data-tour=chainDriver]"
+    },
+    "chainCause": {
+      "css": "[data-tour=chainCause]"
+    },
+    "chainPromise": {
+      "css": "[data-tour=chainPromise]"
+    },
+    "compassAsks": {
+      "css": "[data-tour=compassAsks]"
+    },
+    "captureSave": {
+      "css": "[data-tour=captureSave]"
+    },
+    "captureSaved": {
+      "css": "[data-tour=captureSaved]"
+    },
+    "threadOpen": {
+      "css": "[data-tour=threadOpen]"
+    },
+    "threadStatus": {
+      "css": "[data-tour=threadStatus]"
+    },
+    "closeThread": {
+      "css": "[data-tour=closeThread]"
+    },
+    "threadDrawer": {
+      "css": "[data-tour=threadDrawer]"
+    },
+    "promisesDue": {
+      "css": "[data-tour=promisesDue]"
+    },
+    "brazilKept": {
+      "css": "[data-tour=brazilKept]"
+    },
+    "winBack": {
+      "css": "[data-tour=winBack]"
+    },
+    "redateOpen": {
+      "css": "[data-tour=redateOpen]"
+    },
+    "redateWeek": {
+      "css": "[data-tour=redateWeek]"
+    },
+    "redateReason": {
+      "css": "[data-tour=redateReason]"
+    },
+    "redateSave": {
+      "css": "[data-tour=redateSave]"
+    },
+    "revision": {
+      "css": "[data-tour=revision]"
+    },
+    "meetingLastItem": {
+      "css": "[data-tour=meetingLastItem]"
+    },
+    "copilotIdle": {
+      "css": "[data-tour=copilotIdle]"
+    },
+    "copilotSpeed16": {
+      "css": "[data-tour=copilotSpeed16]"
+    },
+    "copilotReplay": {
+      "css": "[data-tour=copilotReplay]"
+    },
+    "captions": {
+      "css": "[data-tour=captions]"
+    },
+    "copilotSkip": {
+      "css": "[data-tour=copilotSkip]"
+    },
+    "copilotDone": {
+      "css": "[data-tour=copilotDone]"
+    },
+    "drafts": {
+      "css": "[data-tour=drafts]"
+    },
+    "hostCallsConfirm": {
+      "css": "[data-tour=hostCallsConfirm]"
+    },
+    "hostCallsConfirmed": {
+      "css": "[data-tour=hostCallsConfirmed]"
+    },
+    "minutes": {
+      "css": "[data-tour=minutes]"
+    },
+    "replayPlay": {
+      "css": "[data-tour=replayPlay]"
+    },
+    "replayFrozen": {
+      "css": "[data-tour=replayFrozen]"
+    },
+    "replayClusters": {
+      "css": "[data-tour=replayClusters]"
+    },
+    "memoSuggestion": {
+      "css": "[data-tour=memoSuggestion]"
+    },
+    "memo": {
+      "css": "[data-tour=memo]"
+    },
+    "memoOutline": {
+      "css": "[data-tour=memoOutline]"
+    },
+    "footnote": {
+      "css": "[data-tour=footnote]"
+    },
+    "footnoteCard": {
+      "css": "[data-tour=footnoteCard]"
+    },
+    "rhythmCard": {
+      "css": "[data-tour=rhythmCard]"
+    },
+    "commandCard": {
+      "css": "[data-tour=commandCard]"
+    },
+    "analystCard": {
+      "css": "[data-tour=analystCard]"
+    }
+  },
+  "steps": [
+    {
+      "id": "open",
+      "title": "Four questions, every Monday",
+      "path": "/command?persona=ceo&level=global",
+      "beats": [
+        {
+          "id": "open",
+          "card": {
+            "title": "Four questions, every Monday",
+            "lines": [
+              "How is the business performing?",
+              "Where are we off track?",
+              "Why?",
+              "What are we doing about it?"
+            ]
+          },
+          "narration": [
+            "Every Monday the exec team asks four questions.",
+            "The data is all there.",
+            "The story isn't."
+          ],
+          "actions": [],
+          "dwellMs": 400
+        }
+      ]
+    },
+    {
+      "id": "where",
+      "title": "One screen, the whole business",
+      "path": "/command?persona=ceo&level=global",
+      "beats": [
+        {
+          "id": "where",
+          "narration": [
+            {
+              "text": "One screen, the whole business.",
+              "after": "strip"
+            },
+            {
+              "text": "Colour is how off track a place is; the pulse is what it costs.",
+              "after": "na"
+            },
+            {
+              "text": "Ask it for the biggest problem, and it flies there.",
+              "after": "send"
+            },
+            {
+              "text": "The biggest drag is hold, not demand: customer-friendly NFL results.",
+              "after": "ngr"
+            }
+          ],
+          "actions": [
+            {
+              "id": "strip",
+              "kind": "spotlight",
+              "target": "@vitalStrip"
+            },
+            {
+              "id": "strip-seen",
+              "kind": "hold",
+              "ms": 1500
+            },
+            {
+              "id": "na",
+              "kind": "spotlight",
+              "target": "@naPulse"
+            },
+            {
+              "id": "na-frame",
+              "kind": "camera",
+              "target": "@naPulse",
+              "scale": 1.6
+            },
+            {
+              "id": "na-seen",
+              "kind": "hold",
+              "ms": 2500
+            },
+            {
+              "id": "na-unframe",
+              "kind": "camera",
+              "end": true
+            },
+            {
+              "id": "open",
+              "kind": "click",
+              "target": "@askOpen",
+              "done": {
+                "kind": "exists",
+                "anchor": "@dock"
+              }
+            },
+            {
+              "id": "question",
+              "kind": "type",
+              "target": "@askInput",
+              "text": "Take me to the biggest problem."
+            },
+            {
+              "id": "send",
+              "kind": "click",
+              "target": "@askSend"
+            },
+            {
+              "id": "answered",
+              "kind": "wait",
+              "until": {
+                "kind": "exists",
+                "anchor": "@flyToNa"
+              }
+            },
+            {
+              "id": "fly",
+              "kind": "click",
+              "target": "@flyToNa"
+            },
+            {
+              "id": "arrived",
+              "kind": "wait",
+              "until": {
+                "kind": "exists",
+                "anchor": "@naSettled"
+              }
+            },
+            {
+              "id": "ngr",
+              "kind": "spotlight",
+              "target": "@ngrBridge"
+            },
+            {
+              "id": "ngr-frame",
+              "kind": "camera",
+              "target": "@ngrBridge",
+              "scale": 1.5
+            },
+            {
+              "id": "ngr-seen",
+              "kind": "hold",
+              "ms": 3500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "why",
+      "title": "Why is retention down?",
+      "path": "/analyst?persona=ceo",
+      "beats": [
+        {
+          "id": "why",
+          "narration": [
+            {
+              "text": "Why is retention down?",
+              "after": "ask-type"
+            },
+            {
+              "text": "A because-chain, from the data and the people who explained it.",
+              "after": "signal"
+            },
+            {
+              "text": "Driven by early-life players in North America and LatAm.",
+              "after": "driver"
+            },
+            {
+              "text": "The cause: the casual World Cup cohort.",
+              "after": "cause"
+            },
+            {
+              "text": "The win-back missed its date.",
+              "after": "promise"
+            }
+          ],
+          "actions": [
+            {
+              "id": "ask-idle",
+              "kind": "wait",
+              "until": {
+                "kind": "enabled",
+                "anchor": "@askSend"
+              }
+            },
+            {
+              "id": "ask-type",
+              "kind": "type",
+              "target": "@askInput",
+              "text": "Why is retention down?"
+            },
+            {
+              "id": "ask",
+              "kind": "click",
+              "target": "@askSend",
+              "done": {
+                "kind": "visible",
+                "anchor": "@becauseChain"
+              },
+              "timeoutMs": 60000
+            },
+            {
+              "id": "chain-frame",
+              "kind": "camera",
+              "target": "@becauseChain",
+              "scale": 1.25
+            },
+            {
+              "id": "signal",
+              "kind": "spotlight",
+              "target": "@chainSignal"
+            },
+            {
+              "id": "signal-seen",
+              "kind": "hold",
+              "ms": 1500
+            },
+            {
+              "id": "driver",
+              "kind": "spotlight",
+              "target": "@chainDriver"
+            },
+            {
+              "id": "driver-seen",
+              "kind": "hold",
+              "ms": 2000
+            },
+            {
+              "id": "cause",
+              "kind": "spotlight",
+              "target": "@chainCause"
+            },
+            {
+              "id": "cause-seen",
+              "kind": "hold",
+              "ms": 2000
+            },
+            {
+              "id": "promise",
+              "kind": "spotlight",
+              "target": "@chainPromise"
+            },
+            {
+              "id": "promise-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "asks",
+      "title": "Compass asks the person who knows",
+      "path": "/analyst?persona=md-ce&region=ce",
+      "ready": {
+        "kind": "visible",
+        "anchor": "@compassAsks"
+      },
+      "beats": [
+        {
+          "id": "asks",
+          "narration": [
+            {
+              "text": "When the data can't explain a drift, Compass asks the person who knows.",
+              "after": "asked"
+            },
+            {
+              "text": "Pieter's answer goes on the record, and the thread moves to Investigating.",
+              "after": "status"
+            }
+          ],
+          "actions": [
+            {
+              "id": "asked",
+              "kind": "spotlight",
+              "target": "@compassAsks"
+            },
+            {
+              "id": "asked-seen",
+              "kind": "hold",
+              "ms": 1500
+            },
+            {
+              "id": "reply-type",
+              "kind": "type",
+              "target": "@askInput",
+              "text": "Likely our new affordability-check flow is pausing under-24 casino players at the check."
+            },
+            {
+              "id": "reply",
+              "kind": "click",
+              "target": "@askSend",
+              "done": {
+                "kind": "visible",
+                "anchor": "@captureSave"
+              },
+              "timeoutMs": 60000
+            },
+            {
+              "id": "save",
+              "kind": "click",
+              "effect": "write",
+              "target": "@captureSave",
+              "done": {
+                "kind": "exists",
+                "anchor": "@captureSaved"
+              }
+            },
+            {
+              "id": "thread",
+              "kind": "click",
+              "target": "@threadOpen",
+              "done": {
+                "kind": "exists",
+                "anchor": "@threadDrawer"
+              }
+            },
+            {
+              "id": "status",
+              "kind": "spotlight",
+              "target": "@threadStatus"
+            },
+            {
+              "id": "status-seen",
+              "kind": "hold",
+              "ms": 2000
+            },
+            {
+              "id": "close",
+              "kind": "click",
+              "target": "@closeThread",
+              "done": {
+                "kind": "absent",
+                "anchor": "@threadDrawer"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "promises",
+      "title": "Promises come due",
+      "path": "/rhythm/meeting?persona=ceo&item=1",
+      "ready": {
+        "kind": "exists",
+        "anchor": "@promisesDue"
+      },
+      "beats": [
+        {
+          "id": "promises",
+          "narration": [
+            {
+              "text": "Every meeting starts with what we promised.",
+              "after": "due"
+            },
+            {
+              "text": "Brazil kept theirs.",
+              "after": "kept"
+            },
+            "The score is automatic: nobody marks their own homework.",
+            {
+              "text": "The win-back didn't, and it's re-dated on the spot, on the record.",
+              "after": "save"
+            }
+          ],
+          "actions": [
+            {
+              "id": "due",
+              "kind": "spotlight",
+              "target": "@promisesDue"
+            },
+            {
+              "id": "due-seen",
+              "kind": "hold",
+              "ms": 1200
+            },
+            {
+              "id": "kept",
+              "kind": "spotlight",
+              "target": "@brazilKept"
+            },
+            {
+              "id": "kept-seen",
+              "kind": "hold",
+              "ms": 1500
+            },
+            {
+              "id": "win-back-frame",
+              "kind": "camera",
+              "target": "@winBack",
+              "scale": 1.5
+            },
+            {
+              "id": "redate",
+              "kind": "click",
+              "target": "@redateOpen"
+            },
+            {
+              "id": "week",
+              "kind": "select",
+              "target": "@redateWeek",
+              "value": "2026-W41"
+            },
+            {
+              "id": "reason",
+              "kind": "type",
+              "target": "@redateReason",
+              "text": "club football paused W39–W40"
+            },
+            {
+              "id": "save",
+              "kind": "click",
+              "effect": "write",
+              "target": "@redateSave",
+              "done": {
+                "kind": "text",
+                "anchor": "@revision",
+                "contains": "W41"
+              }
+            },
+            {
+              "id": "revision",
+              "kind": "spotlight",
+              "target": "@revision"
+            },
+            {
+              "id": "revision-seen",
+              "kind": "hold",
+              "ms": 2000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "minutes",
+      "title": "Minutes before you leave",
+      "path": "/rhythm/meeting?persona=cos",
+      "beats": [
+        {
+          "id": "minutes",
+          "narration": [
+            {
+              "text": "The co-pilot listens.",
+              "after": "captions"
+            },
+            {
+              "text": "Before anyone leaves, the decisions and actions exist, with owners and dates.",
+              "after": "drafts"
+            },
+            {
+              "text": "Confirm one, and it's in the tracker and on its thread.",
+              "after": "minutes"
+            }
+          ],
+          "actions": [
+            {
+              "id": "item",
+              "kind": "click",
+              "target": "@meetingLastItem"
+            },
+            {
+              "id": "idle",
+              "kind": "wait",
+              "until": {
+                "kind": "exists",
+                "anchor": "@copilotIdle"
+              }
+            },
+            {
+              "id": "speed",
+              "kind": "check",
+              "target": "@copilotSpeed16"
+            },
+            {
+              "id": "replay",
+              "kind": "click",
+              "target": "@copilotReplay"
+            },
+            {
+              "id": "captions",
+              "kind": "spotlight",
+              "target": "@captions"
+            },
+            {
+              "id": "captions-seen",
+              "kind": "hold",
+              "ms": 2000
+            },
+            {
+              "id": "skip",
+              "kind": "click",
+              "target": "@copilotSkip",
+              "done": {
+                "kind": "exists",
+                "anchor": "@copilotDone"
+              }
+            },
+            {
+              "id": "drafted",
+              "kind": "wait",
+              "until": {
+                "kind": "count",
+                "anchor": "@drafts",
+                "min": 1
+              }
+            },
+            {
+              "id": "drafts",
+              "kind": "spotlight",
+              "target": "@drafts"
+            },
+            {
+              "id": "drafts-frame",
+              "kind": "camera",
+              "target": "@drafts",
+              "scale": 1.3
+            },
+            {
+              "id": "drafts-seen",
+              "kind": "hold",
+              "ms": 1500
+            },
+            {
+              "id": "host-calls",
+              "kind": "click",
+              "effect": "write",
+              "target": "@hostCallsConfirm",
+              "done": {
+                "kind": "exists",
+                "anchor": "@hostCallsConfirmed"
+              }
+            },
+            {
+              "id": "minutes",
+              "kind": "spotlight",
+              "target": "@minutes"
+            },
+            {
+              "id": "minutes-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "month",
+      "title": "The month writes itself",
+      "path": "/command/replay/2026-09?persona=ceo&pace=1200",
+      "beats": [
+        {
+          "id": "month",
+          "narration": [
+            "At month end, there's nothing to write.",
+            {
+              "text": "September replays in seconds and becomes its themes.",
+              "after": "themes"
+            },
+            {
+              "text": "Then the memo drafts itself: the outline first, then the prose.",
+              "after": "outline"
+            },
+            {
+              "text": "And every sentence has a receipt: a number, or the person who said it.",
+              "after": "card"
+            }
+          ],
+          "actions": [
+            {
+              "id": "play",
+              "kind": "click",
+              "target": "@replayPlay"
+            },
+            {
+              "id": "frozen",
+              "kind": "wait",
+              "until": {
+                "kind": "exists",
+                "anchor": "@replayFrozen"
+              }
+            },
+            {
+              "id": "themes",
+              "kind": "spotlight",
+              "target": "@replayClusters"
+            },
+            {
+              "id": "themes-seen",
+              "kind": "hold",
+              "ms": 2000
+            },
+            {
+              "id": "memo",
+              "kind": "goto",
+              "url": "/analyst/memo/2026-09?persona=cos"
+            },
+            {
+              "id": "memo-ready",
+              "kind": "wait",
+              "until": {
+                "kind": "enabled",
+                "anchor": "@memoSuggestion"
+              }
+            },
+            {
+              "id": "draft",
+              "kind": "click",
+              "effect": "write",
+              "target": "@memoSuggestion",
+              "done": {
+                "kind": "exists",
+                "anchor": "@memo"
+              },
+              "timeoutMs": 120000
+            },
+            {
+              "id": "outline",
+              "kind": "spotlight",
+              "target": "@memoOutline"
+            },
+            {
+              "id": "outline-seen",
+              "kind": "hold",
+              "ms": 1500
+            },
+            {
+              "id": "note",
+              "kind": "focus",
+              "target": "@footnote"
+            },
+            {
+              "id": "card",
+              "kind": "spotlight",
+              "target": "@footnoteCard"
+            },
+            {
+              "id": "card-frame",
+              "kind": "camera",
+              "target": "@footnoteCard",
+              "scale": 1.6
+            },
+            {
+              "id": "card-seen",
+              "kind": "hold",
+              "ms": 2500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "three",
+      "title": "Three ways to run the business",
+      "path": "/?persona=ceo",
+      "ready": {
+        "kind": "exists",
+        "anchor": "@analystCard"
+      },
+      "beats": [
+        {
+          "id": "three",
+          "narration": [
+            {
+              "text": "Three ways to run the business: meeting-led, map-led and chat-led.",
+              "after": "rhythm"
+            },
+            {
+              "text": "Same numbers, same story, one click apart.",
+              "after": "analyst"
+            }
+          ],
+          "actions": [
+            {
+              "id": "rhythm",
+              "kind": "spotlight",
+              "target": "@rhythmCard"
+            },
+            {
+              "id": "rhythm-seen",
+              "kind": "hold",
+              "ms": 1500
+            },
+            {
+              "id": "command",
+              "kind": "spotlight",
+              "target": "@commandCard"
+            },
+            {
+              "id": "command-seen",
+              "kind": "hold",
+              "ms": 1500
+            },
+            {
+              "id": "analyst",
+              "kind": "spotlight",
+              "target": "@analystCard"
+            },
+            {
+              "id": "analyst-seen",
+              "kind": "hold",
+              "ms": 1500
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "close",
+      "title": "What would we keep?",
+      "path": "/?persona=ceo",
+      "beats": [
+        {
+          "id": "close",
+          "card": {
+            "title": "What would we keep?",
+            "lines": [
+              "How is the business performing?",
+              "Where are we off track?",
+              "Why?",
+              "What are we doing about it?"
+            ]
+          },
+          "narration": [
+            "What would we keep?",
+            "Tell us, and we'll work backwards into the feeds, the definitions and the owners."
+          ],
+          "actions": [],
+          "dwellMs": 2500
+        }
+      ]
+    }
+  ]
+}
