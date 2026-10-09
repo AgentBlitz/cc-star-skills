@@ -19,14 +19,14 @@
 | 9 | R1 · Checkpoint: look and feel (by hand) | ✅ | No code changes (approved as-is); PLAN §3 "Review notes — look and feel"; re-rendered fixture film `plugins/showcase/toolkit/test/.out/s8-fixture/showcase/out/fixture-tour/fixture-tour-draft.mp4` (ignored) | `film --strict` green on fixture-tour (largest motion gap 21.3 ms, A/V sync 16.7 ms, −16.1 LUFS, 1105/1105 frames), after two runs failed only motion-gap (235.6 ms, 147.4 ms) under host load from endpoint-security scanning; npm test 224/224; typecheck (4 projects) exit 0 | **Approved as-is** by the user after watching the fixture film and live `watch` and reading interview.md: checklist empty, nothing to close. Session 8's soft points (cookies still, "the trend" over a spinner, DRAFT over "Account") not raised, left as is |
 | 10 | I1 · The in-app path | ✅ | `runtime/src/in-app.ts` + `startInApp` (index.ts), `runtime/adapters/{next,react,html}`, `lib/vendor.ts` + `runtime vendor`, `film --in-app`, `rehearse --synthetic` gaps, `fixtures/next/` + `fixtures/next-fixture.ts`, `test/{in-app,runtime/in-app}.test.ts`, `test/next/next.e2e.ts` (`npm run test:next`), `reference/in-app.md` | HTML adapter plays fixture-tour from `?showcase=` (synthetic, sessionStorage, 3 page loads); reload mid-tour resumes, each write once; vendoring twice no diff (next/react/html); vendored types compile strict + EOPT + NUIA, skipLibCheck off; Next fixture `next build` ✔, plays on 1 document load; `film --in-app --strict` green (18.9 s, motion gap 21.2 ms, −16.1 LUFS, A/V 30 ms, navs spa only); npm test 233/233; typecheck (4 projects) | Fixed a host bug: SPA `nav` events took seqs the page reused (injected films of SPA apps too); declarations vendored as `.d.mts` + `types/`; tours published to `<public>/showcase/tours/`; Next e2e kept out of `npm test` |
 | 11 | S1 · The skill and integration | ✅ | `skills/showcase/SKILL.md` (158 lines, `disable-model-invocation`), `reference/{determinism,roadmap-brief}.md` + `interview.md` finished, `voice.md` keys + cost, `templates/BRIEF.md`, `brief [--check]` (`lib/brief.ts`, `commands/brief.ts`, `test/brief.test.ts`), `evals/` (4 cases + `run.sh`), marketplace entry + plugin 0.9.0, README section, runtime rebuilt at 0.9.0 | validate ✔ (plugin, marketplace); `bash evals/run.sh --max-cost-usd 2` green: with 1.00 on all 4 cases, baseline 0.00–0.67, mean Δ +0.75, $0.50; headless `/showcase:showcase doctor` from a fixture copy ✔ with `Base directory …/plugins/showcase/skills/showcase`; npm test 237/237, typecheck ✔ | `plugin details` shows ~132 tok but ignores the flag (A/B); direct check: not in the model's listing. Eval via wrapper (dependency + PATH) |
-| 12 | P1 · Star I: the film and live demo (by hand) | ⛔ | | not run (headless checkpoint, D14) | Needs decision: run Session 12 interactively — cd ~/_PRJ/star && claude --plugin-dir ~/_PRJ/cc-star-skills/plugins/showcase --add-dir ~/_PRJ/cc-star-skills, then /session ~/_PRJ/cc-star-skills/.planning/showcase-plugin |
+| 12 | P1 · Star I: the film and live demo (by hand) | ✅ | Star `showcase/` (config, `star-pitch` tour, storyboard, 14 Charon clips + manifest, schemas) + ignore lines, Star commit `e171968`; plugin fixes: `host/{app,project,inspect,auth}.ts` (snapshot kept), `runtime/src/anchors.ts` (names join text), `runtime/src/index.ts` (heartbeat re-arms after a page load), `lib/tours.ts` `playHash` + `host/rehearse.ts` + `film/verify.ts` (approval ≠ stale), `voice/{audio,keys}.ts` (RMS trim, 20 ms pre-roll, chain 3), `runtime/src/narrative.ts` + `commands/check.ts` (T008 times voiced sentences by their clips), 6 new tests, 243 in all | rehearse 5/5 clean (6/6 beats, deny clean); `film --strict` green: `star-pitch.mp4` 58.6 s, 1757 frames, 60 fps capture, motion gap 24 ms, A/V 26.7 ms, −16.1 LUFS, 14 cues; renders A/B/final: same 14 cue texts, timecodes within 31 ms (A–B), 34 ms, 6 ms; user approved Round 5 and watched the live demo; npm test 243/243, typecheck (4 projects), plugin validate ✔ | 1:00 pitch for executives (champion); narrator Gemini 3.8 Flash TTS "Charon" (gods-eye's), saved as the default; 1,129 characters voiced; friction: 6 plugin bugs found on Star and fixed (see log) |
 | 13 | P2 · Star II: the in-app tour, then the release (by hand) | ⬜ | | | |
 
 Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 
 ## Open items / blockers
 
-- [ ] **`OPENROUTER_API_KEY` in the user key file** (`~/.config/showcase/.env`).
+- [x] **`OPENROUTER_API_KEY` in the user key file**: set by the user with `showcase keys set --force` in Session 12 (the gods-eye key had expired); `keys test` ok. Was: (`~/.config/showcase/.env`).
   - Ready now (Session 1 ✅): give your go for `showcase keys import ~/_PRJ/gods-eye/.env.local`, or run `plugins/showcase/bin/showcase shim`, then `showcase keys set` in your own terminal. Check it with `showcase keys status` and `showcase keys test`.
   - Session 6's live audition was skipped for want of it (the page and pipeline were proved with the fake and mocked fetch); run `showcase voice <tour> --audition --yes` once it is set. Session 12's final voice needs it too. The draft voice covers everything else.
 - [x] **Review notes for Session 9** (look and feel): approved as-is (2026-10-09).
@@ -41,7 +41,14 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 
 ### Star film and live demo (Session 12, gathered in the session)
 
-(none yet)
+The user's answers and approvals (2026-10-09):
+
+- **Round 1:** film + live demo (set by the roadmap; the in-app tour is Session 13); afterwards *champion it*; kind *pitch*; about 1 minute.
+- **Round 2:** audience *executives*; takeaway "Every working session becomes a visible, searchable record of value delivered, at no extra effort"; moments *portfolio at a glance* and *search across everything*; data *a frozen snapshot*.
+- **Round 3:** narrator "the same voice that we decided on for gods-eye" (gods-eye `film/voice.json`: `google/gemini-3.8-flash-tts`, voice `Charon`), so no audition; UK English; **never on screen: nothing sensitive**, so `privacy.deny` is empty (Star's DB is redacted at write time). This departs from the prompt's "privacy.deny for names and hostnames", by the user's choice; `rehearse` still scans and reports clean; built here, now.
+- **Round 4:** storyboard approved, voice and film it.
+- **Round 5:** approved as final, no notes; Charon + en-GB saved as the default for every repo (`defaults.json`).
+- **Live demo:** watched, all good. **Star commit:** given (`e171968`, not pushed).
 
 ### Star in-app tour and release (Session 13, gathered in the session)
 
@@ -406,4 +413,54 @@ Runtime: opus/high (autopilot attempt 1)
 - **Stopped at once, by design** (PLAN §4 checkpoint protocol, D14; `prompts/session-12.md` "Checkpoint protocol"): Session 12 is run by hand in the Star repo with the user, and this was a headless autopilot run started in cc-star-skills. Row 12 set to ⛔ `Needs decision: run Session 12 interactively …`; no code changed, nothing touched in Star.
 - Checked before stopping: Session 11 is ✅ (showcase v0.9.0, commit `7ac7fb8`); `~/_PRJ/star` exists; `~/.config/showcase/.env` does not exist yet, so `OPENROUTER_API_KEY` is still unset in the user key file (open item) — the audition and the final voice in step 4 need it.
 - **To resume:** `cd ~/_PRJ/star && claude --plugin-dir ~/_PRJ/cc-star-skills/plugins/showcase --add-dir ~/_PRJ/cc-star-skills`, then `/session ~/_PRJ/cc-star-skills/.planning/showcase-plugin`. It turns row 12's ⛔ `Needs decision:` into the question, sets the row to 🟡 and runs `/showcase` in Star with the user.
+- The plan dir's `autopilot/` run logs were again left uncommitted.
+
+### Session 12 — P1 · Star I: the film and live demo, by hand (2026-10-09) ✅
+
+Runtime: opus/high
+
+- **Run interactively from Star** (`claude --plugin-dir … --add-dir ~/_PRJ/cc-star-skills`), as the ⛔ `Needs decision:` asked: the row went to 🟡, then ✅.
+- **The wizard on Star:**
+  - Preflight: doctor ok. The gods-eye key imported with `keys import` had expired (401), so the user set a new one.
+  - Round 1, then three Explore agents (screens, story and data, running and anchors), `init`, and `inspect` on `/` and `/search`.
+  - Rounds 2 and 3, then the `star-pitch` tour from the pitch template, in 6 beats: the problem card, the overview's hero and tiles, the contribution graph, the keyword search, the top hit as value, and the one-line-story card.
+  - `check`, `rehearse` ×3, `storyboard --stills --html`, Round 4, voice, film, Round 5, `watch`.
+- **Determinism, config only:**
+  - Build and start: `next build`, then `npx next start --port {port}`. Not standalone, because `next start` run from the repo root is what reads `config/`. Health is `/api/copilot/config`.
+  - Data: `app.snapshot` copies `showcase/.cache/snapshot.db` (a `.backup` of `data/star.db`, journal DELETE) to `take.db` for every take.
+  - `app.env`: `STAR_DB_PATH`, `STAR_READONLY=1` and `COPILOT_ENABLED=0`. `next start` loads Star's `.env.local`, so the copilot is pinned off.
+  - Search is pinned by the step path `/search?mode=keyword`, so there's no embedding call.
+  - Browser: `clock.fixed` 2026-10-09T10:00+01:00, `colorScheme: dark`.
+  - Known drift: the project-card sparklines use the server's "now", which the browser clock can't reach. Only a sliver of them is on camera, and they hold steady within a day.
+- **Pacing:**
+  - Charon reads about 10 % faster than the reading estimate, and slows sharply at commas (two commas took one sentence to 102 wpm).
+  - Five rewrites brought the voiced narration to 49.5 s, inside the 48–54 s window.
+  - One sentence moved from the search beat to the results beat, so the screen shows what it says.
+  - Three sentences sit at 185–187 wpm, a hair over the 185 line, after chain 3 removed 30 ms of dead air per clip. They were left as they are, because re-takes swing by ±10 wpm, and named to the user in Round 5.
+- **The friction log.** Each bug was fixed in the plugin with a test that fails without the fix.
+  1. **`inspect` and `auth` skipped `app.snapshot`.** They pass `reset: false`, which also dropped the snapshot. On a fresh checkout the take DB didn't exist, so the first `inspect` showed Next's "This page couldn't load" (`SQLITE_CANTOPEN`). `snapshot` is now its own option, defaulting to `reset`, and inspect and auth keep it (`determinism.md` notes this).
+  2. **Accessible names split React text.** `textWithAlts` joined every text node with a space, so `{n} result{s}` read "30 result s" and a text anchor never matched. Text now joins as it is; block boxes (by computed `display`), `aria-label`s and alts are set apart.
+  3. **The heartbeat never came back after a full page load.** The runtime's init script runs before the host's (`__showcaseConfig`, `__showcaseRolling`), so the boot check saw neither flag, and a still screen after any load sent no frames. The first Star film had a 10.1 s motion gap over the closing card (median 8 fps). The runtime now checks again on a native `setTimeout(0)`. The fixture films never held a still screen for long after a load, which is why this went unseen.
+  4. **Recording an approval made the rehearse stale.** Verify compared the tour file's mtime. `rehearse.json` now records `tourHash` = `playHash` (the content hash without `meta.approved`), and `denyState` compares that, falling back to mtime for older reports.
+  5. **Gemini clips start with a ~5 ms click, then ~240 ms of quiet.** The peak trim stopped at the click, so ask/0 spoke 220 ms after its caption (an av-sync warning).
+     - Chain 2: the trim is now RMS over 20 ms.
+     - Chain 3: it keeps 20 ms before the crossing, not 50. Before this, every Gemini sentence landed about 50 ms after its caption, at the edge of the gate.
+     - Worst A/V went from 220 ms to 50, then to 20–27. The re-processing came from the raw cache, with no spend.
+  6. **`check` T008 judged narration by the reading estimate even once voiced.** With a fast voice, the text couldn't satisfy `check` (≤ 54 s estimated) and the voice step (≥ 48 s real) at once. Voiced sentences now count by their clip (C5), and `check` shows "(voiced)" or "n/m voiced". A tour with no config still checks. `tour-format.md`'s T008 row is updated.
+  - **Observations, not bugs:**
+    - The `say` draft (175 wpm) reads about 15 % faster than the estimate, so draft pacing undershoots.
+    - `film.log` appends across runs: read the last block.
+    - `film --detach` with a `progress.json` poll reads the previous run's `failed` before the new run writes, so wait on the pid instead.
+    - The plugin's guard hook matches the protected paths anywhere in a Bash command's text: an exclusion, or a heredoc writing docs that mention them. List what to include, and edit such docs with the Edit tool.
+- **Gate:**
+  - Rehearse 5/5 clean (8–9 s each).
+  - `film --strict` green on the final cut: 58.6 s, 1757/1757 frames, motion gap 24 ms, sync probe 4.4 ms, A/V 26.7 ms, −16.1 LUFS, −4.2 dBTP, 14 cues, 6 chapters, deny-list clean, no DRAFT watermark.
+  - SRTs of renders A, B and the final cut: identical cue texts, with timecodes within 31, 34 and 6 ms of each other.
+  - The user approved Round 5 and watched the live demo.
+  - `npm test` 243/243 (237 + 6), typecheck (4 projects), `claude plugin validate plugins/showcase` ✔; `runtime/dist` rebuilt (0.9.0, stamp fresh).
+- **Star:**
+  - One commit, `e171968`: the `.gitignore` lines, and `showcase/` (config, schemas, tour, storyboard, 14 clips + manifest; `voice --prune` removed 46 superseded clips).
+  - `npm run redact -- --people-files` on the staged text files: 0 listed names, 0 candidates.
+  - Nothing pushed. The renders, the cache (with the 155 MB snapshot) and the sign-in directory stay ignored.
+- **Spend:** 1,129 characters through OpenRouter (Gemini TTS), across the first voicing and the rewrites.
 - The plan dir's `autopilot/` run logs were again left uncommitted.

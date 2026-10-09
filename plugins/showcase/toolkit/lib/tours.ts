@@ -71,6 +71,15 @@ export function tourHash(tour: Tour): string {
   return createHash("sha256").update(`v${STORYBOARD_VERSION}\n${JSON.stringify(canonical(tour))}`).digest("hex");
 }
 
+/**
+ * What plays: the content hash without `meta.approved`. Recording an approval changes the file,
+ * not the take, so a rehearse stays current through it.
+ */
+export function playHash(tour: Tour): string {
+  const { approved: _approved, ...meta } = tour.meta;
+  return tourHash({ ...tour, meta } as Tour);
+}
+
 export function storyboardFile(showcaseDir: string, id: string): string {
   return join(showcaseDir, "storyboard", `${id}.md`);
 }

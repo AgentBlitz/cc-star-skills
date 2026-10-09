@@ -57,6 +57,29 @@ describe("showcase check", () => {
     assert.equal((JSON.parse(bad.stdout) as { issues: { rule: string }[] }).issues[0]?.rule, "T001");
   });
 
+  it("times voiced sentences by their clips: the window is judged on the voice once there is one", async () => {
+    const repo = repoWithGolden();
+    writeFileSync(join(repo, "showcase", "config.json"), JSON.stringify({ showcase: 1, app: { url: "http://127.0.0.1" } }));
+    const tour = JSON.parse(readFileSync(GOLDEN, "utf8")) as Tour;
+    const sentences = tour.steps.flatMap((st) => st.beats.flatMap((b) => (b.narration ?? []).map((n) => ({ beat: b.id, text: typeof n === "string" ? n : n.text }))));
+    const run = async () => JSON.parse((await cli(["check", "compass-pitch", "--json"], { cwd: repo })).stdout) as { ok: boolean; stats: { narrationSec: number; voiced: number; sentences: number }; issues: { rule: string }[] };
+    // No voice yet: the reading estimate, inside the window.
+    const before = await run();
+    assert.deepEqual([before.ok, before.stats.voiced], [true, 0]);
+    // A voice that reads fast: 90 s in all, under the 2:00 pitch's 96 s floor.
+    mkdirSync(join(repo, "showcase", "voice"), { recursive: true });
+    const clips = sentences.map((s, i) => ({ ...s, hash: `h${i}`, file: `h${i}.mp3`, durationMs: 90_000 / sentences.length }));
+    writeFileSync(join(repo, "showcase", "voice", "compass-pitch.manifest.json"), JSON.stringify({ v: 1, id: "m", tour: "compass-pitch", clips }));
+    const voiced = await run();
+    assert.equal(voiced.ok, false);
+    assert.deepEqual(voiced.issues.map((i) => i.rule), ["T008"]);
+    assert.deepEqual([voiced.stats.narrationSec, voiced.stats.voiced, voiced.stats.sentences], [90, sentences.length, sentences.length]);
+    // A sentence whose text changed has no clip: it falls back to its estimate.
+    clips[0]!.text = "Something it no longer says.";
+    writeFileSync(join(repo, "showcase", "voice", "compass-pitch.manifest.json"), JSON.stringify({ v: 1, id: "m", tour: "compass-pitch", clips }));
+    assert.equal((await run()).stats.voiced, sentences.length - 1);
+  });
+
   it("exits 2 without a tour", async () => {
     assert.equal((await cli(["check"])).code, 2);
   });

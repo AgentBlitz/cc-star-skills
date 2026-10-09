@@ -190,11 +190,17 @@
     slider: 'input[type="range"], [role="slider"]',
     spinbutton: 'input[type="number"], [role="spinbutton"]'
   };
+  function separates(e) {
+    const view = e.ownerDocument.defaultView;
+    const display = view ? view.getComputedStyle(e).display : "";
+    if (!display) return !/^(A|ABBR|B|BDI|BDO|CITE|CODE|DFN|EM|I|KBD|LABEL|MARK|Q|S|SAMP|SMALL|SPAN|STRONG|SUB|SUP|TIME|U|VAR)$/.test(e.tagName);
+    return !display.startsWith("inline") && display !== "contents";
+  }
   function textWithAlts(el) {
-    const parts = [];
+    let out = "";
     const walk = (node) => {
       if (node.nodeType === 3) {
-        parts.push(node.nodeValue ?? "");
+        out += node.nodeValue ?? "";
         return;
       }
       if (node.nodeType !== 1) return;
@@ -202,18 +208,21 @@
       if (e.getAttribute("aria-hidden") === "true") return;
       const label = e.getAttribute("aria-label");
       if (label !== null && e !== el) {
-        parts.push(label);
+        out += ` ${label} `;
         return;
       }
       if (e.tagName === "IMG") {
-        parts.push(e.getAttribute("alt") ?? "");
+        out += ` ${e.getAttribute("alt") ?? ""} `;
         return;
       }
+      const gap = e !== el && separates(e) ? " " : "";
+      out += gap;
       const root = e.shadowRoot;
       for (const child of root ? [...root.childNodes] : [...e.childNodes]) walk(child);
+      out += gap;
     };
     walk(el);
-    return squash(parts.join(" "));
+    return squash(out);
   }
   function labelsOf(el) {
     const out = [];
@@ -6079,8 +6088,12 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
       film: createFilmAids(win, n)
     };
     Object.defineProperty(win, API_KEY, { value: api, configurable: true, enumerable: false, writable: false });
-    const early = w.__showcaseConfig;
-    if (w[ROLLING_KEY] === true && early?.mode === "film") api.film.heartbeat(true);
+    const rearm = () => {
+      const early = w.__showcaseConfig;
+      if (w[ROLLING_KEY] === true && early?.mode === "film") api.film.heartbeat(true);
+    };
+    rearm();
+    n.setTimeout(rearm, 0);
     const watching = () => {
       const snap = api.snapshot();
       return snap && snap.mode === "watch" && api.config && uiOf(api.config) === "watch" ? snap : null;

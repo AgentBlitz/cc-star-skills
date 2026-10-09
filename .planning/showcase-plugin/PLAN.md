@@ -592,6 +592,14 @@ The in-app path adds the vendored runtime, the adapter, the entry point, any `da
 
 **Approved as-is.** The user watched the fixture film (`fixture-tour-draft.mp4`) and the live `showcase watch fixture-tour`, and read `reference/interview.md`. The verdict was "Approve as-is", with no notes and no change of narrator or caption style. The pointer, spotlight, captions, pacing, voice defaults and interview wording stand as Sessions 5–8 built them. Session 8's weak spots (the cookies step showing the notice already accepted, "the trend" spoken over a spinner, the DRAFT watermark over "Account") were not raised and are left as they are.
 
+### Review notes — Star film and live demo (Session 12, 2026-10-09)
+
+**Approved as final, no notes.** The user ran Session 12 interactively from Star and approved the storyboard, the narrator and the final cut of `star-pitch`: a 58.6 s pitch for executives, narrated by gods-eye's Gemini 3.8 Flash TTS "Charon", saved as the default narrator. They also watched the live demo. The answers are recorded in TRACKER › Review notes. Three things changed the plan's contracts:
+
+- **`privacy.deny` is empty on Star, by the user's choice** ("Nothing sensitive"). Session 12's prompt and §5 asked for names and hostnames there. Star's DB is redacted at write time, and a committed deny-list of names would itself break Star's rule against naming people. `rehearse` still scans and reports clean.
+- **T008 times voiced sentences by their clips** (C5 applied to `check`). Before, it used the reading estimate even after voicing, so a fast voice made `check` and the voice step's window impossible to satisfy together.
+- **The voice chain is at 3:** an RMS trim over 20 ms, keeping 20 ms before the crossing. Gemini clips open with a click and then quiet, which a peak trim kept, and the old 50 ms pre-roll put every sentence about 50 ms behind its caption. Finished clips re-process from the raw cache, at no cost.
+
 ### Spike verdicts (Session 2 fills these in)
 
 | # | Question | Verdict | Numbers | Default chosen | Fallback |

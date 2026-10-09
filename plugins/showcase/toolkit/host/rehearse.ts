@@ -18,6 +18,7 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { denyHits, type DenyHit, missingNumbers } from "../lib/screen-checks.ts";
+import { playHash } from "../lib/tours.ts";
 import type { Checkpoint, Snapshot } from "../runtime/src/protocol.ts";
 import { beatPlanMs } from "../runtime/src/narrative.ts";
 import { type SyntheticGap, syntheticGaps } from "../runtime/src/in-app.ts";
@@ -69,6 +70,8 @@ export interface RehearseReport {
   speed: number;
   input: "trusted" | "synthetic";
   at: string;
+  /** `playHash` of the tour rehearsed: `film` compares it to tell whether the rehearse is current. */
+  tourHash: string;
   ms: number;
   url: string;
   app: { pid: number | null; port: number | null };
@@ -149,6 +152,7 @@ export async function rehearse(o: RehearseOptions): Promise<RehearseReport> {
     speed,
     input: o.synthetic ? "synthetic" : "trusted",
     at: new Date(started).toISOString(),
+    tourHash: playHash(tour),
     ms: 0,
     url: "",
     app: { pid: null, port: null },

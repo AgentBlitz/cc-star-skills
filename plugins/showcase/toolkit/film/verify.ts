@@ -21,6 +21,8 @@
  */
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { playHash } from "../lib/tours.ts";
+import type { Tour } from "../runtime/src/schema.ts";
 import { runTool } from "./encode.ts";
 import { decodeMono, type Loudness, levels, longestInnerSilence, measureLoudness, onsetMs } from "./mix.ts";
 import type { BeatSpan, SentenceSpan } from "./timeline.ts";
@@ -206,14 +208,19 @@ export interface DenyState {
   at: string | null;
 }
 
-/** The last `rehearse` of this tour: `out/<id>/rehearse.json`. */
-export function denyState(out: string, tourFile: string | null): DenyState {
+/**
+ * The last `rehearse` of this tour: `out/<id>/rehearse.json`. It is stale when what plays has
+ * changed since (`playHash`); a report from before the hash was recorded falls back to the file's
+ * modification time.
+ */
+export function denyState(out: string, tourFile: string | null, tour: Tour | null = null): DenyState {
   const file = join(out, "rehearse.json");
   if (!existsSync(file)) return { file, present: false, clean: null, stale: false, at: null };
   try {
-    const r = JSON.parse(readFileSync(file, "utf8")) as { at?: string; deny?: { clean?: boolean; checked?: number } };
+    const r = JSON.parse(readFileSync(file, "utf8")) as { at?: string; tourHash?: string; deny?: { clean?: boolean; checked?: number } };
     const at = r.at ?? null;
-    const stale = !!(at && tourFile && existsSync(tourFile) && statSync(tourFile).mtimeMs > Date.parse(at));
+    const stale =
+      r.tourHash && tour ? r.tourHash !== playHash(tour) : !!(at && tourFile && existsSync(tourFile) && statSync(tourFile).mtimeMs > Date.parse(at));
     return { file, present: true, clean: r.deny?.clean === true && (r.deny.checked ?? 0) > 0, stale, at };
   } catch {
     return { file, present: true, clean: null, stale: false, at: null };

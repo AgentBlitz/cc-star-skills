@@ -112,7 +112,7 @@ Errors fail `check` (exit 1); warnings are printed.
 | T005 | error | A `navigates` action is last in its beat, and no sentence waits for it |
 | T006 | error | Every `@name` is defined in `anchors` |
 | T007 | error | Every sentence fits one caption: 2 lines of 42 characters, wrapped greedily |
-| T008 | error | Narration (by `readingMs`) is inside the window for the length and kind |
+| T008 | error | Narration is inside the window for the length and kind: each sentence by its clip once voiced (the voice manifest), else by `readingMs` |
 | T009 | warning | The beat count is inside the preset's range |
 | T010 | error | Under `spokenNumbers: "none"`, no sentence says a number |
 | T011 | error | A film of 2:00 or more names a `firstToCut` beat, and it exists |

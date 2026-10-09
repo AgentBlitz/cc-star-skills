@@ -36,6 +36,7 @@ export async function inspect(o: InspectOptions): Promise<InspectReport> {
         ...(o.url ? { url: o.url } : {}),
         ...(o.build ? { build: true } : {}),
         reset: o.reset ?? false,
+        snapshot: o.reset ?? true,
         ...(o.project.showcaseDir ? { logFile: join(o.project.showcaseDir, ".cache", "app.log") } : {}),
         ...(o.say ? { say: o.say } : {}),
       });

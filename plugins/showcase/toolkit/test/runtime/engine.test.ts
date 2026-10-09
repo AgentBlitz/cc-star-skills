@@ -260,6 +260,41 @@ test("a full page load mid-tour resumes with host-held state, without repeating 
   assert.match(host.page.url(), /\/detail\.html\?id=3$/);
 });
 
+test("names join text as a browser does: split text nodes run together, block boxes are set apart", async () => {
+  const host = await launch({ tour: null, mode: "watch" });
+  await host.page.evaluate(() => {
+    const link = (id: string, ...kids: (Node | string)[]) => {
+      const a = document.createElement("a");
+      a.href = `#${id}`;
+      a.append(...kids);
+      document.body.append(a);
+    };
+    const el = (tag: string, text: string) => Object.assign(document.createElement(tag), { textContent: text });
+    // React's `{n} result{n === 1 ? "" : "s"}`: separate text nodes, one word.
+    link("split", "30 result", "s", " · keyword");
+    link("blocks", el("div", "Alpha"), el("div", "Beta"));
+    link("inline", el("span", "Gam"), el("span", "ma"));
+  });
+  const items = (await host.page.evaluate(`__showcase.inspect({ limit: 400 })`)) as { role: string; name: string }[];
+  const names = items.filter((i) => i.role === "link").map((i) => i.name);
+  assert.ok(names.includes("30 results · keyword"), names.join(" | "));
+  assert.ok(names.includes("Alpha Beta"), names.join(" | "));
+  assert.ok(names.includes("Gamma"), names.join(" | "));
+});
+
+test("a page load mid-film brings the heartbeat back, so a still screen keeps sending frames", async () => {
+  const t = tour("rearm", [{ id: "dash", path: "/index.html", beats: [{ id: "r-1", narration: say("Still."), actions: [], dwellMs: 0 }] }]);
+  const host = await launch({ tour: t, mode: "film" });
+  await host.waitForEvent("film:armed");
+  // As the recorder rolls (film/record.ts): later documents see the flag from an init script
+  // that runs after the runtime's own.
+  await host.context.addInitScript({ content: "window.__showcaseRolling = true;" });
+  await host.page.evaluate("(window.__showcaseRolling = true, __showcase.film.heartbeat(true))");
+  await host.page.goto(`${server.url}/list.html`);
+  await host.page.waitForFunction("__showcase.film.frameRate().frames > 10", null, { timeout: 5_000 });
+  assert.equal(await host.page.evaluate("!!document.querySelector('showcase-heartbeat')"), true);
+});
+
 test("a missing anchor raises film:error naming the beat and the anchor", async () => {
   const t = tour("missing", [
     { id: "dash", path: "/index.html", beats: [{ id: "m-1", narration: say("Nothing here."), actions: [{ id: "nope", kind: "click", target: { role: "button", name: "No such button" }, timeoutMs: 1000 }], dwellMs: 0 }] },

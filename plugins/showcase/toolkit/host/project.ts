@@ -106,6 +106,8 @@ export interface SessionOptions {
   what: string;
   build?: boolean;
   reset?: boolean;
+  /** Restore the snapshot (default: as `reset`; see `StartOptions.snapshot`). */
+  snapshot?: boolean;
   /** An app already running (skip the lifecycle and the lock). */
   url?: string;
   logFile?: string;
@@ -143,6 +145,7 @@ export async function openSession(p: Project, o: SessionOptions): Promise<Sessio
       root: p.root,
       ...(o.build ? { build: true } : {}),
       ...(o.reset === false ? { reset: false } : {}),
+      ...(o.snapshot !== undefined ? { snapshot: o.snapshot } : {}),
       ...(o.url ? { url: o.url } : {}),
       ...(o.logFile ? { logFile: o.logFile } : {}),
       ...(o.say ? { say: o.say } : {}),

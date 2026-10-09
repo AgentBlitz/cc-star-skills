@@ -12,8 +12,14 @@ export declare function wordCount(text: string): number;
  * never under 1.6 s. Rounded to the millisecond, as Compass's `readingMs` is.
  */
 export declare function readingMs(text: string): number;
-export declare function narrationMs(beat: Beat): number;
-export declare function tourNarrationMs(tour: Tour): number;
+/**
+ * A voiced sentence's clip duration, by beat and text, or undefined where there is none: what the
+ * sentence really lasts (C5). `check` passes the voice manifest's, so the narration window is
+ * judged on the voice once there is one, not on the reading estimate.
+ */
+export type VoicedMs = (beat: string, text: string) => number | undefined;
+export declare function narrationMs(beat: Beat, voiced?: VoicedMs): number;
+export declare function tourNarrationMs(tour: Tour, voiced?: VoicedMs): number;
 export declare function tourWords(tour: Tour): number;
 /**
  * A beat's planned length, for the storyboard: the longer of its narration and the pauses its
@@ -60,5 +66,5 @@ export declare function budgetFor(meta: TourMeta): Budget;
 export declare function spokenNumbers(text: string): string[];
 /** Rule ids and what they mean; `check` prints the ids and `tour-format.md` lists them. */
 export declare const RULES: Record<string, string>;
-/** T008–T014, for a tour that passed the schema. */
-export declare function narrativeIssues(tour: Tour): Issue[];
+/** T008–T014, for a tour that passed the schema. T008 times voiced sentences by their clips. */
+export declare function narrativeIssues(tour: Tour, voiced?: VoicedMs): Issue[];

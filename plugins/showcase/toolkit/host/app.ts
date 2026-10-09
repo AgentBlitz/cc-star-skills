@@ -198,6 +198,11 @@ export interface StartOptions {
   build?: boolean;
   /** Restore the snapshot and reset (default true). */
   reset?: boolean;
+  /**
+   * Restore the snapshot (default: as `reset`). `inspect` and `auth` skip the reset but keep the
+   * snapshot: it is often what creates the data the app opens (a fresh take of a SQLite file).
+   */
+  snapshot?: boolean;
   /** An app already running: skip the lifecycle. */
   url?: string;
   /** Where the server's output goes. */
@@ -265,7 +270,7 @@ export async function startApp(app: Config["app"], o: StartOptions): Promise<App
     await runCommand(fill(app.build, vars), "app.build", { ...run, timeoutMs: 15 * 60_000 });
   }
   const reset = o.reset !== false;
-  if (reset && app.snapshot) {
+  if ((o.snapshot ?? reset) && app.snapshot) {
     say("restoring the snapshot");
     await runHook(app.snapshot, "app.snapshot", vars, run);
   }

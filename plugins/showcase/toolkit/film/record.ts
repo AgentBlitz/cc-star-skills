@@ -496,7 +496,7 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
           master: mp,
           faststart: isFaststart(master),
           beats: spanned.beats.length,
-          deny: denyState(o.out, o.tourFile ?? null),
+          deny: denyState(o.out, o.tourFile ?? null, o.tour),
         }),
       ];
       const failed = all.filter((x) => x.level === "fail" || (o.strict && x.level === "warn"));
@@ -525,7 +525,7 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
         silence: measured.silence,
         sync: measured.sync,
         stills: spanned.beats.map((b, i) => ({ beat: b.beat, atMs: times[i] as number, file: relative(o.out, stills[i] as string), narration: spanned.sentences.filter((x) => x.beat === b.beat).map((x) => x.text) })),
-        deny: denyState(o.out, o.tourFile ?? null),
+        deny: denyState(o.out, o.tourFile ?? null, o.tour),
         notes,
       };
       writeReport(o.out, report);

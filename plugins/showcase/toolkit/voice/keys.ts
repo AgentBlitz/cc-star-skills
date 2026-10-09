@@ -22,7 +22,7 @@ export interface PostConfig {
   kbps: number;
 }
 
-export const POST: PostConfig = { chain: 1, lufs: -16, limitDb: -1.5, trimDb: -50, leadMs: 30, tailMs: 80, codec: "mp3", sampleRate: 24000, kbps: 64 };
+export const POST: PostConfig = { chain: 3, lufs: -16, limitDb: -1.5, trimDb: -50, leadMs: 30, tailMs: 80, codec: "mp3", sampleRate: 24000, kbps: 64 };
 
 export interface SynthKeyInput {
   spoken: string;

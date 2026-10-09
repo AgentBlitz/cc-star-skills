@@ -49,6 +49,27 @@ test("the app comes up on its own port after its snapshot, is reset once healthy
   }
 });
 
+test("inspect and auth keep the snapshot but skip the reset; --no-reset skips both", async () => {
+  const root = scratch("showcase-app-");
+  const log = join(root, "order.log");
+  const app = {
+    start: `node --disable-warning=ExperimentalWarning ${JSON.stringify(SERVE)} --port {port}`,
+    url: "http://127.0.0.1:{port}",
+    health: "/index.html",
+    snapshot: `echo snapshot >> ${JSON.stringify(log)}`,
+    reset: `echo reset >> ${JSON.stringify(log)}`,
+  };
+  const lines = () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n") : []);
+  // What inspect and auth ask for: the snapshot creates the data a fresh checkout needs.
+  const kept = await startApp(app, { root, reset: false, snapshot: true });
+  await kept.stop();
+  assert.deepEqual(lines(), ["snapshot"]);
+  // --no-reset: neither.
+  const none = await startApp(app, { root, reset: false });
+  await none.stop();
+  assert.deepEqual(lines(), ["snapshot"]);
+});
+
 test("an app that never gets healthy, or exits, is a clear failure and leaves nothing running", async () => {
   const root = scratch("showcase-app-");
   await assert.rejects(startApp({ start: "exit 3", url: "http://127.0.0.1:{port}" }, { root, healthTimeoutMs: 5_000 }), /exited \(code 3\)/);

@@ -16,6 +16,7 @@ app.build (film always; others with --build) ─► app.snapshot ─► app.star
 - **Its own server, port and environment.** showcase allocates a free port and fills `{port}` and `{url}` into `start`, `url`, `health`, `env`, `reset` and `snapshot`. App commands run with `sh -c` in the directory holding `showcase/`. The server gets its normal environment minus showcase's keys, plus `app.env`. A lock per repo stops two runs sharing, or resetting, one app. On exit the whole process group is stopped.
 - **`--base <url>`** uses an app that's already running: no build, snapshot, reset or lock. Handy while authoring; never for the final film.
 - **`--no-reset`** skips `snapshot` and `reset`.
+- **`inspect` and `auth`** restore the snapshot but skip `reset`: they only look, and a snapshot command is often what creates the data a fresh checkout opens.
 
 ## The levers
 

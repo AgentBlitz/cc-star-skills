@@ -410,9 +410,15 @@ export function boot(win: Realm = window as Realm): ShowcaseApi | null {
     film: createFilmAids(win, n),
   };
   Object.defineProperty(win, API_KEY, { value: api, configurable: true, enumerable: false, writable: false });
-  // A page load mid-film: the heartbeat goes on again before anything else is drawn.
-  const early = w.__showcaseConfig as BootConfig | undefined;
-  if (w[ROLLING_KEY] === true && early?.mode === "film") api.film.heartbeat(true);
+  // A page load mid-film: the heartbeat goes on again before anything else is drawn. The host's
+  // init scripts (`__showcaseConfig`, `__showcaseRolling`) run after this one, so look again once
+  // they have: a still screen after a page load otherwise sends no frames at all.
+  const rearm = () => {
+    const early = w.__showcaseConfig as BootConfig | undefined;
+    if (w[ROLLING_KEY] === true && early?.mode === "film") api.film.heartbeat(true);
+  };
+  rearm();
+  n.setTimeout(rearm, 0);
 
   const watching = () => {
     const snap = api.snapshot();

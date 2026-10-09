@@ -203,11 +203,22 @@ const ROLE_SELECTORS: Record<string, string> = {
 
 // ——— Accessible names ———
 
+/** Whether an element's box separates words, as a browser's name computation treats it. */
+function separates(e: Element): boolean {
+  const view = e.ownerDocument.defaultView;
+  const display = view ? view.getComputedStyle(e).display : "";
+  // Detached or unstyled: fall back to the tag (inline elements join, the rest separate).
+  if (!display) return !/^(A|ABBR|B|BDI|BDO|CITE|CODE|DFN|EM|I|KBD|LABEL|MARK|Q|S|SAMP|SMALL|SPAN|STRONG|SUB|SUP|TIME|U|VAR)$/.test(e.tagName);
+  return !display.startsWith("inline") && display !== "contents";
+}
+
 function textWithAlts(el: Element): string {
-  const parts: string[] = [];
+  // Adjacent text joins as it is: React renders `result{n === 1 ? "" : "s"}` as two text nodes,
+  // and the name is "results", not "result s". Block boxes, labels and alts are set apart.
+  let out = "";
   const walk = (node: Node) => {
     if (node.nodeType === 3) {
-      parts.push(node.nodeValue ?? "");
+      out += node.nodeValue ?? "";
       return;
     }
     if (node.nodeType !== 1) return;
@@ -215,19 +226,22 @@ function textWithAlts(el: Element): string {
     if (e.getAttribute("aria-hidden") === "true") return;
     const label = e.getAttribute("aria-label");
     if (label !== null && e !== el) {
-      parts.push(label);
+      out += ` ${label} `;
       return;
     }
     if (e.tagName === "IMG") {
-      parts.push(e.getAttribute("alt") ?? "");
+      out += ` ${e.getAttribute("alt") ?? ""} `;
       return;
     }
+    const gap = e !== el && separates(e) ? " " : "";
+    out += gap;
     // Content inside an open shadow root belongs to the name too.
     const root = e.shadowRoot;
     for (const child of root ? [...root.childNodes] : [...e.childNodes]) walk(child);
+    out += gap;
   };
   walk(el);
-  return squash(parts.join(" "));
+  return squash(out);
 }
 
 function labelsOf(el: Element): string[] {

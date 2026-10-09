@@ -13,14 +13,15 @@
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { parseSrt } from "../film/captions.ts";
 import type { FilmResult, TimelineFile } from "../film/record.ts";
 import { tourSentences } from "../film/post.ts";
-import { bandSeries } from "../film/verify.ts";
+import { bandSeries, denyState } from "../film/verify.ts";
 import { findFfmpeg } from "../lib/ffmpeg.ts";
+import { playHash } from "../lib/tours.ts";
 import type { Tour } from "../runtime/src/schema.ts";
 import { cli, scratch } from "./helpers.ts";
 
@@ -231,4 +232,27 @@ test("film --strict with the fake voice: the fixture tour and the beep-and-flash
 
 test("film --strict with macOS say: the same films with a real draft voice", { skip: existsSync("/usr/bin/say") ? false : "no `say` here" }, async () => {
   await finishedFilms("say");
+});
+
+test("a rehearse stays current through an approval, not through a change to what plays", () => {
+  const out = scratch("showcase-deny-");
+  const tourFile = join(out, "t.json");
+  const tour = JSON.parse(readFileSync(TOUR, "utf8")) as Tour;
+  writeFileSync(tourFile, JSON.stringify(tour));
+  const report = (extra: object) =>
+    writeFileSync(join(out, "rehearse.json"), JSON.stringify({ at: new Date(Date.now() - 60_000).toISOString(), deny: { clean: true, checked: 3 }, ...extra }));
+  report({ tourHash: playHash(tour) });
+  // Recording an approval rewrites the file (newer than the rehearse) but changes nothing that plays.
+  const approved: Tour = { ...tour, meta: { ...tour.meta, approved: { storyboard: "2026-10-09" } } };
+  writeFileSync(tourFile, JSON.stringify(approved));
+  assert.deepEqual([denyState(out, tourFile, approved).stale, denyState(out, tourFile, approved).clean], [false, true]);
+  // A changed sentence is stale.
+  const edited = structuredClone(approved);
+  edited.steps[0]!.title = "Something else";
+  assert.equal(denyState(out, tourFile, edited).stale, true);
+  // A report from before the hash: the file's time decides, as it did.
+  report({});
+  assert.equal(denyState(out, tourFile, approved).stale, true);
+  utimesSync(tourFile, new Date(Date.now() - 120_000), new Date(Date.now() - 120_000));
+  assert.equal(denyState(out, tourFile, approved).stale, false);
 });

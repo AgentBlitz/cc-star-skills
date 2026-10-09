@@ -22,12 +22,19 @@ export function readingMs(text: string): number {
   return Math.max(READING_MIN_MS, Math.round((wordCount(text) * 60000) / READING_WPM + 350));
 }
 
-export function narrationMs(beat: Beat): number {
-  return (beat.narration ?? []).reduce((ms, s) => ms + readingMs(sentenceText(s)), 0);
+/**
+ * A voiced sentence's clip duration, by beat and text, or undefined where there is none: what the
+ * sentence really lasts (C5). `check` passes the voice manifest's, so the narration window is
+ * judged on the voice once there is one, not on the reading estimate.
+ */
+export type VoicedMs = (beat: string, text: string) => number | undefined;
+
+export function narrationMs(beat: Beat, voiced?: VoicedMs): number {
+  return (beat.narration ?? []).reduce((ms, s) => ms + (voiced?.(beat.id, sentenceText(s)) ?? readingMs(sentenceText(s))), 0);
 }
 
-export function tourNarrationMs(tour: Tour): number {
-  return tour.steps.reduce((ms, step) => ms + step.beats.reduce((b, beat) => b + narrationMs(beat), 0), 0);
+export function tourNarrationMs(tour: Tour, voiced?: VoicedMs): number {
+  return tour.steps.reduce((ms, step) => ms + step.beats.reduce((b, beat) => b + narrationMs(beat, voiced), 0), 0);
 }
 
 export function tourWords(tour: Tour): number {
@@ -175,14 +182,14 @@ const fmtRange = (r: Range) => {
   return a === b ? `${a}` : `${a}–${b}`;
 };
 
-/** T008–T014, for a tour that passed the schema. */
-export function narrativeIssues(tour: Tour): Issue[] {
+/** T008–T014, for a tour that passed the schema. T008 times voiced sentences by their clips. */
+export function narrativeIssues(tour: Tour, voiced?: VoicedMs): Issue[] {
   const issues: Issue[] = [];
   const add = (rule: string, level: Issue["level"], path: string, message: string) => issues.push({ rule, level, path, message });
   const budget = budgetFor(tour.meta);
   const beats = beatsOf(tour);
 
-  const ms = tourNarrationMs(tour);
+  const ms = tourNarrationMs(tour, voiced);
   const sec = ms / 1000;
   if (sec < budget.narration.min - 1e-9 || sec > budget.narration.max + 1e-9)
     add("T008", "error", "/steps", `narration is ${secs(ms)} s; the window for ${tour.meta.kind} at ${budget.targetSec} s is ${fmtRange(budget.narration)} s (${sec < budget.narration.min ? "add" : "cut"} about ${Math.ceil(Math.abs(sec - (sec < budget.narration.min ? budget.narration.min : budget.narration.max)) * 2.46)} words)`);

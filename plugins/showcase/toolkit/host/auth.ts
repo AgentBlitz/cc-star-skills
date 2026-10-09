@@ -38,7 +38,7 @@ export async function auth(o: AuthOptions): Promise<{ file: string; cookies: num
   const p = o.project;
   if (!p.showcaseDir) throw new Error("no showcase/ here: run `showcase init` first");
   const file = authFile(p.showcaseDir);
-  const session = await openSession(p, { what: "auth", ...(o.url ? { url: o.url } : {}), reset: false, ...(o.say ? { say: o.say } : {}) });
+  const session = await openSession(p, { what: "auth", ...(o.url ? { url: o.url } : {}), reset: false, snapshot: true, ...(o.say ? { say: o.say } : {}) });
   let host: Host | null = null;
   session.onStop(async () => {
     await host?.close();

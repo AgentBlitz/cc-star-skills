@@ -188,11 +188,17 @@ var ROLE_SELECTORS = {
   slider: 'input[type="range"], [role="slider"]',
   spinbutton: 'input[type="number"], [role="spinbutton"]'
 };
+function separates(e) {
+  const view = e.ownerDocument.defaultView;
+  const display = view ? view.getComputedStyle(e).display : "";
+  if (!display) return !/^(A|ABBR|B|BDI|BDO|CITE|CODE|DFN|EM|I|KBD|LABEL|MARK|Q|S|SAMP|SMALL|SPAN|STRONG|SUB|SUP|TIME|U|VAR)$/.test(e.tagName);
+  return !display.startsWith("inline") && display !== "contents";
+}
 function textWithAlts(el) {
-  const parts = [];
+  let out = "";
   const walk = (node) => {
     if (node.nodeType === 3) {
-      parts.push(node.nodeValue ?? "");
+      out += node.nodeValue ?? "";
       return;
     }
     if (node.nodeType !== 1) return;
@@ -200,18 +206,21 @@ function textWithAlts(el) {
     if (e.getAttribute("aria-hidden") === "true") return;
     const label = e.getAttribute("aria-label");
     if (label !== null && e !== el) {
-      parts.push(label);
+      out += ` ${label} `;
       return;
     }
     if (e.tagName === "IMG") {
-      parts.push(e.getAttribute("alt") ?? "");
+      out += ` ${e.getAttribute("alt") ?? ""} `;
       return;
     }
+    const gap = e !== el && separates(e) ? " " : "";
+    out += gap;
     const root = e.shadowRoot;
     for (const child of root ? [...root.childNodes] : [...e.childNodes]) walk(child);
+    out += gap;
   };
   walk(el);
-  return squash(parts.join(" "));
+  return squash(out);
 }
 function labelsOf(el) {
   const out = [];
@@ -4262,11 +4271,11 @@ function wordCount(text) {
 function readingMs(text) {
   return Math.max(READING_MIN_MS, Math.round(wordCount(text) * 6e4 / READING_WPM + 350));
 }
-function narrationMs(beat) {
-  return (beat.narration ?? []).reduce((ms, s) => ms + readingMs(sentenceText(s)), 0);
+function narrationMs(beat, voiced) {
+  return (beat.narration ?? []).reduce((ms, s) => ms + (voiced?.(beat.id, sentenceText(s)) ?? readingMs(sentenceText(s))), 0);
 }
-function tourNarrationMs(tour) {
-  return tour.steps.reduce((ms, step) => ms + step.beats.reduce((b, beat) => b + narrationMs(beat), 0), 0);
+function tourNarrationMs(tour, voiced) {
+  return tour.steps.reduce((ms, step) => ms + step.beats.reduce((b, beat) => b + narrationMs(beat, voiced), 0), 0);
 }
 function tourWords(tour) {
   return beatsOf(tour).reduce((n, { beat }) => n + (beat.narration ?? []).reduce((w, s) => w + wordCount(sentenceText(s)), 0), 0);
@@ -4356,12 +4365,12 @@ var fmtRange = (r) => {
   const [a, b] = [Number(r.min.toFixed(1)), Number(r.max.toFixed(1))];
   return a === b ? `${a}` : `${a}–${b}`;
 };
-function narrativeIssues(tour) {
+function narrativeIssues(tour, voiced) {
   const issues = [];
   const add = (rule, level, path, message) => issues.push({ rule, level, path, message });
   const budget = budgetFor(tour.meta);
   const beats = beatsOf(tour);
-  const ms = tourNarrationMs(tour);
+  const ms = tourNarrationMs(tour, voiced);
   const sec = ms / 1e3;
   if (sec < budget.narration.min - 1e-9 || sec > budget.narration.max + 1e-9)
     add("T008", "error", "/steps", `narration is ${secs(ms)} s; the window for ${tour.meta.kind} at ${budget.targetSec} s is ${fmtRange(budget.narration)} s (${sec < budget.narration.min ? "add" : "cut"} about ${Math.ceil(Math.abs(sec - (sec < budget.narration.min ? budget.narration.min : budget.narration.max)) * 2.46)} words)`);
@@ -6514,8 +6523,12 @@ function boot(win = window) {
     film: createFilmAids(win, n)
   };
   Object.defineProperty(win, API_KEY, { value: api, configurable: true, enumerable: false, writable: false });
-  const early = w.__showcaseConfig;
-  if (w[ROLLING_KEY] === true && early?.mode === "film") api.film.heartbeat(true);
+  const rearm = () => {
+    const early = w.__showcaseConfig;
+    if (w[ROLLING_KEY] === true && early?.mode === "film") api.film.heartbeat(true);
+  };
+  rearm();
+  n.setTimeout(rearm, 0);
   const watching = () => {
     const snap = api.snapshot();
     return snap && snap.mode === "watch" && api.config && uiOf(api.config) === "watch" ? snap : null;

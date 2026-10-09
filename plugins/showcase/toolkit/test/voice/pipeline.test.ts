@@ -10,7 +10,8 @@ import { describe, it } from "node:test";
 import { loadConfig } from "../../lib/config.ts";
 import { loadTour, resolveTour } from "../../lib/tours.ts";
 import type { Tour } from "../../runtime/src/schema.ts";
-import { measureLufs, probeChannelsAndRate, requireFfmpeg } from "../../voice/audio.ts";
+import { decodeMono, levels, onsetMs } from "../../film/mix.ts";
+import { measureLufs, probeChannelsAndRate, processClip, requireFfmpeg } from "../../voice/audio.ts";
 import { POST } from "../../voice/keys.ts";
 import { manifestFile, readManifest } from "../../voice/manifest.ts";
 import { type Mode, pacing, plan, run, type RunOptions, VoiceRefusal } from "../../voice/pipeline.ts";
@@ -257,5 +258,22 @@ describe("pacing", () => {
     assert.ok(table.rows.filter((r) => r.words >= 4).every((r) => r.note?.startsWith("fast")));
     assert.ok(table.warnings.some((w) => /outside the 48–54 s window/.test(w)));
     assert.equal(table.rows.every((r) => !r.estimated), true);
+  });
+});
+
+describe("the processing chain", () => {
+  it("trims through a click before the first word, so the clip starts with the speech", async () => {
+    const paths = requireFfmpeg();
+    const work = scratch("showcase-trim-");
+    // A faint 3 ms click (peak -47 dBFS: over a -50 dB peak trim, under it as a 20 ms RMS), 240 ms
+    // of quiet, then the "word": the shape of a Gemini clip's start.
+    const rate = 24000;
+    const pcm = new Int16Array(Math.round(rate * 0.8));
+    for (let i = Math.round(rate * 0.02); i < Math.round(rate * 0.023); i++) pcm[i] = 150;
+    for (let i = Math.round(rate * 0.265); i < pcm.length; i++) pcm[i] = Math.round(8000 * Math.sin((2 * Math.PI * 220 * i) / rate));
+    const out = await processClip(paths, { bytes: Buffer.from(pcm.buffer), format: "pcm" }, POST, work);
+    const lv = levels(await decodeMono(paths.ffmpeg, out.wavPath));
+    const onset = onsetMs(lv, 0, 1000);
+    assert.ok(onset !== null && onset <= POST.leadMs + 60, `speech starts at ${onset} ms (lead ${POST.leadMs} ms)`);
   });
 });

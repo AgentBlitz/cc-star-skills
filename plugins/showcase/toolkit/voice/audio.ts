@@ -78,7 +78,11 @@ export async function processClip(
   const rawInputArgs = input.format === "pcm" ? ["-f", "s16le", "-ar", "24000", "-ac", "1"] : [];
 
   const trimmedPath = join(workDir, "trimmed.wav");
-  const trim = `silenceremove=start_periods=1:start_threshold=${post.trimDb}dB:start_silence=0.05:detection=peak`;
+  // RMS over 20 ms, not peak: a click before the first word (OpenRouter's Gemini voices have one,
+  // about 5 ms long) would stop a peak trim there, leaving the quiet that follows as a lead-in
+  // the captions run ahead of. 20 ms kept before the crossing, not 50: the -50 dB point already
+  // comes before the audible attack, and the 30 ms lead pads it (chains 2 and 3).
+  const trim = `silenceremove=start_periods=1:start_threshold=${post.trimDb}dB:start_silence=0.02:detection=rms:window=0.02`;
   await runFfmpeg(paths.ffmpeg, [...rawInputArgs, "-i", rawPath, "-af", ["aformat=channel_layouts=mono", trim, "areverse", trim, "areverse"].join(","), trimmedPath]);
 
   const measuredLufs = await measureLufs(paths, trimmedPath);
