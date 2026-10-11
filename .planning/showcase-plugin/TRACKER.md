@@ -20,7 +20,7 @@
 | 10 | I1 · The in-app path | ✅ | `runtime/src/in-app.ts` + `startInApp` (index.ts), `runtime/adapters/{next,react,html}`, `lib/vendor.ts` + `runtime vendor`, `film --in-app`, `rehearse --synthetic` gaps, `fixtures/next/` + `fixtures/next-fixture.ts`, `test/{in-app,runtime/in-app}.test.ts`, `test/next/next.e2e.ts` (`npm run test:next`), `reference/in-app.md` | HTML adapter plays fixture-tour from `?showcase=` (synthetic, sessionStorage, 3 page loads); reload mid-tour resumes, each write once; vendoring twice no diff (next/react/html); vendored types compile strict + EOPT + NUIA, skipLibCheck off; Next fixture `next build` ✔, plays on 1 document load; `film --in-app --strict` green (18.9 s, motion gap 21.2 ms, −16.1 LUFS, A/V 30 ms, navs spa only); npm test 233/233; typecheck (4 projects) | Fixed a host bug: SPA `nav` events took seqs the page reused (injected films of SPA apps too); declarations vendored as `.d.mts` + `types/`; tours published to `<public>/showcase/tours/`; Next e2e kept out of `npm test` |
 | 11 | S1 · The skill and integration | ✅ | `skills/showcase/SKILL.md` (158 lines, `disable-model-invocation`), `reference/{determinism,roadmap-brief}.md` + `interview.md` finished, `voice.md` keys + cost, `templates/BRIEF.md`, `brief [--check]` (`lib/brief.ts`, `commands/brief.ts`, `test/brief.test.ts`), `evals/` (4 cases + `run.sh`), marketplace entry + plugin 0.9.0, README section, runtime rebuilt at 0.9.0 | validate ✔ (plugin, marketplace); `bash evals/run.sh --max-cost-usd 2` green: with 1.00 on all 4 cases, baseline 0.00–0.67, mean Δ +0.75, $0.50; headless `/showcase:showcase doctor` from a fixture copy ✔ with `Base directory …/plugins/showcase/skills/showcase`; npm test 237/237, typecheck ✔ | `plugin details` shows ~132 tok but ignores the flag (A/B); direct check: not in the model's listing. Eval via wrapper (dependency + PATH) |
 | 12 | P1 · Star I: the film and live demo (by hand) | ✅ | Star `showcase/` (config, `star-pitch` tour, storyboard, 14 Charon clips + manifest, schemas) + ignore lines, Star commit `e171968`; plugin fixes: `host/{app,project,inspect,auth}.ts` (snapshot kept), `runtime/src/anchors.ts` (names join text), `runtime/src/index.ts` (heartbeat re-arms after a page load), `lib/tours.ts` `playHash` + `host/rehearse.ts` + `film/verify.ts` (approval ≠ stale), `voice/{audio,keys}.ts` (RMS trim, 20 ms pre-roll, chain 3), `runtime/src/narrative.ts` + `commands/check.ts` (T008 times voiced sentences by their clips), 6 new tests, 243 in all | rehearse 5/5 clean (6/6 beats, deny clean); `film --strict` green: `star-pitch.mp4` 58.6 s, 1757 frames, 60 fps capture, motion gap 24 ms, A/V 26.7 ms, −16.1 LUFS, 14 cues; renders A/B/final: same 14 cue texts, timecodes within 31 ms (A–B), 34 ms, 6 ms; user approved Round 5 and watched the live demo; npm test 243/243, typecheck (4 projects), plugin validate ✔ | 1:00 pitch for executives (champion); narrator Gemini 3.8 Flash TTS "Charon" (gods-eye's), saved as the default; 1,129 characters voiced; friction: 6 plugin bugs found on Star and fixed (see log) |
-| 13 | P2 · Star II: the in-app tour, then the release (by hand) | ⬜ | | | |
+| 13 | P2 · Star II: the in-app tour, then the release (by hand) | ✅ | Star's in-app tour (in Star's working tree, not committed): vendored `src/showcase/` (runtime + `ShowcaseTour.tsx`), `public/showcase/{tours,voice}/`, the "Take the tour" `<Link>` in the Overview hero, the copilot hidden during a tour; plugin fixes: `runtime/src/capture-inject.ts` + `dist/showcase-capture.iife.js`, `host/launch.ts`, `runtime/adapters/{next,react,html}`, `runtime/src/{anchors,inspect}.ts`, `reference/{in-app,tour-format}.md`, 2 new tests + 1 Next e2e; release: plugin 1.0.0 with `defaultEnabled: false`, README, `.gitignore`, tags `showcase--v1.0.0` (`ec249e8`) and `planning--v1.8.0` (`15887b3`) | npm test 245/245; typecheck (4 projects); `npm run test:next` 4/4, with `film --in-app --strict` green on the Next fixture; `claude plugin validate` ✔ (plugin, marketplace); both tags exist; installed from GitHub here: 1.0.0, user scope, switched off; the user confirmed the Star in-app tour approved (2026-10-11) | Pushed to `origin` (main + both tags). **Not pushed to `GITLAB`**: its hostname didn't resolve from this network (see open items). Star's own gates and Star's `film --in-app --strict` were not re-run in the release session, and Star's in-app work is uncommitted, by the user's choice |
 
 Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 
@@ -30,8 +30,10 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
   - Ready now (Session 1 ✅): give your go for `showcase keys import ~/_PRJ/gods-eye/.env.local`, or run `plugins/showcase/bin/showcase shim`, then `showcase keys set` in your own terminal. Check it with `showcase keys status` and `showcase keys test`.
   - Session 6's live audition was skipped for want of it (the page and pipeline were proved with the fake and mocked fetch); run `showcase voice <tour> --audition --yes` once it is set. Session 12's final voice needs it too. The draft voice covers everything else.
 - [x] **Review notes for Session 9** (look and feel): approved as-is (2026-10-09).
-- [ ] **Your availability** for the by-hand Sessions 9, 12 and 13.
-- [ ] **The go to push** `main` and the tag `showcase--v1.0.0` to `origin` and `GITLAB` (Session 13). Nothing is pushed before then.
+- [x] **Your availability** for the by-hand Sessions 9, 12 and 13: all three run.
+- [x] **The go to push** `main` and the tag `showcase--v1.0.0` to `origin` and `GITLAB` (Session 13): given 2026-10-11. `origin` is pushed.
+- [ ] **Push to `GITLAB`**: `gitlab.devopstools.tech` didn't resolve on 2026-10-11 (off the VPN, most likely). Once it is reachable: `git push GITLAB main --tags`. `GITLAB/main` is still at planning v1.7.0 (`b3729b1`).
+- [ ] **Star's in-app tour is uncommitted** in `~/_PRJ/star` (and Star is ahead of its three remotes). Left as it is by the user's choice; run Star's lint, typecheck and build before committing it.
 
 ## Review notes
 
@@ -52,7 +54,12 @@ The user's answers and approvals (2026-10-09):
 
 ### Star in-app tour and release (Session 13, gathered in the session)
 
-(none yet)
+The user's decisions (2026-10-11, the release session):
+
+- **The in-app tour on Star: approved.** The entry point is the "Take the tour" `<Link>` in the Overview hero (`/?showcase=star-pitch`), as Star's working tree has it.
+- **Release scope:** cc-star-skills only. Star stays as it is: nothing committed or pushed there.
+- **Showcase installs switched off** (`defaultEnabled: false`) and is turned on per project; planning keeps loading everywhere.
+- **The go to push** to `origin` and `GITLAB`: given.
 
 ## Session log
 
@@ -464,3 +471,26 @@ Runtime: opus/high
   - Nothing pushed. The renders, the cache (with the 155 MB snapshot) and the sign-in directory stay ignored.
 - **Spend:** 1,129 characters through OpenRouter (Gemini TTS), across the first voicing and the rewrites.
 - The plan dir's `autopilot/` run logs were again left uncommitted.
+
+### Session 13 — P2 · Star II: the in-app tour, then the release (2026-10-11) ✅
+
+Runtime: opus (the release part; the Star part ran in an earlier interactive session that wrote no log)
+
+- **In two parts.** The in-app tour was built on Star in an interactive session that left row 13 at 🟡, with its plugin fixes uncommitted here. The release part ran on 2026-10-11 from cc-star-skills, and this entry is written from it: the Star part's steps are read from the two working trees, not from a log.
+- **Plugin fixes from the Star part** (commit `75b7667`), each with a test:
+  1. **`film --in-app` lost the run at a full page load.** The tab held the run state, and the recorder's fresh document had none. The recorder now holds it, and the Next, React and HTML adapters load the runtime when they see the recorder and no injected runtime. Star's search step is a plain GET form, so its tour crosses one page load.
+  2. **`film --in-app` ran on the fixed clock.** The app's vendored runtime boots after the clock script. A capture-only bundle (`showcase-capture.iife.js`, from `capture-inject.ts`) now takes the real clocks first, where the injected runtime would have been.
+  3. **A Next `<Link>` to the tour did nothing.** It is a soft navigation, with no document load. The Next adapter watches the URL: the first tour in a document starts in place, and a later one reloads the page first.
+  4. **A `testId` anchor didn't find `data-showcase`.** It now resolves `data-showcase` first, then `data-testid`, `data-test-id` and `data-test`; `inspect` reports it too.
+  - `reference/in-app.md` and `tour-format.md` say the same; the README names the entry point and what `public/showcase/` holds.
+- **The release** (commit `ec249e8`):
+  - 1.0.0 in `plugin.json` and the marketplace entry (0.9.0 was never pushed).
+  - `defaultEnabled: false`: showcase installs switched off, and `claude plugin enable showcase@cc-star-skills --scope local` turns it on in a project. The README's install section says how.
+  - `.gitignore` now keeps `.planning/*/autopilot/` local, so the run logs are no longer left hanging.
+  - Tags: `showcase--v1.0.0` at `ec249e8`, and `planning--v1.8.0` at `15887b3`, which had been pushed untagged. Showcase depends on planning, so planning's releases want tags.
+- **Gate:**
+  - `npm test` 245/245 (243 + 2), typecheck (4 projects), `npm run test:next` 4/4, `claude plugin validate plugins/showcase` and `claude plugin validate .` ✔.
+  - The user confirmed the Star in-app tour approved. **Not re-run here:** Star's lint, typecheck and build, and `film --in-app --strict` on Star; no figures for them are recorded.
+- **Pushed:** `origin` has `main` and both tags. `GITLAB` does not: its hostname didn't resolve (open item).
+- **Installed here** from GitHub: showcase 1.0.0, user scope, switched off; planning 1.8.0 still on.
+- **The roadmap is complete.** `/archive-roadmap` retires `.planning/showcase-plugin/` when the user is ready.
