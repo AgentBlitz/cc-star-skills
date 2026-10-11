@@ -1,6 +1,7 @@
 /**
- * `npm run build:runtime` (D16): esbuild bundles `src/inject.ts` into the IIFE the host injects
- * and `src/index.ts` into the ESM file vendored in-app, `tsc` emits the declarations, and the
+ * `npm run build:runtime` (D16): esbuild bundles `src/inject.ts` into the IIFE the host injects,
+ * `src/index.ts` into the ESM file vendored in-app and `src/capture-inject.ts` into the clocks-only
+ * IIFE the host injects for `film --in-app`, `tsc` emits the declarations, and the
  * source stamp is written beside them. `dist/` is committed; a test fails when it is stale.
  */
 import { execFileSync } from "node:child_process";
@@ -23,6 +24,8 @@ const common = {
 };
 await build({ ...common, entryPoints: [join(SRC_DIR, "inject.ts")], format: "iife", outfile: join(DIST_DIR, "showcase-runtime.iife.js") });
 await build({ ...common, entryPoints: [join(SRC_DIR, "index.ts")], format: "esm", outfile: join(DIST_DIR, "showcase-runtime.mjs") });
+// The clocks alone, for `film --in-app`: the host injects it where it injects no runtime.
+await build({ ...common, entryPoints: [join(SRC_DIR, "capture-inject.ts")], format: "iife", outfile: join(DIST_DIR, "showcase-capture.iife.js") });
 
 rmSync(join(DIST_DIR, "types"), { recursive: true, force: true });
 execFileSync(process.execPath, [join(RUNTIME_DIR, "..", "..", "node_modules", "typescript", "bin", "tsc"), "-p", join(RUNTIME_DIR, "tsconfig.dts.json")], { stdio: "inherit" });

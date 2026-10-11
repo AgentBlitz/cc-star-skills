@@ -27,6 +27,8 @@ import type { RunState } from "../runtime/src/state.ts";
 type PW = typeof import("playwright-core");
 
 export const RUNTIME_IIFE = resolve(import.meta.dirname, "..", "runtime", "dist", "showcase-runtime.iife.js");
+/** The real clocks alone, captured first, for a page that boots its own vendored runtime (`film --in-app`). */
+export const CAPTURE_IIFE = resolve(import.meta.dirname, "..", "runtime", "dist", "showcase-capture.iife.js");
 
 export async function playwright(): Promise<PW> {
   const pw = findPlaywright();
@@ -382,6 +384,10 @@ export async function launchHost(options: HostOptions): Promise<Host> {
     if (options.inject !== false) {
       if (options.tour) await context.addInitScript({ content: `window.__showcaseConfig = ${JSON.stringify(config)};` });
       await context.addInitScript({ content: readFileSync(RUNTIME_IIFE, "utf8") });
+    } else {
+      // `film --in-app`: the app's vendored runtime boots after the clock script, so the real
+      // clocks are captured here, where the runtime would have been; it finds them held.
+      await context.addInitScript({ content: readFileSync(CAPTURE_IIFE, "utf8") });
     }
     await context.addInitScript({ content: SAME_TAB });
     if (b.hide?.length) await context.addInitScript({ content: hideScript(b.hide) });

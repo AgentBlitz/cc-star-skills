@@ -9,7 +9,7 @@ This changes the app's code, so outside a roadmap session it normally goes throu
 1. `showcase rehearse <tour> --synthetic`: plays the tour with synthetic input only, as an in-app tour does, and lists what synthetic input can't do:
    - **cannot** (a problem: the rehearse fails): an action with `"input": "trusted"`, or a `Tab` key (a synthetic Tab doesn't move focus; use a `focus` action).
    - **check** (a note): `hover` (CSS `:hover` and native tooltips don't answer synthetic events), other `key`s (no default action; Enter in a form field still submits), `upload` (the file must be served at `<base>/assets/`, and the target must be the `<input type=file>`), `drag`, and `scroll` with `by` (no wheel events).
-2. Any action a role and name can't anchor gets a `data-showcase` attribute in the app, with a test on both sides (the anchor resolves; the element has it), as Compass's `anchors.ts` and `dom.test.ts` do.
+2. Any action a role and name can't anchor gets a `data-showcase="<name>"` attribute in the app, which the tour names as `{"testId": "<name>"}`, with a test on both sides (the anchor resolves; the element has it), as Compass's `anchors.ts` and `dom.test.ts` do. Add one only where a role and name aren't enough: an anchor that names data (a result's title) is fine while the data holds still, and `rehearse` says when it stops resolving.
 
 ## `showcase runtime vendor`
 
@@ -70,7 +70,10 @@ The other options: `navigate(url)` (the adapter supplies the router), `base` (wh
 | `&showcaseStep=<step>` | Start at that step; the earlier steps' writes are fast-forwarded first |
 | `&showcaseMode=film` | Film mode: no controls, waits for the recorder (`film --in-app`) |
 
-The names are namespaced so they never clash with an app's own `tour` parameter. Add a "Take the tour" link to `/?showcase=<id>` wherever it suits the app.
+The names are namespaced so they never clash with an app's own `tour` parameter. Add a "Take the tour" link to `/?showcase=<id>` wherever it suits the app:
+
+- **Next:** a `<Link href="/?showcase=<id>">` works. The adapter watches the URL, so the first tour in a document starts in place; a later one reloads the page first, because the runtime runs one tour per document.
+- **React and HTML:** make it a document load: a plain `<a href>` (React Router: `<Link reloadDocument>`). A client-side route change to the link doesn't start a tour.
 
 ## How it runs
 
@@ -87,6 +90,11 @@ showcase film <tour> --in-app [--strict]
 ```
 
 It opens `?showcase=<id>&showcaseMode=film` on the first step's path and injects nothing: the app's vendored runtime boots from the link and talks to the recorder over the same contract as an injected film (the `__showcaseHost` binding, the film's events, `__showcaseGo()`). The app's own router moves the steps, so the take shows `nav` events of kind `spa`, not page loads. Everything else is as `film` (see `showcase docs film`). If the page never arms, the runtime isn't vendored or `<ShowcaseTour />` (or the snippet) isn't on the page.
+
+Two things the recorder does for an in-app film, so it behaves as an injected one:
+
+- **It holds the run state**, not the tab. A step that is a full page load (a plain GET form, a multi-page app) shows as a `nav` of kind `load`; the adapter sees the recorder in the new document and loads the runtime again, which resumes from the recorder's state.
+- **It captures the real clocks first**, before any clock script, so `browser.clock.fixed` gives the app its fixed time while the film's events keep the real one.
 
 ## Footprint
 

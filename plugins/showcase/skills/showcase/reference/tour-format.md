@@ -44,7 +44,7 @@ An anchor finds one element. In order of preference:
 
 1. `{"role": "button", "name": "Search"}`: an ARIA role and accessible name;
 2. `{"label": "Email"}`: a form control's label;
-3. `{"testId": "save"}`: a `data-testid` (or the app's test-id attribute);
+3. `{"testId": "save"}`: a `data-showcase` attribute (the in-app contract, see `in-app.md`), else `data-testid`, `data-test-id` or `data-test`;
 4. `{"text": "Sign in"}`: visible text;
 5. `{"css": "main h1"}`: CSS, the last resort. With `text`, CSS is narrowed to matches.
 

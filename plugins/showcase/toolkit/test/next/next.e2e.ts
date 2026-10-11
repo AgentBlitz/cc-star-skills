@@ -104,6 +104,43 @@ test("the deep link plays the tour with in-app navigation on a single document l
   }
 });
 
+test("a <Link> to the tour starts it in place, and starts it afresh once that run has ended", async () => {
+  const cfg = loadConfig(join(dir, "showcase"));
+  app = await startApp(cfg.app, { root: dir, logFile: join(dir, "showcase", "app.log") });
+  const pw = await playwright();
+  const browser = await pw.chromium.launch({ channel: "chromium", headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+    let loads = 0;
+    page.on("load", () => (loads += 1));
+    const playing = "window.__showcase && window.__showcase.snapshot() && window.__showcase.snapshot().status === 'playing'";
+    await page.goto(`${app.url}/settings`);
+    await page.evaluate("window.__sameDocument = true");
+    assert.equal(await page.evaluate("typeof window.__showcase"), "undefined", "no link, no runtime");
+    // Two soft navigations: to the home page, then to the tour's link on it.
+    await page.getByRole("link", { name: "Home" }).click();
+    await page.getByRole("link", { name: "Take the tour" }).click();
+    await page.waitForFunction(playing, null, { timeout: 15_000 });
+    const first = (await page.evaluate("window.__showcase.snapshot().runId")) as string;
+    assert.equal(await page.evaluate("window.__sameDocument"), true, "the first tour starts without a document load");
+    assert.equal(loads, 1);
+    assert.equal(new URL(page.url()).search, "", "the runtime takes the link off the URL");
+    // The viewer closes it. The runtime runs one tour per document, so the link now reloads.
+    await page.keyboard.press("Escape");
+    await page.waitForFunction("!document.querySelector('showcase-overlay')", null, { timeout: 5_000 });
+    assert.equal(await page.evaluate("sessionStorage.getItem('showcase:run')"), null);
+    await page.getByRole("link", { name: "Take the tour" }).click();
+    await page.waitForFunction(`window.__sameDocument === undefined && ${playing}`, null, { timeout: 15_000 });
+    assert.notEqual(await page.evaluate("window.__showcase.snapshot().runId"), first, "a new run");
+    assert.equal(loads, 2);
+    assert.equal(new URL(page.url()).search, "");
+  } finally {
+    await browser.close();
+    await app.stop();
+    app = null;
+  }
+});
+
 test("film --in-app --strict is green on the Next fixture", async () => {
   const r = await cli(["rehearse", TOUR, "--synthetic"], { cwd: dir, env: env() });
   assert.equal(r.code, 0, r.stdout + r.stderr);

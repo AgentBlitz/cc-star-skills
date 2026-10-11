@@ -1,12 +1,14 @@
 <!-- showcase tour (showcase {{version}}): put this in every page's <head>. It loads the runtime only
      when the URL has ?showcase=<id> or the tab is part-way through a tour; a page load mid-tour
-     resumes it from sessionStorage. -->
+     resumes it from sessionStorage (under `film --in-app`, from the recorder). -->
 <script type="module">
   let run = false;
   try {
     run = sessionStorage.getItem("showcase:run") !== null;
   } catch {}
-  if (new URLSearchParams(location.search).has("showcase") || run) {
+  // `film --in-app`: the recorder holds the run. When it injects its own runtime, `__showcase` is here already.
+  const filmed = typeof window.__showcaseHost === "function" && window.__showcase === undefined;
+  if (new URLSearchParams(location.search).has("showcase") || run || filmed) {
     import("{{runtimeUrl}}")
       .then(({ startInApp }) => startInApp({ base: "{{base}}" }))
       .catch((e) => console.warn("showcase:", e));

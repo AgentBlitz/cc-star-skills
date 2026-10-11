@@ -282,6 +282,25 @@ test("names join text as a browser does: split text nodes run together, block bo
   assert.ok(names.includes("Gamma"), names.join(" | "));
 });
 
+test("a test id anchor finds the app's data-showcase attribute, as the in-app contract says", async () => {
+  const host = await launch({ tour: null, mode: "watch" });
+  await host.page.evaluate(() => {
+    // Two buttons a role and name can't tell apart: the second carries the app's anchor.
+    const button = (mark?: [string, string]) => {
+      const b = Object.assign(document.createElement("button"), { textContent: "Open twin" });
+      if (mark) b.setAttribute(mark[0], mark[1]);
+      document.body.append(b);
+    };
+    button();
+    button(["data-showcase", "second-twin"]);
+    button(["data-testid", "third-twin"]);
+  });
+  const items = (await host.page.evaluate(`__showcase.inspect({ limit: 400 })`)) as { name: string; by: string; anchor: { testId?: string } }[];
+  const twins = items.filter((i) => i.name === "Open twin").map((i) => [i.by, i.anchor.testId ?? null]);
+  // `inspect` only suggests an anchor that resolves back to its element.
+  assert.deepEqual(twins, [["role", null], ["testId", "second-twin"], ["testId", "third-twin"]]);
+});
+
 test("a page load mid-film brings the heartbeat back, so a still screen keeps sending frames", async () => {
   const t = tour("rearm", [{ id: "dash", path: "/index.html", beats: [{ id: "r-1", narration: say("Still."), actions: [], dwellMs: 0 }] }]);
   const host = await launch({ tour: t, mode: "film" });

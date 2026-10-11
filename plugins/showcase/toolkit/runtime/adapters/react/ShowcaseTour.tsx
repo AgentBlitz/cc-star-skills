@@ -18,6 +18,10 @@ export interface ShowcaseTourProps extends Omit<Adapter, "navigate"> {
 
 function wanted(): boolean {
   if (new URLSearchParams(window.location.search).has("showcase")) return true;
+  // `film --in-app`: the recorder holds the run, so a page load mid-film finds nothing in the tab.
+  // (When the recorder injects its own runtime, `__showcase` is already here: leave it alone.)
+  const w = window as unknown as Record<string, unknown>;
+  if (typeof w["__showcaseHost"] === "function" && w["__showcase"] === undefined) return true;
   try {
     return window.sessionStorage.getItem("showcase:run") !== null;
   } catch {

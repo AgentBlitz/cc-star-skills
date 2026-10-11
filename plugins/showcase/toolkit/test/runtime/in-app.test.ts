@@ -12,8 +12,10 @@ import { join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import type { Browser, Page } from "playwright-core";
 import { APP_DIR, type FixtureServer, serveFixture } from "../../fixtures/serve.ts";
-import { playwright } from "../../host/launch.ts";
+import { launchHost, playwright } from "../../host/launch.ts";
+import { filmOrderProblems } from "../../runtime/src/film-events.ts";
 import type { Snapshot } from "../../runtime/src/protocol.ts";
+import type { Tour } from "../../runtime/src/schema.ts";
 import { cli, scratch } from "../helpers.ts";
 
 const FIXTURES = resolve(import.meta.dirname, "..", "..", "fixtures");
@@ -139,4 +141,30 @@ test("a reload mid-tour resumes from the tab's state without writing twice, and 
   await page.waitForTimeout(300);
   assert.equal(await page.evaluate("typeof window.__showcase"), "undefined");
   await page.context().close();
+});
+
+test("film --in-app: a page load mid-film brings the vendored runtime back from the recorder's state, on the real clock", async () => {
+  // As `film --in-app` launches (film/record.ts): the binding and nothing injected. The recorder
+  // holds the run, so the tab's sessionStorage has nothing for the snippet to find after a load.
+  const tour = JSON.parse(readFileSync(join(site, "showcase", "tours", "fixture-tour.json"), "utf8")) as Tour;
+  // A fixed clock too, as a real project sets (`browser.clock.fixed`): the vendored runtime boots
+  // after the clock script, and its events must still carry the real time.
+  const host = await launchHost({ url: `${server.url}/index.html?showcase=fixture-tour&showcaseMode=film`, tour, mode: "film", headless: true, inject: false, assetsDir: join(FIXTURES, "showcase"), browser: { clock: { fixed: "2020-02-02T10:00:00Z" } } });
+  const began = Date.now();
+  try {
+    await host.waitForEvent("film:armed", { timeoutMs: 30_000 });
+    await host.go();
+    await host.waitForEvent("film:end", { timeoutMs: 120_000 });
+    assert.equal(host.events.find((e) => e.type === "film:error"), undefined);
+    assert.deepEqual([...new Set(host.events.map((e) => e.doc))], [1, 2, 3], "the film crossed its two page loads");
+    assert.deepEqual(filmOrderProblems(host.events), []);
+    assert.equal(new Date(Number(await host.page.evaluate("Date.now()"))).getUTCFullYear(), 2020, "the app sees the fixed clock");
+    const stamps = host.events.flatMap((e) => [e.t, e.wall]);
+    assert.ok(stamps.every((t) => t >= began - 1000 && t <= Date.now() + 1000), "every event carries the real time, on the host's clock");
+    assert.equal(host.events.filter((e) => e.type === "film:armed").length, 1);
+    assert.equal(await host.page.evaluate("sessionStorage.getItem('showcase:run')"), null, "the run was the recorder's, never the tab's");
+    assert.match(host.page.url(), /\/detail\.html/);
+  } finally {
+    await host.close();
+  }
 });

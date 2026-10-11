@@ -427,7 +427,11 @@ function frameDocument(selector: string, top: Document): Document | null {
 
 function candidatesIn(scope: ParentNode, a: Anchor): Element[] {
   if (a.css) return queryDeep(scope, a.css);
-  if (a.testId !== undefined) return queryDeep(scope, `[data-testid="${CSS.escape(a.testId)}"], [data-test-id="${CSS.escape(a.testId)}"], [data-test="${CSS.escape(a.testId)}"]`);
+  if (a.testId !== undefined) {
+    // `data-showcase` is the in-app contract (in-app.md); the overlay's own controls carry it too.
+    const id = CSS.escape(a.testId);
+    return queryDeep(scope, `[data-showcase="${id}"]:not(showcase-controls), [data-testid="${id}"], [data-test-id="${id}"], [data-test="${id}"]`);
+  }
   if (a.role) return queryDeep(scope, ROLE_SELECTORS[a.role] ?? `[role="${CSS.escape(a.role)}"]`);
   if (a.label !== undefined) return queryDeep(scope, "input, textarea, select, meter, progress, output, [aria-labelledby], [aria-label]");
   return queryDeep(scope, "*");

@@ -380,7 +380,10 @@
   }
   function candidatesIn(scope, a) {
     if (a.css) return queryDeep(scope, a.css);
-    if (a.testId !== void 0) return queryDeep(scope, `[data-testid="${CSS.escape(a.testId)}"], [data-test-id="${CSS.escape(a.testId)}"], [data-test="${CSS.escape(a.testId)}"]`);
+    if (a.testId !== void 0) {
+      const id = CSS.escape(a.testId);
+      return queryDeep(scope, `[data-showcase="${id}"]:not(showcase-controls), [data-testid="${id}"], [data-test-id="${id}"], [data-test="${id}"]`);
+    }
     if (a.role) return queryDeep(scope, ROLE_SELECTORS[a.role] ?? `[role="${CSS.escape(a.role)}"]`);
     if (a.label !== void 0) return queryDeep(scope, "input, textarea, select, meter, progress, output, [aria-labelledby], [aria-label]");
     return queryDeep(scope, "*");
@@ -5122,7 +5125,7 @@
     return null;
   }
   function testIdOf(el) {
-    return el.getAttribute("data-testid") ?? el.getAttribute("data-test-id") ?? el.getAttribute("data-test");
+    return el.getAttribute("data-showcase") ?? el.getAttribute("data-testid") ?? el.getAttribute("data-test-id") ?? el.getAttribute("data-test");
   }
   function labelText(el) {
     const tag = el.tagName;
@@ -5834,7 +5837,7 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
   }
 
   // toolkit/runtime/src/index.ts
-  var RUNTIME_VERSION = true ? "0.9.0" : "dev";
+  var RUNTIME_VERSION = true ? "1.0.0" : "dev";
   var STILL_MS = 400;
   async function filmReady(n, signal, doc) {
     await doc.fonts?.ready;

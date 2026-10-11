@@ -69,7 +69,7 @@ function cssPath(el: Element): string | null {
 }
 
 function testIdOf(el: Element): string | null {
-  return el.getAttribute("data-testid") ?? el.getAttribute("data-test-id") ?? el.getAttribute("data-test");
+  return el.getAttribute("data-showcase") ?? el.getAttribute("data-testid") ?? el.getAttribute("data-test-id") ?? el.getAttribute("data-test");
 }
 
 function labelText(el: Element): string | null {

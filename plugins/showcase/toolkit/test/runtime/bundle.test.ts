@@ -9,7 +9,7 @@ import { computeStamp, DIST_DIR, readStamp, SRC_DIR, stampedFiles } from "../../
 const pluginVersion = (JSON.parse(readFileSync(join(SRC_DIR, "..", "..", "..", ".claude-plugin", "plugin.json"), "utf8")) as { version: string }).version;
 
 test("dist/ holds the IIFE, the ESM, the types and the stamp", () => {
-  for (const f of ["showcase-runtime.iife.js", "showcase-runtime.mjs", "showcase-runtime.d.ts", "STAMP", join("types", "index.d.ts")]) {
+  for (const f of ["showcase-runtime.iife.js", "showcase-capture.iife.js", "showcase-runtime.mjs", "showcase-runtime.d.ts", "STAMP", join("types", "index.d.ts")]) {
     assert.ok(existsSync(join(DIST_DIR, f)), f);
   }
 });
