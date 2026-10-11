@@ -358,8 +358,9 @@ determinism, voice, film, in-app, interview, roadmap brief).
 | `showcase/.auth/` | no | Recorded sign-ins (mode 600) |
 
 `showcase init` writes the ignore lines. The in-app path also adds the vendored runtime, an
-adapter (Next, React or plain HTML), the entry point, any `data-showcase` anchors with
-their test, and `public/showcase/`.
+adapter (Next, React or plain HTML), the entry point (a link to `/?showcase=<id>`; in Next a
+`<Link>` works), any `data-showcase` anchors with their test, and `public/showcase/` (the
+published tours and the voice clips).
 
 ### Big jobs go to a roadmap, with checkpoints
 
@@ -402,6 +403,17 @@ After installing `planning`, `/roadmap`, `/calibrate-roadmap`, `/session`,
 `/wrapup`, `/handoff`, `/autopilot`, and `/archive-roadmap` are available in every project; installing
 `copilot` adds `/build-copilot`, and installing `showcase` adds `/showcase` (run
 `showcase doctor --install --yes` once for Chromium).
+
+`showcase` installs **switched off**, so it stays out of the projects that don't use it. Turn
+it on where you want it, from that project's root:
+
+```text
+claude plugin enable showcase@cc-star-skills --scope local
+```
+
+`--scope local` is for you alone in that repo; `--scope project` shares it with the repo's
+collaborators, and `--scope user` turns it on everywhere. `claude plugin disable` with the same
+scope turns it off again.
 
 ## Updating
 
