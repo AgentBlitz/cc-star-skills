@@ -413,7 +413,16 @@ claude plugin enable showcase@cc-star-skills --scope local
 
 `--scope local` is for you alone in that repo; `--scope project` shares it with the repo's
 collaborators, and `--scope user` turns it on everywhere. `claude plugin disable` with the same
-scope turns it off again.
+scope turns it off again. When a plugin is set at more than one scope, local wins over project,
+and project wins over user.
+
+`claude plugin list` (or `/plugin` → **Installed**) shows what is on and at which scope.
+
+For a single session, with no settings changed, load it from a clone of this repo:
+
+```text
+claude --plugin-dir <clone>/plugins/showcase
+```
 
 ## Updating
 
