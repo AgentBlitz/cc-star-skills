@@ -193,8 +193,9 @@ export interface VoiceClip {
     file: string;
     durationMs: number;
 }
+/** v2 (showcase 1.1) slices a take into the same clips, with more fields the runtime doesn't need. */
 export interface VoiceManifest {
-    v: 1;
+    v: 1 | 2;
     id: string;
     tour: string;
     clips: VoiceClip[];

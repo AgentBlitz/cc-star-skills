@@ -5,7 +5,7 @@ import { cacheDir } from "../lib/paths.ts";
 import { requireFfmpeg } from "../voice/audio.ts";
 import { audition, AUDITION_MAX_CHARS } from "../voice/audition.ts";
 import { fetchCatalogue, fetchRequestyCatalogue, type SpeechModel } from "../voice/catalogue.ts";
-import { DEFAULT_MAX_CHARS, type Mode, type Report, run, sentencesOf, VoiceRefusal } from "../voice/pipeline.ts";
+import { DEFAULT_MAX_CHARS, type Mode, type Redo, type Report, run, sentencesOf, TakeCheckFailed, VoiceRefusal } from "../voice/pipeline.ts";
 import { loadSetup } from "../voice/setup.ts";
 import { type Command, UsageError } from "./types.ts";
 
@@ -21,11 +21,12 @@ function maxCharsOf(v: string | boolean | undefined, fallback: number | undefine
   return n;
 }
 
-function redoOf(v: string | boolean | undefined): { beat: string; n: number } | undefined {
+function redoOf(v: string | boolean | undefined, takes: boolean): Redo | undefined {
   if (v === undefined) return undefined;
   const m = /^([^/]+)\/(\d+)$/.exec(String(v));
-  if (!m) throw new UsageError(`--redo wants beat/n (for example open/0), not ${String(v)}`);
-  return { beat: m[1] as string, n: Number(m[2]) };
+  if (m) return { beat: m[1] as string, n: Number(m[2]) };
+  if (!takes || typeof v !== "string" || v.length === 0) throw new UsageError(`--redo wants beat/n (for example open/0)${takes ? ", a step id or a take (t1)" : ""}, not ${String(v)}`);
+  return { target: v };
 }
 
 export function reportLines(r: Report): string[] {
@@ -33,6 +34,13 @@ export function reportLines(r: Report): string[] {
   const parts = [`${c.fresh} fresh`, c.draft ? `${c.draft} draft` : "", c.stale ? `${c.stale} stale` : "", c.missing ? `${c.missing} missing` : ""].filter(Boolean);
   const lines = [`${r.tour}: ${r.items.length} sentence${r.items.length === 1 ? "" : "s"} · ${parts.join(" · ")}`];
   for (const i of r.items) if (i.status === "stale" || i.status === "missing") lines.push(`  ${i.status.padEnd(7)} ${i.beat}/${i.n}  "${i.text}"`);
+  if (r.takes) {
+    lines.push("", "take  sentences  chars  status   check      steps");
+    for (const t of r.takes)
+      lines.push(
+        `${t.id.padEnd(5)}${String(t.sentences).padStart(10)}${String(t.chars).padStart(7)}  ${t.status.padEnd(8)} ${(t.check ?? "—").padEnd(10)} ${t.steps.join(", ")}${t.attempts > 1 ? `  (${t.attempts} takes)` : ""}`,
+      );
+  }
   if (r.pacing.rows.length > 0) {
     lines.push("", "beat            #  words   sec   wpm  note");
     for (const p of r.pacing.rows)
@@ -41,7 +49,10 @@ export function reportLines(r: Report): string[] {
   }
   for (const w of r.warnings) lines.push(`warning: ${w}`);
   if (r.check) lines.push(r.ok ? "every sentence is current" : `not current: run \`showcase voice ${r.tour}\``);
-  else if (r.dryRun) lines.push(`dry run: would voice ${r.counts.stale + r.counts.missing} sentence(s)`);
+  else if (r.dryRun && r.takes) {
+    const todo = r.takes.filter((t) => t.status === "pending");
+    lines.push(`dry run: would voice ${todo.length} take${todo.length === 1 ? "" : "s"} (${todo.reduce((n, t) => n + t.sentences, 0)} sentences, ${todo.reduce((n, t) => n + t.chars, 0)} characters) of ${r.takes.length}`);
+  } else if (r.dryRun) lines.push(`dry run: would voice ${r.counts.stale + r.counts.missing} sentence(s)`);
   else lines.push(`voiced ${r.synthesised + r.fromCache} (${r.fromCache} from the raw cache) · ${r.charsSent} characters sent${r.manifest ? ` · ${r.manifest}` : ""}${r.pruned.length ? ` · pruned ${r.pruned.length}` : ""}`);
   return lines;
 }
@@ -50,13 +61,16 @@ export const voice: Command = {
   name: "voice",
   summary: "Voice a tour's narration (clips + manifest in voice.dir); --audition picks the narrator",
   usage: [
-    "Usage: showcase voice <tour> [--draft | --final] [--check] [--yes] [--max-chars <n>] [--redo <beat/n>] [--prune] [--dry-run] [--audition] [--json]",
+    "Usage: showcase voice <tour> [--draft | --final] [--check] [--yes] [--max-chars <n>] [--redo <beat/n|step|take>] [--prune] [--dry-run] [--audition] [--json]",
     "  Writes <voice.dir>/<id>.manifest.json and one MP3 per sentence. Re-runs redo only what is stale.",
+    "  voice.takes \"tour\" reads the narration in one take, cuts it at its pauses and checks it against a",
+    "  transcription (with REQUESTY_API_KEY); a take that misreads a sentence is voiced again whole.",
     "  --draft          the offline voice (macOS `say`, else a tone): free, for timing",
     "  --final          the narrator only (needs voice.narrator and its provider's key); fails on any draft clip",
     "  --check          report missing, stale, draft and fresh; no network, no key, no ffmpeg",
     `  --yes            allow the paid narrator calls (refused without it); --max-chars caps them (default ${DEFAULT_MAX_CHARS})`,
-    "  --redo <beat/n>  voice that sentence again with a new take (n counts from 0)",
+    "  --redo <beat/n>  voice that sentence again with a new take (n counts from 0); under voice.takes",
+    "                   tour or step, the whole take holding it, or name a step id or a take (t1)",
     "  --prune          delete clips no manifest in the voice dir points to",
     "  --dry-run        say what would be voiced; change nothing",
     `  --audition       write showcase/out/voices/index.html: three lines per voice on the shortlist (or voice.audition), plus the draft (default budget ${AUDITION_MAX_CHARS} characters)`,
@@ -99,7 +113,7 @@ export const voice: Command = {
           log.result({ audition: true, dryRun: true, key: keyed }, () => `dry run: would write ${join(outDir, "index.html")}${keyed ? ` using ${Object.keys(setup.keys).join(" and ")} (up to ${maxChars} characters)` : " with the draft voice only (no key)"}`);
           return 0;
         }
-        const result = await audition({ sentences: sentencesOf(tour, config.voice.lexicon), title: tour.title, outDir, cacheDir: cache, setup, ffmpeg: requireFfmpeg(), catalogue, ...(candidates ? { candidates } : {}), yes: Boolean(values.yes), maxChars, say: (l) => log.info(l) });
+        const result = await audition({ sentences: sentencesOf(tour, config.voice.lexicon), title: tour.title, outDir, cacheDir: cache, setup, ffmpeg: requireFfmpeg(), catalogue, ...(candidates ? { candidates } : {}), oneTake: (config.voice.takes ?? "sentence") !== "sentence", yes: Boolean(values.yes), maxChars, say: (l) => log.info(l) });
         log.result({ ...result }, () => [
           `wrote ${result.file}`,
           `${result.voices.filter((v) => v.clips.some(Boolean)).length}/${result.voices.length} voices voiced · ${result.samples.length} lines · ${result.charsSent} characters sent`,
@@ -121,13 +135,14 @@ export const voice: Command = {
         prune: Boolean(values.prune),
         yes: Boolean(values.yes),
         ...(maxChars !== undefined ? { maxChars } : {}),
-        redo: redoOf(values.redo),
+        redo: redoOf(values.redo, (config.voice.takes ?? "sentence") !== "sentence"),
+        takes: config.voice.takes ?? "sentence",
         say: (l) => log.info(l),
       });
       log.result(report, () => reportLines(report));
       return report.check && !report.ok ? 1 : 0;
     } catch (e) {
-      if (e instanceof VoiceRefusal) {
+      if (e instanceof VoiceRefusal || e instanceof TakeCheckFailed) {
         log.warn(`showcase voice: ${e.message}`);
         return 1;
       }

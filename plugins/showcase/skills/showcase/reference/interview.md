@@ -90,9 +90,12 @@ The options are drafted from the explorers' reports.
 | Ask | Options |
 |---|---|
 | Narrator? | Your saved default (offered only if one exists) · Audition the shortlist: 9 British voices through OpenRouter and OpenAI's Fable through Requesty (a few cents) · The draft voice for now |
+| How should it be read? | In one take (Recommended: it sounds spoken, not read out line by line; cut at its own pauses, and checked by a transcription when `REQUESTY_API_KEY` is set) · A take per step · A sentence at a time (1.0's way) |
 | Language? | UK English · US English |
 | What must never be on screen? (multi) | People's names · Hostnames and internal URLs · Emails and customer data · Nothing sensitive |
 | Where should it be built? | Here, now (when the path allows) · An approved brief handed to `/planning:roadmap` |
+
+The reading answer is `voice.takes` (`tour` · `step` · `sentence`); `showcase init` already wrote `tour`, so ask only to change it. Under `tour` or `step` the audition reads each voice's lines as one take too.
 
 An audition voice needs its provider's key (`OPENROUTER_API_KEY` or `REQUESTY_API_KEY`, `showcase keys status`); without it that voice is skipped, unspent. To compare deliveries of one voice (Fable warm against Fable brisk, say), list them in `voice.audition` with their own `instructions` (`showcase docs voice`).
 
@@ -124,11 +127,12 @@ After a real rehearsal, with a still per beat:
 | Moments | The tour's steps and beats, in the kind's spine |
 | Data | `config.json` `app.snapshot` / `app.reset` / `app.env` (`showcase docs determinism`) |
 | Narrator | `config.json` `voice.narrator` (`approved` stays false until Round 5) |
+| How it's read | `config.json` `voice.takes` (`tour` · `step` · `sentence`) |
 | Language | `meta.language` (`en-GB` · `en-US`), `browser.locale` |
 | Never on screen | `config.json` `privacy.deny`, pre-filled from any redaction config the explorers found |
 | Where | In this session, or `showcase/BRIEF.md` and `/planning:roadmap` |
 | Approvals | `meta.approved.{storyboard, narrator, final}` (dates) |
-| Save as default | `~/.config/showcase/defaults.json` (narrator and language) |
+| Save as default | `~/.config/showcase/defaults.json` (narrator, how it's read, and language) |
 
 On the roadmap path, every answer also goes into `showcase/BRIEF.md` §1, word for word.
 
@@ -138,7 +142,7 @@ On the roadmap path, every answer also goes into `showcase/BRIEF.md` §1, word f
 
 ```json
 { "narrator": { "model": "elevenlabs/eleven-v3", "voice": "george" }, "language": "en-GB" }
-{ "narrator": { "provider": "requesty", "model": "openai/gpt-4o-mini-tts", "voice": "fable", "instructions": "Warm and unhurried." }, "language": "en-GB" }
+{ "narrator": { "provider": "requesty", "model": "openai/gpt-4o-mini-tts", "voice": "fable", "instructions": "Warm and unhurried." }, "takes": "tour", "language": "en-GB" }
 ```
 
 It holds no key and no approval: a new repo's narrator starts unapproved until its own final cut.
@@ -146,7 +150,7 @@ It holds no key and no approval: a new repo's narrator starts unapproved until i
 ## Skip rules
 
 - An argument answers its question: a kind (`pitch`, `walkthrough`, `spotlight`, `howto`), a length (`2min`, `90s`, `1:30`), outcomes (`film+demo`, `film`, `film+in-app`, `all`), what the viewer does afterwards (`decide`, `try`, `understand`, `champion`). So `/showcase pitch 2min film+demo decide` settles Round 1.
-- `defaults.json` answers Narrator and Language, but they're still shown as the first option in their round, so the user can change them.
+- `defaults.json` answers Narrator, How it's read and Language, but they're still shown as the first option in their round, so the user can change them.
 - An answer the files already hold (a tour's `meta`, `config.json`) is not asked again on resume.
 - A round with every question settled is skipped, and the skill says which answers it used.
 

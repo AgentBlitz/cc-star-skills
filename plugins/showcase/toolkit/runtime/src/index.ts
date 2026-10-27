@@ -563,7 +563,7 @@ async function startOnce(adapter: Adapter, win: Realm): Promise<ShowcaseApi | nu
   let manifest: VoiceManifest | null = null;
   for (const url of paths.manifests) {
     const m = (await fetchJson(win, url).catch(() => null)) as VoiceManifest | null;
-    if (m && m.v === 1 && m.tour === tourId && Array.isArray(m.clips)) {
+    if (m && (m.v === 1 || m.v === 2) && m.tour === tourId && Array.isArray(m.clips)) {
       manifest = m;
       break;
     }

@@ -57,6 +57,16 @@ What they should do afterwards sets the close:
 - **understand:** a recap of three takeaways;
 - **champion:** the one-line story.
 
+## One continuous script
+
+The voice reads the narration in one take (`voice.takes: "tour"`, `showcase docs voice`), so write it as **one script a person would read aloud from start to finish**, not as a stack of captions.
+
+- **Read it top to bottom before voicing.** Each sentence should follow from the one before: carry the thread with "then", "so", "that's" and the like, rather than restarting the subject every line.
+- **Beats are paragraphs.** The voice pauses longer between beats than between sentences; put the turn of thought where the beat changes.
+- **End every sentence with a full stop, question mark or exclamation mark.** The take is cut at the pause after each one; a sentence that runs on into the next with a comma can't be cut there.
+- **Spell out what must be said exactly** (figures, acronyms, product names) or give it a lexicon entry, so the transcription check hears what the script says.
+- **Pacing is fixed by rewording, never by `speed`.** A take reads at one pace throughout; a beat that runs long needs fewer words.
+
 ## Writing rules
 
 - **One sentence per caption,** at most 2 lines of 42 characters, wrapped greedily. Long sentences split; they don't shrink.

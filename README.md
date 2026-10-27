@@ -314,8 +314,9 @@ the skill listing of every session; the price is that Claude won't suggest it un
 
 ### The voice key
 
-One key, `OPENROUTER_API_KEY`, reaches every narrator voice (ElevenLabs, Gemini, MAI and
-more through OpenRouter). It lives in **one user-level file**, read in every repo, never in a
+One key, `OPENROUTER_API_KEY`, reaches every narrator voice on OpenRouter (ElevenLabs, Gemini,
+MAI and more); `REQUESTY_API_KEY` reaches OpenAI's voices (Fable among them) through Requesty, and
+its transcription check. They live in **one user-level file**, read in every repo, never in a
 repo and never in chat:
 
 ```
@@ -376,10 +377,12 @@ cleanly there and the next interactive `/session` asks you.
 ### Cost
 
 Everything is free except the narrator. The draft voice, rehearsals, storyboards, films,
-`keys test` and the voice catalogue cost nothing. The narrator is billed by OpenRouter per
-character at the model's rate — a two-minute film is about 1,500 characters, typically a
-few cents — and the narrator audition (nine British voices, three lines each) stays under
-1,500 characters. Paid calls need `--yes`, honour `--max-chars`, and the skill shows you the
+`keys test` and the voice catalogue cost nothing. The narrator is billed by OpenRouter or
+Requesty per character at the model's rate — a two-minute film is about 1,500 characters,
+typically a few cents — and the narrator audition stays under 1,500 characters. From 1.1 the
+narration is read in one take (`voice.takes`) and, with a Requesty key, checked by a Whisper
+transcription (about a cent a minute or less); a take that misreads a sentence is read again
+whole, at most twice, inside `--max-chars`. Paid calls need `--yes`, honour `--max-chars`, and the skill shows you the
 count first. Raw audio is cached, so re-renders never pay twice.
 
 ## Install

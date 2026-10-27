@@ -1,18 +1,55 @@
 # Voice
 
-How a tour's narration becomes audio: `showcase voice <tour>` voices every sentence through one pipeline, and `--audition` helps the user choose the narrator by ear. Drafts cost nothing; the narrator costs a few cents a minute through OpenRouter or Requesty.
+How a tour's narration becomes audio: `showcase voice <tour>` voices the narration through one pipeline, and `--audition` helps the user choose the narrator by ear. With `voice.takes: "tour"` (what `showcase init` writes, from 1.1) the voice reads the whole narration **in one continuous take**, which is then cut back into sentences at its own pauses; one call per sentence sounds read out line by line. Drafts cost nothing; the narrator costs a few cents a minute through OpenRouter or Requesty.
 
 ## The pipeline
 
 ```
-tour sentence ─► lexicon ─► TTS (OpenRouter | Requesty | say | fake) ─► raw cache
-              ─► trim ─► ebur128 measure ─► gain to −16 LUFS ─► alimiter ─► soxr 24 kHz mono
-              ─► 30 ms lead, 80 ms tail ─► MP3 64k ─► <voice.dir>/<hash>.mp3 + <tour>.manifest.json
+script ─► lexicon ─► TTS (OpenRouter | Requesty | say | fake) ─► raw cache
+       ─► trim ─► ebur128 measure ─► gain to −16 LUFS ─► alimiter ─► soxr 24 kHz mono
+       ─► 30 ms lead, 80 ms tail ─► MP3 64k ─► <voice.dir>/<hash>.mp3 + <tour>.manifest.json
 ```
+
+The script is one sentence (`voice.takes: "sentence"`, 1.0's way and the default when the config says nothing), or a whole take (`"tour"` or `"step"`), which then goes through the take's own steps below: silencedetect, the fit, the transcription check and the cut.
 
 - **Lexicon:** `voice.lexicon` in `showcase/config.json` maps written → spoken (`"W39": "week thirty-nine"`). Longest key first; word keys match only at a letter boundary (`pp` changes `4pp`, not `approve`). Captions keep the written text.
 - **Processing:** the chain above, with a duration check (the MP3 may not drift more than 50 ms from the WAV). The settings are fixed; they are part of every clip's file name, so changing one re-processes everything from the raw cache without new spend.
 - **Clips** are named by hash (`864a38ac24d17b34.mp3`), so tours can share one `voice.dir`.
+
+## Takes
+
+`voice.takes` in `showcase/config.json` says how much the voice reads in one go.
+
+| `voice.takes` | One call reads | Manifest |
+|---|---|---|
+| `"tour"` | As many whole steps as the provider's input limit allows: usually the whole tour | v2 |
+| `"step"` | One step | v2 |
+| `"sentence"` (or absent) | One sentence, as 1.0 did | v1 |
+
+- **The limit.** OpenAI's speech models (`openai/gpt-4o-mini-tts`, through Requesty or OpenRouter) take 4,096 characters, ElevenLabs' `eleven-v3` 3,000, and any other model is given 4,096. `say` and the fake have none. A five-minute walkthrough's narration is about 3,500 characters, so it fits one take. A take breaks **only between steps**; a single step over the limit is refused (split the step).
+- **The script** is the take's sentences in order, after the lexicon, one paragraph per beat with a blank line between beats, so the voice pauses where the film changes beat. Captions keep the written text, as always.
+- **The raw take** is cached by its synth key (the script, the voice and the take number), like a sentence.
+
+### Cutting a take
+
+1. **One loudness pass.** The take goes through the chain above as a whole (trim, measure, gain, limit, resample, lead and tail), so every sentence is at the same level and nothing is renormalised per sentence.
+2. **Pauses.** `silencedetect` (−45 dB, at least 60 ms) lists every pause in it. Commas pause too, so there are more pauses than sentences.
+3. **The fit.** Each sentence is expected to last in proportion to its characters, at the take's own rate. A dynamic-programming fit chooses one pause per boundary, in order: a boundary costs the sentences' squared relative miss either side of it, and a short pause costs more than a long one, so of two pauses near the expected place the longer wins. Too few pauses for the sentences, and the take can't be cut.
+4. **The transcription check** (below) confirms each sentence was read as written, and moves any cut the heard words disagree with to the pause between them.
+5. **The cut.** At the middle of each sentence-final pause. Slice *i* runs from one cut to the next (the take's start and end at the edges), so the slices joined are the take, sample for sample, and each slice opens with half a pause: its **onset** is where its speech starts inside it. Each slice is an MP3 clip, named by its take's synth key, its place in the take and the post settings.
+
+Nothing else changes downstream. The runtime already speaks cues back to back, each held for its clip's `durationMs`, so the slices play as the take was read, apart from any wait for an `after` gate. Captions, the pacing table, `check`'s T008 and `voice --check` read the slices' durations; the film starts each caption, and looks for its sound, at the slice's onset.
+
+### The transcription check
+
+When the narrator speaks and `REQUESTY_API_KEY` is set (whichever provider voiced it), the processed take goes to **Requesty's transcription**: `POST https://router.requesty.ai/v1/audio/transcriptions` with an OpenAI Whisper model from the public `GET /v1/models/transcription` listing (`openai/whisper-1` when listed), `response_format=verbose_json` and `timestamp_granularities[]=word`. Same key, same retry and refusal rules as the speech call. Nothing calls OpenAI directly.
+
+- **Comparing.** What was heard is aligned word by word with the script, after normalising case, punctuation and figures (`4%` and "four per cent", `£1,250` and "one thousand two hundred fifty pounds", `21st` and "twenty-first" read the same). A sentence passes with at most 15 % of its words missed, and always one (Whisper mishears a name now and then).
+- **Verdicts.** `skipped` (under half its words heard), `garbled` (more missed than allowed, or a restarted phrase), `repeated` (read twice).
+- **A take that fails is voiced again, whole, as a new take** (the take number goes up), at most **twice more**, each retake counted against `--max-chars`. One sentence is never patched in: it would not sound like the take around it. After the third take, `voice` fails with a per-sentence table (`invite/1  repeated  6/6 words: "…"`), and nothing is written.
+- **The cuts.** A cut whose pause lies between one sentence's last heard word and the next one's first stands; otherwise the longest pause there replaces it. If there is none, the cut stands and `voice` warns: listen to that join.
+- The transcript is cached beside the raw take, so a re-run pays for neither. Without `REQUESTY_API_KEY` the take is cut from its pauses alone and `voice` warns that it wasn't checked; draft takes are never sent.
+- The manifest records each take's `check`: `passed`, or `unchecked`.
 
 ## Keys
 
@@ -66,7 +103,7 @@ Inside the toolkit, only `lib/env.ts` reads keys and only the two providers send
 
 ```
 showcase voice <tour> [--draft | --final] [--check] [--yes] [--max-chars <n>]
-                      [--redo <beat/n>] [--prune] [--dry-run] [--audition] [--json]
+                      [--redo <beat/n|step|take>] [--prune] [--dry-run] [--audition] [--json]
 showcase voices --list [--model <id>]
 ```
 
@@ -77,15 +114,15 @@ showcase voices --list [--model <id>]
 | `--final` | Narrator only. Fails if there is no narrator or no key, and `--check --final` fails on any draft clip |
 | `--check` | Report `missing`, `stale`, `draft` or `fresh` per sentence. **No network, key or ffmpeg.** Exit 1 if anything is missing or stale |
 | `--yes` | Allow the paid calls. Without it, a run that needs them is refused and says how many sentences and characters |
-| `--max-chars` | Cap on characters sent to OpenRouter in one run (default `voice.maxChars`, else 20,000). Refused over the cap even with `--yes` |
-| `--redo beat/n` | Voice sentence `n` (from 0) of a beat again, as a new take |
+| `--max-chars` | Cap on characters sent to the narrator's provider in one run, retakes included (default `voice.maxChars`, else 20,000). Refused over the cap even with `--yes` |
+| `--redo beat/n` | Voice sentence `n` (from 0) of a beat again, as a new take. Under `voice.takes` `"tour"` or `"step"`, the whole take holding it; `--redo <step-id>` and `--redo t2` name a take too |
 | `--prune` | Delete clips no manifest in the voice dir points to (refused if a manifest is unreadable) |
-| `--dry-run` | Say what would be voiced; change nothing |
+| `--dry-run` | Say what would be voiced; change nothing. Under takes, how many takes, sentences and characters |
 | `--audition` | Write `showcase/out/voices/index.html`, see below |
 
 ### Status
 
-A sentence is **fresh** when its manifest clip's synth key *and* file name match what the pipeline would make now. The synth key covers the spoken text, provider, model, voice, instructions, speed and take. The file name also covers the post-processing settings.
+A sentence is **fresh** when its manifest clip's synth key *and* file name match what the pipeline would make now. The synth key covers the spoken text, provider, model, voice, instructions, speed and take. The file name also covers the post-processing settings. A slice carries its take's synth key, so **editing one sentence makes its whole take stale**: the take is read again, never patched.
 
 - **missing:** no clip for this exact text in this beat (a new or edited sentence), or the file is gone.
 - **stale:** a clip exists, but the voice, the lexicon, the take or a post setting changed since.
@@ -96,7 +133,7 @@ Editing a sentence's text flips it to `missing`; editing the lexicon flips the s
 
 ### The pacing table
 
-`voice` prints one row per sentence (words, seconds, words a minute) and the total against the preset's narration window.
+`voice` prints one row per sentence (words, seconds, words a minute) and the total against the preset's narration window. Under takes it adds a row per take (sentences, characters, whether it was voiced this run, and its check). A slice's seconds include the half pauses either side of it, so its words a minute read a little slower than a lone sentence's.
 
 - It warns outside **120–185 wpm** (sentences under four words aren't judged) and outside the window.
 - A `~` means the duration is the reading-time estimate, because there is no clip yet.
@@ -119,9 +156,27 @@ Editing a sentence's text flips it to `missing`; editing the lexicon flips the s
 
 Keys are sorted and nothing is timestamped, so a re-run that changes nothing changes no bytes. `spoken` appears only when the lexicon changed the text. Clips are in tour order, one per distinct beat and text. The manifest is written only when every sentence has a clip.
 
+**v2**, written under takes, keeps every v1 field and adds the takes and where each clip was cut from:
+
+```json
+{
+  "clips": [
+    { "beat": "cookies", "durationMs": 4325, "file": "…", "hash": "…", "n": 0, "synth": "<the take's>",
+      "slice": { "fromMs": 4067, "onsetMs": 119, "take": "t1", "toMs": 8392 }, "take": 0, "text": "…", "voice": "narrator" }
+  ],
+  "takes": [
+    { "chars": 3512, "check": "passed", "durationMs": 241380, "id": "t1", "model": "openai/whisper-1",
+      "steps": ["open", "today", "…"], "synth": "…", "take": 0, "voice": "narrator" }
+  ],
+  "v": 2, …
+}
+```
+
+A v1 manifest still loads everywhere (Watch, the film, `check`, the in-app runtime), and its clips' onset is the 30 ms lead. Switching a tour from `sentence` to `tour` makes every sentence stale once.
+
 ## The audition
 
-`showcase voice <tour> --audition [--yes] [--max-chars <n>]` writes a page with three sample lines for each voice on the shortlist, plus the draft voice, and nothing else changes.
+`showcase voice <tour> --audition [--yes] [--max-chars <n>]` writes a page with three sample lines for each voice on the shortlist, plus the draft voice, and nothing else changes. Under `voice.takes` `"tour"` or `"step"` each voice reads its three lines **as one take**, a paragraph each, so the page plays how the voice carries one line into the next (one clip per voice).
 
 | Provider | Model | Voices |
 |---|---|---|
@@ -166,17 +221,20 @@ Keys are sorted and nothing is timestamped, so a re-run that changes nothing cha
 ## Cost
 
 - **Drafts, `say` and the fake are free**, and so are `voices --list`, `keys test` and `voice --check`.
+- **One take costs what its sentences would**: the narrator is billed per character either way. The blank lines between beats add two characters each.
+- **The transcription check** is billed per minute of audio (Whisper: about $0.006 a minute upstream), so a five-minute take's check costs about three cents. It is cached with the raw take.
+- **Retakes** are new spend: a take the check fails is read again whole, at most twice, inside `--max-chars`. The refusal without `--yes` says how many takes and characters, and that a transcription follows.
 - **The narrator** is billed by its provider per character, at the model's own rate (`gpt-4o-mini-tts` through Requesty: about $0.015 a minute): a two-minute film is about 1,500 characters, typically a few cents. Check the model's price on OpenRouter before a long film.
 - **The pre-scan:** run `showcase voice <tour>` without `--yes` first. A run that needs paid calls is refused, saying how many sentences and characters it would send (`--dry-run` lists the sentences). Show those numbers to the user and get their go before adding `--yes`.
 - **Caps:** `--max-chars` (default `voice.maxChars`, else 20,000) refuses a bigger run even with `--yes`; the audition stays under 1,500 characters across all voices.
-- **Nothing is paid for twice:** raw audio is cached by synth key, so re-processing, a lexicon change on other sentences, or a re-render costs nothing. Only edited sentences and `--redo` takes are new spend.
+- **Nothing is paid for twice:** raw audio is cached by synth key, so re-processing, a lexicon change on other sentences, or a re-render costs nothing. Only edited sentences (under takes, their whole take), retakes and `--redo` takes are new spend.
 
 ## Where things live
 
 | Path | In git? | What |
 |---|---|---|
 | `<voice.dir>/` (default `showcase/voice/`) | yes | MP3 clips and `<tour>.manifest.json` (about 1 MB per two minutes), so a re-render needs no key |
-| `showcase/.cache/tts/` | no | Raw synthesised audio by synth key, plus `formats.json` |
+| `showcase/.cache/tts/` | no | Raw synthesised audio by synth key, takes' transcripts (`*.words.json`), plus `formats.json` |
 | `showcase/out/voices/` | no | The audition page and its samples |
 
 ## Troubleshooting
@@ -186,3 +244,6 @@ Keys are sorted and nothing is timestamped, so a re-run that changes nothing cha
 - **"rejected the key (401)":** `showcase keys test [NAME]` checks it, free.
 - **"no credits (402)":** the account needs topping up, or use `--draft`.
 - **Everything is `stale` after a plugin update:** the processing chain changed (`chain` in the post settings); rerun `voice`. It re-processes from the raw cache without spending.
+- **"the transcription doesn't match the script" after 3 takes:** read the table. A sentence the voice keeps garbling usually needs rewording (a figure, an acronym or a name: add a lexicon entry). Edit, then voice again.
+- **"too few pauses to cut":** the voice ran sentences together. Stronger full stops, or `instructions` asking for a short pause between sentences, then `--redo` the take.
+- **"isn't confirmed by the heard words":** listen to the join it names in Watch; `--redo` the take if a sentence starts in the wrong slice.

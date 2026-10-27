@@ -95,7 +95,7 @@ export function voiceFor(p: Project, tour: Tour, manifestArg?: string): { manife
     return { manifest: null, dir: null };
   }
   const m = JSON.parse(readFileSync(file, "utf8")) as VoiceManifest;
-  if (!m || m.v !== 1 || !Array.isArray(m.clips)) throw new Error(`${file} isn't a voice manifest`);
+  if (!m || (m.v !== 1 && m.v !== 2) || !Array.isArray(m.clips)) throw new Error(`${file} isn't a voice manifest`);
   if (m.tour !== tour.id) return { manifest: null, dir: null };
   return { manifest: m, dir: dirname(file) };
 }

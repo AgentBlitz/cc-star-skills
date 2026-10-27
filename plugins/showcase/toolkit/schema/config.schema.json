@@ -327,6 +327,10 @@
           "type": "integer",
           "minimum": 1,
           "description": "Refuse a paid run that would synthesise more characters than this."
+        },
+        "takes": {
+          "enum": ["tour", "step", "sentence"],
+          "description": "How much the voice reads in one go. `tour`: one continuous take of as many whole steps as the provider's input limit allows (OpenAI's gpt-4o-mini-tts: 4,096 characters), cut at its own pauses and checked by a transcription; `showcase init` writes this. `step`: a take per step. `sentence` (when absent): one call per sentence, as showcase 1.0 did."
         }
       }
     },

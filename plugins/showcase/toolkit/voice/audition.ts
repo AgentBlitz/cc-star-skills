@@ -4,6 +4,10 @@
  * user can choose the narrator by ear. An entry may carry `instructions`, so two deliveries of one
  * voice can be compared side by side. A few cents at most: the samples are the shortest lines that fit the character budget, and
  * the raw audio is cached, so a second page costs nothing.
+ *
+ * Under `voice.takes` `tour` or `step` (showcase 1.1), each voice reads its lines as one take, a
+ * paragraph each, so the page plays how the voice carries one line into the next: one clip per
+ * voice instead of one per line.
  */
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -97,6 +101,8 @@ export interface AuditionOptions {
   maxChars: number;
   post?: PostConfig;
   candidates?: readonly Candidate[];
+  /** Read each voice's lines as one take (`voice.takes` other than `sentence`). */
+  oneTake?: boolean;
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
   say?: (line: string) => void;
@@ -124,10 +130,13 @@ export async function audition(o: AuditionOptions): Promise<AuditionResult> {
   };
   const paid = all.filter((c) => keyOf(c) && !notOffered(c));
   const via = [...new Set(paid.map((c) => PROVIDER_LABEL[providerOf(c)]))].join(" and ");
-  const samples = pickSamples(o.sentences, paid.length, o.maxChars);
-  const perVoiceChars = samples.reduce((n, s) => n + s.text.length, 0);
+  // A take joins its lines with a blank line: two characters a join, kept inside the budget.
+  const samples = pickSamples(o.sentences, paid.length, o.oneTake ? Math.max(0, o.maxChars - 2 * (SAMPLE_COUNT - 1) * paid.length) : o.maxChars);
+  const lines = o.oneTake ? [samples.map((s) => s.text).join("\n\n")] : samples.map((s) => s.text);
+  const columns: Sample[] = o.oneTake ? [{ key: "take", label: `One take (${samples.length} lines)`, text: samples.map((s) => s.text).join(" / ") }] : samples;
+  const perVoiceChars = lines.reduce((n, t) => n + t.length, 0);
   const charsPlanned = perVoiceChars * paid.length;
-  if (paid.length > 0 && !o.yes) throw new Error(`the audition would send ${charsPlanned} characters to ${via} (${paid.length} voices × ${samples.length} lines): pass --yes (limit --max-chars ${o.maxChars})`);
+  if (paid.length > 0 && !o.yes) throw new Error(`the audition would send ${charsPlanned} characters to ${via} (${paid.length} voices × ${samples.length} lines${o.oneTake ? " in one take" : ""}): pass --yes (limit --max-chars ${o.maxChars})`);
 
   mkdirSync(o.outDir, { recursive: true });
   mkdirSync(o.cacheDir, { recursive: true });
@@ -139,8 +148,8 @@ export async function audition(o: AuditionOptions): Promise<AuditionResult> {
   const clip = (id: string, i: number, make: (text: string) => { synth: string; fetch: () => Promise<TtsResult>; paid: boolean }) =>
     pool(async (): Promise<string | null> => {
       if (fatal) return null;
-      const sample = samples[i] as Sample;
-      const job = make(sample.text);
+      const text = lines[i] as string;
+      const job = make(text);
       let raw: TtsResult | null = null;
       for (const ext of EXT) {
         const path = join(o.cacheDir, `${job.synth}.${ext}`);
@@ -149,13 +158,13 @@ export async function audition(o: AuditionOptions): Promise<AuditionResult> {
       try {
         if (!raw) {
           raw = await job.fetch();
-          if (job.paid) charsSent += sample.text.length;
+          if (job.paid) charsSent += text.length;
           writeFileSync(join(o.cacheDir, `${job.synth}.${raw.format}`), raw.bytes);
         }
         const work = mkdtempSync(join(tmpdir(), "showcase-audition-"));
         try {
           const processed = await processClip(o.ffmpeg, raw, post, work);
-          const name = `${id}-${i + 1}.mp3`;
+          const name = o.oneTake ? `${id}-take.mp3` : `${id}-${i + 1}.mp3`;
           await encodeMp3(o.ffmpeg, processed.wavPath, join(o.outDir, name), post);
           return name;
         } finally {
@@ -163,7 +172,7 @@ export async function audition(o: AuditionOptions): Promise<AuditionResult> {
         }
       } catch (e) {
         if (stopsQueue(e)) fatal = e as Error;
-        say(`  ${id} line ${i + 1}: ${(e as Error).message}`);
+        say(`  ${id} ${o.oneTake ? "take" : `line ${i + 1}`}: ${(e as Error).message}`);
         return null;
       }
     });
@@ -172,14 +181,14 @@ export async function audition(o: AuditionOptions): Promise<AuditionResult> {
   const jobs: Promise<void>[] = [];
   for (const c of all) {
     const provider = providerOf(c);
-    const row: AuditionResult["voices"][number] = { id: c.id, label: `${provider} · ${c.model} · ${c.voice}${c.instructions ? ` · "${c.instructions}"` : ""}`, clips: samples.map(() => null) };
+    const row: AuditionResult["voices"][number] = { id: c.id, label: `${provider} · ${c.model} · ${c.voice}${c.instructions ? ` · "${c.instructions}"` : ""}`, clips: lines.map(() => null) };
     voices.push(row);
     const skip = notOffered(c) ?? (keyOf(c) ? null : `no ${PROVIDER_KEY[provider]}`);
     if (skip) {
       row.skipped = skip;
       continue;
     }
-    samples.forEach((_, i) =>
+    lines.forEach((_, i) =>
       jobs.push(
         clip(c.id, i, (text) => ({
           synth: synthKey({ spoken: text, provider, model: c.model, voice: c.voice, instructions: c.instructions, take: 0 }),
@@ -195,9 +204,9 @@ export async function audition(o: AuditionOptions): Promise<AuditionResult> {
     );
   }
   const draft = o.setup.draft;
-  const draftRow: AuditionResult["voices"][number] = { id: "draft", label: draft.provider === "say" ? `say · ${draft.voice}` : "fake tone (no `say` here)", clips: samples.map(() => null) };
+  const draftRow: AuditionResult["voices"][number] = { id: "draft", label: draft.provider === "say" ? `say · ${draft.voice}` : "fake tone (no `say` here)", clips: lines.map(() => null) };
   voices.push(draftRow);
-  samples.forEach((_, i) =>
+  lines.forEach((_, i) =>
     jobs.push(
       clip("draft", i, (text) => ({
         synth: synthKey({ spoken: text, provider: draft.provider, model: draft.provider, voice: draft.voice, rate: draft.rate, take: 0 }),
@@ -209,7 +218,7 @@ export async function audition(o: AuditionOptions): Promise<AuditionResult> {
   await Promise.all(jobs);
 
   const file = join(o.outDir, "index.html");
-  writeFileSync(file, renderPage(o.title, samples, voices, keyed ? via || null : null));
+  writeFileSync(file, renderPage(o.title, columns, voices, keyed ? via || null : null));
   return { file, samples, voices, charsSent, paid: paid.length > 0 };
 }
 

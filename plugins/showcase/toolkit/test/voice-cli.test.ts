@@ -75,4 +75,29 @@ describe("showcase voice", () => {
     assert.equal((await cli(["voice"], { cwd: root, env })).code, 2);
     assert.equal((await cli(["voices"], { cwd: root, env })).code, 2);
   });
+
+  it("under voice.takes \"tour\": --dry-run reports one take; a draft run writes v2, which check times by its slices", async () => {
+    const { root, tour } = project();
+    const cfg = join(root, "showcase", "config.json");
+    const config = JSON.parse(readFileSync(cfg, "utf8"));
+    config.voice.takes = "tour";
+    writeFileSync(cfg, JSON.stringify(config, null, 2));
+    const env = { HOME: scratch("showcase-home-"), PATH: process.env.PATH ?? "" };
+    const dry = await cli(["voice", tour, "--dry-run"], { cwd: root, env });
+    assert.equal(dry.code, 0, dry.stderr);
+    assert.match(dry.stdout, /dry run: would voice 1 take \(10 sentences, \d+ characters\) of 1/);
+    assert.match(dry.stdout, /^t1\s+10\s+\d+\s+pending/m);
+
+    const made = await cli(["voice", tour, "--draft", "--json"], { cwd: root, env });
+    assert.equal(made.code, 0, made.stderr);
+    const report = JSON.parse(made.stdout);
+    assert.deepEqual(report.takes.map((t: { id: string; status: string }) => [t.id, t.status]), [["t1", "voiced"]]);
+    const manifest = JSON.parse(readFileSync(join(root, "showcase", "voice", "fixture-tour.manifest.json"), "utf8"));
+    assert.equal(manifest.v, 2);
+    const checked = await cli(["check", tour, "--json"], { cwd: root, env });
+    const stats = JSON.parse(checked.stdout).stats;
+    assert.equal(stats.voiced, 10);
+    assert.equal(stats.narrationSec, manifest.narrationMs / 1000);
+    assert.equal((await cli(["voice", tour, "--redo", "reports", "--dry-run"], { cwd: root, env })).code, 0);
+  });
 });

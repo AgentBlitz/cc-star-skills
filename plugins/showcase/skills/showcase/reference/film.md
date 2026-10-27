@@ -21,8 +21,8 @@ voice clips ─► mixed in Node at sentence:start − t0 ─► two-pass loudno
   ─► aresample 48 kHz stereo ─► AAC 192k ─► the master, with a chapter per beat and faststart
 ```
 
-- **Sound:** each clip is decoded once to 32-bit float at 48 kHz and summed where its sentence starts. Loudnorm runs twice (measure, then apply) and then resamples, because it works at 192 kHz inside.
-- **Captions:** one cue per sentence, at most 2 lines of 42 characters, wrapped greedily (the same rule as `check`'s T007). A voiced caption starts when its voice does: the sentence's start plus the clip's 30 ms lead. Burned in by ffmpeg's `ass` filter in the bundled font, **Atkinson Hyperlegible Bold** (`toolkit/fonts/`, SIL Open Font License), so macOS and Linux match: 46 px, white on a 60 %-opaque dark box, bottom centre. In-page captions are for Watch only.
+- **Sound:** each clip is decoded once to 32-bit float at 48 kHz and summed where its sentence starts. A take's slices tile it, so sentences with no gate between them play back to back exactly as the take was read. Loudnorm runs twice (measure, then apply) and then resamples, because it works at 192 kHz inside.
+- **Captions:** one cue per sentence, at most 2 lines of 42 characters, wrapped greedily (the same rule as `check`'s T007). A voiced caption starts when its voice does: the sentence's start plus the clip's **onset**. A clip cut from a take (manifest v2) records its own onset, the half pause it opens with (often 100–400 ms); any other clip's is the 30 ms lead. Burned in by ffmpeg's `ass` filter in the bundled font, **Atkinson Hyperlegible Bold** (`toolkit/fonts/`, SIL Open Font License), so macOS and Linux match: 46 px, white on a 60 %-opaque dark box, bottom centre. In-page captions are for Watch only.
 - **The SRT** comes from the same timings as the burned-in captions.
 - **Draft or final:** the film is `<tour>-draft.mp4`, with a DRAFT watermark top right, unless every sentence has a narrator clip and `voice.narrator.approved` is set. Then it's `<tour>.mp4`. Only one of the two is kept.
 
@@ -97,7 +97,7 @@ Each check is ✓, ⚠ (a warning: fails only with `--strict`) or ✗ (a failure
 | loudness, true-peak | −16 ± 1 LUFS integrated; true peak ≤ −1 dBTP, on the master | ⚠ |
 | silence | No silence over 2.5 s between the first sound and the last | ⚠ |
 | srt | One cue per sentence, in order, with the tour's text, ≤ 2 × 42, no overlaps, all before the end | ✗ |
-| av-sync | Each caption that follows a blank shows within 50 ms of its sound (measured in the master: the caption band against the picture's, the sound's onset in its own audio) | ⚠ |
+| av-sync | Each caption that follows a blank shows within 50 ms of its sound (measured in the master: the caption band against the picture's, the sound's onset in its own audio, both looked for from the sentence's start plus its clip's onset) | ⚠ |
 | voiced | Every sentence has its clip | ⚠ |
 | audio, faststart, chapters | AAC 48 kHz stereo; `moov` before `mdat`; a chapter per beat | ✗ |
 | deny-list | The last rehearse was clean (✗ if not; ⚠ if there's none, or it's older than the tour) | ✗ / ⚠ |

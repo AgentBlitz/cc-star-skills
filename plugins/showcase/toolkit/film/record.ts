@@ -478,7 +478,7 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
     if (vi && master && post) {
       progress({ phase: "verifying" });
       say("verifying: loudness, silences, captions against sound; stills and the contact sheet");
-      const [mp, measured] = await Promise.all([probeMaster(ffprobe, master), measureMaster(ffmpeg, { master, picture: video, sentences: spanned.sentences, fps: FPS })]);
+      const [mp, measured] = await Promise.all([probeMaster(ffprobe, master), measureMaster(ffmpeg, { master, picture: video, sentences: spanned.sentences, fps: FPS, onsets: post.cues.map((c, i) => c.startMs - (spanned.sentences[i]?.startMs ?? c.startMs)) })]);
       const times = stillTimes(spanned.beats, spanned.sentences);
       const { stills, contactSheet } = await writeStills(ffmpeg, master, o.out, spanned.beats, times);
       writeFileSync(join(o.out, "script.md"), scriptMd({ tour: tour.id, title: tour.title, durationMs: videoMs, voice: vi.label, draft: vi.draft, video: relative(o.out, master), at: new Date(started).toISOString() }, spanned.beats, spanned.sentences));

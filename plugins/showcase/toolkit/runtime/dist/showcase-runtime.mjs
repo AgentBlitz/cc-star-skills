@@ -6391,7 +6391,7 @@ function syntheticGaps(tour) {
 }
 
 // toolkit/runtime/src/index.ts
-var RUNTIME_VERSION = true ? "1.0.0" : "dev";
+var RUNTIME_VERSION = true ? "1.1.0" : "dev";
 var STILL_MS = 400;
 async function filmReady(n, signal, doc) {
   await doc.fonts?.ready;
@@ -6765,7 +6765,7 @@ async function startOnce(adapter, win) {
   let manifest = null;
   for (const url of paths.manifests) {
     const m = await fetchJson(win, url).catch(() => null);
-    if (m && m.v === 1 && m.tour === tourId && Array.isArray(m.clips)) {
+    if (m && (m.v === 1 || m.v === 2) && m.tour === tourId && Array.isArray(m.clips)) {
       manifest = m;
       break;
     }

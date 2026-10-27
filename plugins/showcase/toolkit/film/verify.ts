@@ -10,7 +10,8 @@
  * - the SRT equals the sentences (a failure);
  * - captions and audio within 50 ms: each caption that appears after a blank is found in the
  *   master by comparing its caption band with the picture's, and the sound's onset is found in
- *   the master's own audio (a warning);
+ *   the master's own audio, both looked for from where the clip's speech should start (its
+ *   onset: a take's slice opens with half a pause) (a warning);
  * - the largest motion gap ≤ 100 ms, a `nav` load's held frame exempt (Session 7's check);
  * - the last `rehearse` deny-list result clean (a failure when it isn't; a warning when there's
  *   no rehearse, or it's older than the tour).
@@ -92,23 +93,25 @@ export interface SyncRow {
 
 /**
  * Pure: for each cue that follows a blank (no caption for at least one frame before it), the
- * first frame showing it, and the first sound at or after 50 ms before it starts.
+ * first frame showing it, and the first sound at or after 50 ms before its speech should start
+ * (the sentence's start plus `onsets[i]`, its clip's onset; 0 when not given).
  */
-export function syncRows(sentences: readonly SentenceSpan[], diffs: readonly number[], lv: Float64Array, fps: number): SyncRow[] {
+export function syncRows(sentences: readonly SentenceSpan[], diffs: readonly number[], lv: Float64Array, fps: number, onsets: readonly number[] = []): SyncRow[] {
   const frameMs = 1000 / fps;
   const rows: SyncRow[] = [];
   sentences.forEach((s, i) => {
     const prev = sentences[i - 1];
-    if (prev && s.startMs - prev.endMs < frameMs) return;
+    const speech = s.startMs + (onsets[i] ?? 0);
+    if (prev && speech - prev.endMs < frameMs) return;
     let captionMs: number | null = null;
-    const from = Math.max(0, Math.floor((s.startMs - 100) / frameMs));
-    for (let k = from; k < diffs.length && k * frameMs <= s.startMs + 250; k++) {
+    const from = Math.max(0, Math.floor((speech - 100) / frameMs));
+    for (let k = from; k < diffs.length && k * frameMs <= speech + 250; k++) {
       if ((diffs[k] as number) > CAPTION_DIFF) {
         captionMs = Math.round(k * frameMs * 10) / 10;
         break;
       }
     }
-    const audioMs = s.audio ? onsetMs(lv, s.startMs - 50, s.startMs + 400) : null;
+    const audioMs = s.audio ? onsetMs(lv, speech - 50, speech + 400) : null;
     rows.push({ beat: s.beat, index: s.index, startMs: s.startMs, captionMs, audioMs, deltaMs: captionMs !== null && audioMs !== null ? Math.round((audioMs - captionMs) * 10) / 10 : null });
   });
   return rows;
@@ -194,10 +197,10 @@ export interface Measured {
 }
 
 /** Measures the master: its loudness, its silences and where each caption and its sound start. */
-export async function measureMaster(ffmpeg: string, o: { master: string; picture: string; sentences: readonly SentenceSpan[]; fps: number }): Promise<Measured> {
+export async function measureMaster(ffmpeg: string, o: { master: string; picture: string; sentences: readonly SentenceSpan[]; fps: number; onsets?: readonly number[] }): Promise<Measured> {
   const [loudness, samples, a, b] = await Promise.all([measureLoudness(ffmpeg, o.master), decodeMono(ffmpeg, o.master, { stream: "0:a" }), bandSeries(ffmpeg, o.picture), bandSeries(ffmpeg, o.master)]);
   const lv = levels(samples);
-  return { loudness, silence: longestInnerSilence(lv), sync: syncRows(o.sentences, frameDiffs(a, b), lv, o.fps) };
+  return { loudness, silence: longestInnerSilence(lv), sync: syncRows(o.sentences, frameDiffs(a, b), lv, o.fps, o.onsets) };
 }
 
 export interface DenyState {

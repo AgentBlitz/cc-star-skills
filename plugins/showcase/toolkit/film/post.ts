@@ -4,9 +4,10 @@
  * watermark on a draft), the chapters, and the bundled font. The SRT goes straight to the
  * outputs. `record.ts` then encodes the picture and the master side by side.
  *
- * **A caption starts when its voice does:** at the sentence's start plus the clip's lead, the
- * silence the voice chain puts at the head of every clip (`post.leadMs` in the manifest, 30 ms).
- * Frames come every 33 ms, so this keeps a caption within a frame of its sound either way.
+ * **A caption starts when its voice does:** at the sentence's start plus the clip's onset. A clip
+ * cut from a take (manifest v2) records its own onset, the half pause it opens with; any other
+ * clip opens with the lead the voice chain puts at its head (`post.leadMs` in the manifest,
+ * 30 ms). Frames come every 33 ms, so this keeps a caption within a frame of its sound either way.
  *
  * **Draft or final** (a decision of Session 8): the film is a draft, written as
  * `<tour>-draft.mp4` with a watermark, unless every sentence has a clip in the narrator's voice
@@ -16,7 +17,7 @@
 import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { Project } from "../host/project.ts";
-import { parseManifest } from "../voice/manifest.ts";
+import { clipOnsetMs, parseManifest } from "../voice/manifest.ts";
 import type { VoiceManifest } from "../runtime/src/protocol.ts";
 import { beatsOf, type Tour } from "../runtime/src/schema.ts";
 import { buildAss, buildSrt, CAPTION_FONT_FILE, type Cue } from "./captions.ts";
@@ -68,10 +69,22 @@ export function clipLeadMs(manifest: VoiceManifest | null): number {
   return Number.isFinite(lead) && lead > 0 ? lead : 0;
 }
 
-/** One cue per sentence; a voiced one starts after its clip's lead. */
-export function captionCues(spans: Spans, manifest: VoiceManifest | null): Cue[] {
+/** Where each sentence's speech starts, from its start: its clip's onset (a v2 slice's own, else the lead), 0 when it has no clip. */
+export function speechOnsets(spans: Spans, manifest: VoiceManifest | null): number[] {
+  const m = manifest ? parseManifest(manifest) : null;
+  const byHash = new Map((m?.clips ?? []).map((c) => [c.hash, c]));
   const lead = clipLeadMs(manifest);
-  return spans.sentences.map((s) => ({ startMs: s.audio ? Math.min(s.startMs + lead, s.endMs - 1) : s.startMs, endMs: s.endMs, text: s.text }));
+  return spans.sentences.map((s) => {
+    if (!s.audio) return 0;
+    const clip = byHash.get(s.audio.hash);
+    return clip && m ? clipOnsetMs(clip, m) : lead;
+  });
+}
+
+/** One cue per sentence; a voiced one starts at its clip's onset. */
+export function captionCues(spans: Spans, manifest: VoiceManifest | null): Cue[] {
+  const onsets = speechOnsets(spans, manifest);
+  return spans.sentences.map((s, i) => ({ startMs: s.audio ? Math.min(s.startMs + (onsets[i] as number), s.endMs - 1) : s.startMs, endMs: s.endMs, text: s.text }));
 }
 
 export interface PostResult {

@@ -18,6 +18,7 @@
   },
   "voice": {
     "draft": { "provider": "say" },
+    "takes": "tour",
     "lexicon": {},
     "dir": "showcase/voice"
   },

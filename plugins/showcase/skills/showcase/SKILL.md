@@ -107,9 +107,12 @@ date) and the narrator they picked.
 ### P8 Voice
 
 Read `voice.md`. Run `showcase voice <tour>` without `--yes` first: a paid run is refused with
-its sentence and character count. Show the count, get their go, then `--yes`. Read the pacing
-table: outside 120–185 wpm or the narration window, **rewrite the text**, never speed the voice.
-Re-run `check` and `storyboard` after any rewrite.
+its take, sentence and character count. Show the count, get their go, then `--yes`. Under
+`voice.takes: "tour"` the narration is read in one take and checked by a transcription; a take the
+check fails is read again whole (at most twice, inside `--max-chars`), never patched. If it still
+fails, show the per-sentence table and reword. Read the pacing table: outside 120–185 wpm or the
+narration window, **rewrite the text**, never speed the voice. Re-run `check` and `storyboard`
+after any rewrite.
 
 ### P9 Film
 

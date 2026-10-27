@@ -32,6 +32,8 @@ export interface Config {
     lexicon: Record<string, string>;
     dir: string;
     maxChars?: number;
+    /** How much is read in one go (showcase 1.1): absent means `sentence`, 1.0's behaviour. */
+    takes?: "tour" | "step" | "sentence";
   };
   film: { fps: 30; pointer: boolean; cards: boolean | CardsConfig; targetSec?: number; tolerance: number };
   privacy: { deny: (string | { pattern: string; flags?: string })[] };
