@@ -19,8 +19,9 @@ import { fileKey, fileName, type PostConfig, POST, synthKey } from "./keys.ts";
 import { applyLexicon, type Lexicon } from "./lexicon.ts";
 import { type Clip, manifestFile, type Manifest, orphansIn, manifestFiles, readManifest, serializeManifest, type VoiceRole } from "./manifest.ts";
 import { createPool } from "./pool.ts";
-import type { VoiceSetup } from "./setup.ts";
-import { createFormatMemory, OpenRouterKeyRejected, OpenRouterNoCredits, synthOpenRouter } from "./tts/openrouter.ts";
+import type { Narrator, VoiceSetup } from "./setup.ts";
+import { PROVIDER_LABEL, stopsQueue, synthNarrator } from "./tts/narrator.ts";
+import { createFormatMemory } from "./tts/openrouter.ts";
 import { synthFake } from "./tts/fake.ts";
 import { synthSay } from "./tts/say.ts";
 import type { AudioFormat, TtsResult } from "./types.ts";
@@ -91,7 +92,7 @@ export interface Plan {
   /** The voice this run speaks with when something needs making. */
   target: VoiceRole;
   items: Item[];
-  /** Characters that would go to OpenRouter (cached raw audio excluded). */
+  /** Characters that would go to the narrator's provider (cached raw audio excluded). */
   paidChars: number;
   paidSentences: number;
   warnings: string[];
@@ -111,12 +112,18 @@ function findRaw(cacheDir: string, synth: string): TtsResult | null {
   return null;
 }
 
+/** The narrator as the manifest records it: OpenRouter, the 1.0 default, goes unnamed, so a 1.0 manifest is unchanged. */
+export function manifestNarrator(n: Narrator): Omit<Narrator, "provider"> & { provider?: Narrator["provider"] } {
+  const { provider, ...rest } = n;
+  return provider === "openrouter" ? rest : { provider, ...rest };
+}
+
 export function expectFor(role: VoiceRole, s: Sentence, take: number, setup: VoiceSetup, post: PostConfig): Expect | null {
   let synth: string;
   if (role === "narrator") {
     const n = setup.narrator;
     if (!n) return null;
-    synth = synthKey({ spoken: s.spoken, provider: "openrouter", model: n.model, voice: n.voice, instructions: n.instructions, speed: n.speed, take });
+    synth = synthKey({ spoken: s.spoken, provider: n.provider, model: n.model, voice: n.voice, instructions: n.instructions, speed: n.speed, take });
   } else {
     const d = setup.draft;
     synth = synthKey({ spoken: s.spoken, provider: d.provider, model: d.provider, voice: d.voice, rate: d.rate, take });
@@ -132,7 +139,7 @@ export function plan(o: PlanOptions): Plan {
   const narratorReady = Boolean(setup.narrator && setup.apiKey);
   if (setup.draftWarning) warnings.push(setup.draftWarning);
   if (o.mode === "auto" && setup.narrator && !setup.apiKey && !o.check)
-    warnings.push(setup.keyProblem ?? "OPENROUTER_API_KEY is unset: speaking with the draft voice (see `showcase keys status`)");
+    warnings.push(setup.keyProblem ?? `${setup.keyName} is unset: speaking with the draft voice (see \`showcase keys status\`)`);
 
   const target: VoiceRole = o.mode === "draft" ? "draft" : o.mode === "final" ? "narrator" : narratorReady ? "narrator" : "draft";
   const candidates: VoiceRole[] =
@@ -211,7 +218,7 @@ export interface RunOptions extends PlanOptions {
   yes?: boolean;
   dryRun?: boolean;
   prune?: boolean;
-  /** Characters allowed to go to OpenRouter in this run. */
+  /** Characters allowed to go to the narrator's provider in this run. */
   maxChars?: number;
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
@@ -261,12 +268,13 @@ export async function run(o: RunOptions): Promise<Report> {
   if (!check && !dryRun && pending.length > 0) {
     if (p.target === "narrator") {
       if (!o.setup.narrator) throw new VoiceRefusal("there is no narrator: choose one with `showcase voice <tour> --audition`, then set voice.narrator in showcase/config.json");
-      if (!o.setup.apiKey) throw new VoiceRefusal(o.setup.keyProblem ?? "OPENROUTER_API_KEY is unset: see `showcase keys status`, or use --draft");
+      if (!o.setup.apiKey) throw new VoiceRefusal(o.setup.keyProblem ?? `${o.setup.keyName} is unset: see \`showcase keys status\`, or use --draft`);
     }
     if (p.paidSentences > 0) {
-      if (p.paidChars > maxChars) throw new VoiceRefusal(`${p.paidSentences} sentence(s) need OpenRouter, ${p.paidChars} characters: over --max-chars ${maxChars}`);
+      const via = PROVIDER_LABEL[o.setup.narrator?.provider ?? "openrouter"];
+      if (p.paidChars > maxChars) throw new VoiceRefusal(`${p.paidSentences} sentence(s) need ${via}, ${p.paidChars} characters: over --max-chars ${maxChars}`);
       if (!o.yes)
-        throw new VoiceRefusal(`${p.paidSentences} sentence(s), ${p.paidChars} characters need a paid OpenRouter call: pass --yes to spend on it (limit --max-chars ${maxChars}), --dry-run to preview, or --draft for the offline voice`);
+        throw new VoiceRefusal(`${p.paidSentences} sentence(s), ${p.paidChars} characters need a paid ${via} call: pass --yes to spend on it (limit --max-chars ${maxChars}), --dry-run to preview, or --draft for the offline voice`);
     }
   }
   if (o.prune && !check && !dryRun && manifestFiles(o.voiceDir).some((f) => !readManifest(f))) throw new VoiceRefusal("--prune: a manifest in the voice dir isn't readable, so its clips can't be told from orphans");
@@ -302,15 +310,16 @@ export async function run(o: RunOptions): Promise<Report> {
         try {
           raw =
             job.role === "narrator" && n
-              ? await synthOpenRouter(
-                  { text, provider: "openrouter", model: n.model, voice: n.voice, ...(n.instructions ? { instructions: n.instructions } : {}), ...(n.speed !== undefined ? { speed: n.speed } : {}) },
+              ? await synthNarrator(
+                  n.provider,
+                  { text, provider: n.provider, model: n.model, voice: n.voice, ...(n.instructions ? { instructions: n.instructions } : {}), ...(n.speed !== undefined ? { speed: n.speed } : {}) },
                   { apiKey: o.setup.apiKey ?? "", formats, ...(o.fetchImpl ? { fetchImpl: o.fetchImpl } : {}), ...(o.sleep ? { sleep: o.sleep } : {}), ...(o.retryDelaysMs ? { retryDelaysMs: o.retryDelaysMs } : {}) },
                 )
               : o.setup.draft.provider === "say"
                 ? await synthSay(text, { voice: o.setup.draft.voice, rate: o.setup.draft.rate })
                 : await synthFake(needsFfmpeg.ffmpeg, text);
         } catch (e) {
-          if (e instanceof OpenRouterKeyRejected || e instanceof OpenRouterNoCredits) fatal = e;
+          if (stopsQueue(e)) fatal = e as Error;
           throw e;
         }
         writeFileSync(join(o.cacheDir, `${job.synth}.${raw.format}`), raw.bytes);
@@ -373,7 +382,7 @@ export async function run(o: RunOptions): Promise<Report> {
         id: narrationFingerprint(narrationLines(o.tour)),
         tour: o.tour.id,
         narrationMs: manifestClips.reduce((n, c) => n + c.durationMs, 0),
-        voices: { ...(o.setup.narrator ? { narrator: o.setup.narrator } : {}), draft: { provider: o.setup.draft.provider, voice: o.setup.draft.voice } },
+        voices: { ...(o.setup.narrator ? { narrator: manifestNarrator(o.setup.narrator) } : {}), draft: { provider: o.setup.draft.provider, voice: o.setup.draft.voice } },
         post: { ...post },
         clips: manifestClips,
       };

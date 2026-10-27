@@ -22,6 +22,7 @@ import { createFilmAids, type FilmAids, ROLLING_KEY } from "./film-aids.ts";
 import { API_KEY, type FilmEvent } from "./film-events.ts";
 import { type OutlineItem, type OutlineOptions, outline, visibleText } from "./inspect.ts";
 import type { VoiceManifest } from "./narration.ts";
+import type { CardBrand } from "./overlay/brand.ts";
 import { type ControlCommand, createOverlay, type Overlay, type OverlayUi } from "./overlay/index.ts";
 import { installTopLayer, type TopLayer } from "./overlay/top-layer.ts";
 import { DEFAULT_BASE, readDeepLink, routeTo, servedPaths, withoutShowcaseParams } from "./in-app.ts";
@@ -71,6 +72,8 @@ export interface BootConfig {
   /** Draw the pointer (a film with `pointer: false` doesn't). */
   pointer?: boolean;
   manifest?: VoiceManifest | null;
+  /** `film.cards` as a brand, inlined by the host; absent: showcase's own look. */
+  cards?: CardBrand | null;
   /** Start as soon as the document is ready (default). Otherwise the host calls `__showcase.start()`. */
   autostart?: boolean;
   /** A rehearsal (Watch mode, headless): no controls, captions held for each beat's still, a checkpoint per beat. */
@@ -239,6 +242,7 @@ async function bootDirector(win: Realm, api: ShowcaseApi, config: BootConfig, n:
     lingerCaptions: ui === "rehearse",
     ...(ui === "rehearse" ? { reducedMotion: true } : {}),
     title: config.tour.title,
+    ...(config.cards ? { cards: config.cards } : {}),
     onCommand: (c) => control(api, bridge, c),
   });
   api.overlay = overlay;
@@ -335,7 +339,7 @@ async function bootDirector(win: Realm, api: ShowcaseApi, config: BootConfig, n:
           checkpoint: async ({ stepIndex, beatIndex, step, beat }) => {
             await nextFrame(n);
             await nextFrame(n);
-            const card = beat.card ? { title: beat.card.title, lines: beat.card.lines ?? [] } : null;
+            const card = beat.card ? { title: beat.card.title, ...(beat.card.kicker ? { kicker: beat.card.kicker } : {}), lines: beat.card.lines ?? [] } : null;
             await bridge.checkpoint({ stepIndex, beatIndex, step: step.id, beat: beat.id, narration: (beat.narration ?? []).map(sentenceText), card });
             overlay.clearCaption();
           },

@@ -20,6 +20,7 @@ import { pathToFileURL } from "node:url";
 import type { Browser, BrowserContext, BrowserContextOptions, ElementHandle, LaunchOptions, Page } from "playwright-core";
 import { findPlaywright } from "../lib/playwright.ts";
 import { FILM_VERSION, type FilmEvent, GO_KEY, HOST_BINDING } from "../runtime/src/film-events.ts";
+import type { CardBrand } from "../runtime/src/overlay/brand.ts";
 import type { AssetKind, Checkpoint, Command, HostMessage, InputRequest, Snapshot, VoiceManifest } from "../runtime/src/protocol.ts";
 import type { Tour } from "../runtime/src/schema.ts";
 import type { RunState } from "../runtime/src/state.ts";
@@ -65,6 +66,8 @@ export interface HostOptions {
   input?: "trusted" | "synthetic";
   pointer?: boolean;
   manifest?: VoiceManifest | null;
+  /** `film.cards` resolved (`lib/cards.ts`): the brand, inlined; absent or null for showcase's own look. */
+  cards?: CardBrand | null;
   autostart?: boolean;
   /** A rehearsal: Watch mode without controls, a checkpoint per beat. */
   rehearse?: boolean;
@@ -375,6 +378,7 @@ export async function launchHost(options: HostOptions): Promise<Host> {
       ...(options.input ? { input: options.input } : {}),
       ...(options.pointer !== undefined ? { pointer: options.pointer } : {}),
       manifest: options.manifest ?? null,
+      ...(options.cards ? { cards: options.cards } : {}),
       ...(options.autostart !== undefined ? { autostart: options.autostart } : {}),
       ...(options.rehearse ? { rehearse: true } : {}),
       ...(options.muted !== undefined ? { muted: options.muted } : {}),

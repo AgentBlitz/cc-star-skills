@@ -12,7 +12,8 @@ export const FONT_CSS = `
 @font-face { font-family: "${FONT_FAMILY}"; font-weight: 600; src: local("Inter SemiBold"), local("Inter Semi Bold"), local("SF Pro Text Semibold"), local("HelveticaNeue-Medium"), local("Segoe UI Semibold"), local("Roboto Medium"), local("Arial Bold"); }
 `;
 
-const FONT = `"${FONT_FAMILY}", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+/** The overlay's font stack; a brand's faces go in front of it. */
+export const FONT = `"${FONT_FAMILY}", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
 
 export const OVERLAY_CSS = `
 :host { all: initial; position: fixed; inset: 0; width: 100vw; height: 100vh; max-width: none; max-height: none;
@@ -53,6 +54,16 @@ export const OVERLAY_CSS = `
   font: 600 clamp(18px, 2.6vh, 30px)/1.35 ${FONT}; font-variant-numeric: tabular-nums; box-shadow: 0 6px 20px rgb(0 0 0 / 0.3); }
 
 :host([data-motion="reduce"]) .spot, :host([data-motion="none"]) .spot { transition: none; }
+`;
+
+/**
+ * A card's mark and kicker (showcase 1.1), a sheet of their own so `OVERLAY_CSS` stays 1.0's: a
+ * card without them looks exactly as it did. A brand (`brand.ts`) restyles both.
+ */
+export const CARD_CSS = `
+.card .kicker { margin: -12px 0 0; font: 600 clamp(14px, 2vh, 22px)/1.2 ${FONT}; letter-spacing: 0.24em; text-transform: uppercase; color: #93c5fd; }
+.mark { display: flex; justify-content: center; color: #93c5fd; }
+.mark svg { display: block; width: auto; height: clamp(56px, 10vh, 112px); overflow: visible; }
 `;
 
 export const CONTROLS_CSS = `

@@ -21,6 +21,7 @@ export interface OverlayPort {
     /** A title or closing card over the screen; null clears it. */
     card(card: {
         title: string;
+        kicker?: string;
         lines: string[];
     } | null): void;
     /** Watch captions: the sentence being spoken; null clears it. */

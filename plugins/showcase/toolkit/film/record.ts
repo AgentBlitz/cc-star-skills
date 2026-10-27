@@ -33,7 +33,7 @@ import { join, relative } from "node:path";
 import { findFfmpeg } from "../lib/ffmpeg.ts";
 import { freePort } from "../host/app.ts";
 import { type Host, isSoftwareRenderer, launchHost, rendererOf } from "../host/launch.ts";
-import { appUrl, browserSettings, openSession, type Project, voiceFor } from "../host/project.ts";
+import { appUrl, browserSettings, cardsFor, openSession, type Project, voiceFor } from "../host/project.ts";
 import { publishedTourProblem } from "../lib/vendor.ts";
 import { deepLink } from "../runtime/src/in-app.ts";
 import { type FilmEvent, filmOrderProblems } from "../runtime/src/film-events.ts";
@@ -261,6 +261,7 @@ export async function film(o: FilmOptions): Promise<FilmResult> {
       mode: "film",
       pointer: p.config.film.pointer,
       manifest: voice.manifest,
+      cards: cardsFor(p),
       ...(voice.dir ? { voiceDir: voice.dir } : {}),
       headless: true,
       browser: browserSettings(p),

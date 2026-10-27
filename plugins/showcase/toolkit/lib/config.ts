@@ -25,14 +25,27 @@ export interface Config {
     hide: string[];
   };
   voice: {
-    narrator?: { model: string; voice: string; instructions?: string; speed?: number; approved?: string | false };
+    narrator?: { provider?: "openrouter" | "requesty"; model: string; voice: string; instructions?: string; speed?: number; approved?: string | false };
     draft: { provider: "say" | "fake"; voice?: string };
+    /** The voices `voice --audition` tries instead of the built-in shortlist. */
+    audition?: { id: string; provider?: "openrouter" | "requesty"; model: string; voice: string; instructions?: string }[];
     lexicon: Record<string, string>;
     dir: string;
     maxChars?: number;
   };
-  film: { fps: 30; pointer: boolean; cards: boolean; targetSec?: number; tolerance: number };
+  film: { fps: 30; pointer: boolean; cards: boolean | CardsConfig; targetSec?: number; tolerance: number };
   privacy: { deny: (string | { pattern: string; flags?: string })[] };
+}
+
+/** `film.cards` as a brand (showcase 1.1). Paths are relative to the repo root. */
+export interface CardsConfig {
+  background: string;
+  foreground: string;
+  muted: string;
+  accent: string;
+  /** An SVG file drawn above the title. */
+  mark?: string;
+  fonts?: Partial<Record<"title" | "lines" | "kicker", { family: string; file: string }>>;
 }
 
 export const configSchema = configSchemaJson as JsonSchema;

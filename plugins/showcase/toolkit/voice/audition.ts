@@ -1,7 +1,8 @@
 /**
  * `voice --audition` (PLAN §2.4): an HTML page with three sample lines from the tour for each
- * voice on the British shortlist, plus the draft voice, so the user can choose the narrator by
- * ear. A few cents at most: the samples are the shortest lines that fit the character budget, and
+ * voice on the British shortlist (or the config's `voice.audition`), plus the draft voice, so the
+ * user can choose the narrator by ear. An entry may carry `instructions`, so two deliveries of one
+ * voice can be compared side by side. A few cents at most: the samples are the shortest lines that fit the character budget, and
  * the raw audio is cached, so a second page costs nothing.
  */
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -14,24 +15,33 @@ import { POST, type PostConfig, synthKey } from "./keys.ts";
 import { createPool } from "./pool.ts";
 import type { Sentence } from "./pipeline.ts";
 import type { VoiceSetup } from "./setup.ts";
-import { createFormatMemory, OpenRouterKeyRejected, OpenRouterNoCredits, synthOpenRouter } from "./tts/openrouter.ts";
+import { type NarratorProvider, PROVIDER_KEY, PROVIDER_LABEL, stopsQueue, synthNarrator } from "./tts/narrator.ts";
+import { createFormatMemory } from "./tts/openrouter.ts";
 import { synthFake } from "./tts/fake.ts";
 import { synthSay } from "./tts/say.ts";
 import type { AudioFormat, TtsResult } from "./types.ts";
 
 export interface Candidate {
   id: string;
+  /** Default: OpenRouter. */
+  provider?: NarratorProvider;
   model: string;
   voice: string;
   instructions?: string;
 }
 
-/** The British shortlist (PLAN §2.4), named as the public catalogue lists them on 2026-10-09. */
+/**
+ * The British shortlist (PLAN §2.4), named as the public catalogue lists them on 2026-10-09, and
+ * OpenAI's Fable through Requesty (showcase 1.1).
+ */
 export const SHORTLIST: readonly Candidate[] = [
   ...["george", "daniel", "alice", "lily"].map((v): Candidate => ({ id: `elevenlabs-${v}`, model: "elevenlabs/eleven-v3", voice: v })),
   ...["Harry", "Emily"].map((v): Candidate => ({ id: `mai-${v.toLowerCase()}`, model: "microsoft/mai-voice-2.1", voice: `en-GB-${v}:MAI-Voice-2.1` })),
   ...["Charon", "Orus", "Kore"].map((v): Candidate => ({ id: `gemini-${v.toLowerCase()}`, model: "google/gemini-3.8-flash-tts", voice: v })),
+  { id: "requesty-fable", provider: "requesty", model: "openai/gpt-4o-mini-tts", voice: "fable" },
 ];
+
+const providerOf = (c: Candidate): NarratorProvider => c.provider ?? "openrouter";
 
 export const AUDITION_MAX_CHARS = 1500;
 export const SAMPLE_COUNT = 3;
@@ -81,8 +91,8 @@ export interface AuditionOptions {
   cacheDir: string;
   setup: VoiceSetup;
   ffmpeg: FfmpegPaths;
-  /** The catalogue, when it could be fetched: candidates it doesn't offer are skipped, unspent. */
-  catalogue?: readonly SpeechModel[] | undefined;
+  /** Each provider's catalogue, when it could be fetched: candidates it doesn't offer are skipped, unspent. */
+  catalogue?: Partial<Record<NarratorProvider, readonly SpeechModel[]>> | undefined;
   yes: boolean;
   maxChars: number;
   post?: PostConfig;
@@ -105,14 +115,19 @@ const EXT: readonly AudioFormat[] = ["wav", "mp3", "pcm", "ogg", "flac"];
 export async function audition(o: AuditionOptions): Promise<AuditionResult> {
   const post = o.post ?? POST;
   const say = o.say ?? (() => {});
-  const keyed = Boolean(o.setup.apiKey);
   const all = o.candidates ?? SHORTLIST;
-  const notOffered = (c: Candidate) => (o.catalogue && !offered(o.catalogue, c.model, c.voice).voice ? `not in the catalogue (${c.model})` : null);
-  const paid = keyed ? all.filter((c) => !notOffered(c)) : [];
+  const keyOf = (c: Candidate) => o.setup.keys[providerOf(c)];
+  const keyed = all.some((c) => Boolean(keyOf(c)));
+  const notOffered = (c: Candidate) => {
+    const listed = o.catalogue?.[providerOf(c)];
+    return listed && !offered(listed, c.model, c.voice).voice ? `not in the catalogue (${c.model})` : null;
+  };
+  const paid = all.filter((c) => keyOf(c) && !notOffered(c));
+  const via = [...new Set(paid.map((c) => PROVIDER_LABEL[providerOf(c)]))].join(" and ");
   const samples = pickSamples(o.sentences, paid.length, o.maxChars);
   const perVoiceChars = samples.reduce((n, s) => n + s.text.length, 0);
   const charsPlanned = perVoiceChars * paid.length;
-  if (paid.length > 0 && !o.yes) throw new Error(`the audition would send ${charsPlanned} characters to OpenRouter (${paid.length} voices × ${samples.length} lines): pass --yes (limit --max-chars ${o.maxChars})`);
+  if (paid.length > 0 && !o.yes) throw new Error(`the audition would send ${charsPlanned} characters to ${via} (${paid.length} voices × ${samples.length} lines): pass --yes (limit --max-chars ${o.maxChars})`);
 
   mkdirSync(o.outDir, { recursive: true });
   mkdirSync(o.cacheDir, { recursive: true });
@@ -147,7 +162,7 @@ export async function audition(o: AuditionOptions): Promise<AuditionResult> {
           rmSync(work, { recursive: true, force: true });
         }
       } catch (e) {
-        if (e instanceof OpenRouterKeyRejected || e instanceof OpenRouterNoCredits) fatal = e;
+        if (stopsQueue(e)) fatal = e as Error;
         say(`  ${id} line ${i + 1}: ${(e as Error).message}`);
         return null;
       }
@@ -156,9 +171,10 @@ export async function audition(o: AuditionOptions): Promise<AuditionResult> {
   const voices: AuditionResult["voices"] = [];
   const jobs: Promise<void>[] = [];
   for (const c of all) {
-    const row: AuditionResult["voices"][number] = { id: c.id, label: `${c.model} · ${c.voice}${c.instructions ? ` · "${c.instructions}"` : ""}`, clips: samples.map(() => null) };
+    const provider = providerOf(c);
+    const row: AuditionResult["voices"][number] = { id: c.id, label: `${provider} · ${c.model} · ${c.voice}${c.instructions ? ` · "${c.instructions}"` : ""}`, clips: samples.map(() => null) };
     voices.push(row);
-    const skip = notOffered(c) ?? (keyed ? null : "no OPENROUTER_API_KEY");
+    const skip = notOffered(c) ?? (keyOf(c) ? null : `no ${PROVIDER_KEY[provider]}`);
     if (skip) {
       row.skipped = skip;
       continue;
@@ -166,12 +182,13 @@ export async function audition(o: AuditionOptions): Promise<AuditionResult> {
     samples.forEach((_, i) =>
       jobs.push(
         clip(c.id, i, (text) => ({
-          synth: synthKey({ spoken: text, provider: "openrouter", model: c.model, voice: c.voice, instructions: c.instructions, take: 0 }),
+          synth: synthKey({ spoken: text, provider, model: c.model, voice: c.voice, instructions: c.instructions, take: 0 }),
           paid: true,
           fetch: () =>
-            synthOpenRouter(
-              { text, provider: "openrouter", model: c.model, voice: c.voice, ...(c.instructions ? { instructions: c.instructions } : {}) },
-              { apiKey: o.setup.apiKey ?? "", formats, ...(o.fetchImpl ? { fetchImpl: o.fetchImpl } : {}), ...(o.sleep ? { sleep: o.sleep } : {}) },
+            synthNarrator(
+              provider,
+              { text, provider, model: c.model, voice: c.voice, ...(c.instructions ? { instructions: c.instructions } : {}) },
+              { apiKey: keyOf(c) ?? "", formats, ...(o.fetchImpl ? { fetchImpl: o.fetchImpl } : {}), ...(o.sleep ? { sleep: o.sleep } : {}) },
             ),
         })).then((name) => void (row.clips[i] = name)),
       ),
@@ -192,7 +209,7 @@ export async function audition(o: AuditionOptions): Promise<AuditionResult> {
   await Promise.all(jobs);
 
   const file = join(o.outDir, "index.html");
-  writeFileSync(file, renderPage(o.title, samples, voices, keyed));
+  writeFileSync(file, renderPage(o.title, samples, voices, keyed ? via || null : null));
   return { file, samples, voices, charsSent, paid: paid.length > 0 };
 }
 
@@ -200,7 +217,8 @@ function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
 }
 
-export function renderPage(title: string, samples: readonly Sample[], voices: AuditionResult["voices"], keyed: boolean): string {
+/** `via` names the providers that voiced it; null when no key was set. */
+export function renderPage(title: string, samples: readonly Sample[], voices: AuditionResult["voices"], via: string | null): string {
   const head = samples.map((s) => `<th>${esc(s.label)}<br><small>${esc(s.text)}</small></th>`).join("");
   const body = voices
     .map((v) => {
@@ -223,7 +241,7 @@ export function renderPage(title: string, samples: readonly Sample[], voices: Au
 </head>
 <body>
 <h1>${esc(title)}: the narrator audition</h1>
-<p>${keyed ? "Voiced through OpenRouter." : "No OPENROUTER_API_KEY, so only the draft voice has clips."} To choose one, set <code>voice.narrator</code> (<code>model</code> and <code>voice</code> from its row) in <code>showcase/config.json</code>, then run <code>showcase voice &lt;tour&gt; --final</code>.</p>
+<p>${via ? `Voiced through ${esc(via)}.` : "No OPENROUTER_API_KEY or REQUESTY_API_KEY is set, so only the draft voice has clips."} To choose one, set <code>voice.narrator</code> (<code>provider</code>, <code>model</code>, <code>voice</code> and any <code>instructions</code> from its row) in <code>showcase/config.json</code>, then run <code>showcase voice &lt;tour&gt; --final</code>.</p>
 <table>
 <thead><tr><th>Voice</th>${head}</tr></thead>
 <tbody>

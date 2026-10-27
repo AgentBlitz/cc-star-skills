@@ -443,13 +443,13 @@ export class Director {
     const navDispatched = resumed && at.stage === "nav";
 
     if (at.stage === "begin") {
-      if (beat.card) overlay.card({ title: beat.card.title, lines: beat.card.lines ?? [] });
+      if (beat.card) overlay.card({ title: beat.card.title, ...(beat.card.kicker ? { kicker: beat.card.kicker } : {}), lines: beat.card.lines ?? [] });
       this.beatStart(step, beat);
       at.stage = "tracks";
       this.persist();
     } else {
       r.beatId = beat.id;
-      if (beat.card) overlay.card({ title: beat.card.title, lines: beat.card.lines ?? [] });
+      if (beat.card) overlay.card({ title: beat.card.title, ...(beat.card.kicker ? { kicker: beat.card.kicker } : {}), lines: beat.card.lines ?? [] });
     }
     // A sentence cut by a page load counts as spoken: it isn't repeated.
     if (at.speaking !== null) {

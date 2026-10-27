@@ -113,6 +113,7 @@ export interface Checkpoint {
     narration: string[];
     card: {
         title: string;
+        kicker?: string;
         lines: string[];
     } | null;
 }

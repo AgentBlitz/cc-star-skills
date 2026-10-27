@@ -20,6 +20,7 @@ import { type FilmAids } from "./film-aids.ts";
 import { type FilmEvent } from "./film-events.ts";
 import { type OutlineItem, type OutlineOptions } from "./inspect.ts";
 import type { VoiceManifest } from "./narration.ts";
+import type { CardBrand } from "./overlay/brand.ts";
 import { type Overlay } from "./overlay/index.ts";
 import { type Tour } from "./schema.ts";
 export * from "./anchors.ts";
@@ -59,6 +60,8 @@ export interface BootConfig {
     /** Draw the pointer (a film with `pointer: false` doesn't). */
     pointer?: boolean;
     manifest?: VoiceManifest | null;
+    /** `film.cards` as a brand, inlined by the host; absent: showcase's own look. */
+    cards?: CardBrand | null;
     /** Start as soon as the document is ready (default). Otherwise the host calls `__showcase.start()`. */
     autostart?: boolean;
     /** A rehearsal (Watch mode, headless): no controls, captions held for each beat's still, a checkpoint per beat. */

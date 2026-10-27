@@ -26,6 +26,31 @@ voice clips ─► mixed in Node at sentence:start − t0 ─► two-pass loudno
 - **The SRT** comes from the same timings as the burned-in captions.
 - **Draft or final:** the film is `<tour>-draft.mp4`, with a DRAFT watermark top right, unless every sentence has a narrator clip and `voice.narrator.approved` is set. Then it's `<tour>.mp4`. Only one of the two is kept.
 
+## Cards
+
+The title and closing cards (a beat's `card`, or a `card` action) are drawn by the overlay, so they look the same in the film, the storyboard stills, rehearsals and Watch. `film.cards` in `showcase/config.json` sets their look:
+
+- `true` (the default) is showcase's own: a dark blue gradient, in the system font. It is exactly 1.0's look.
+- A brand (1.1) draws the cards in the product's own look:
+
+  ```json
+  "cards": {
+    "background": "#F6F7F9", "foreground": "#1C2333", "muted": "#5B6472", "accent": "#4A5D7A",
+    "mark": "showcase/brand/mark.svg",
+    "fonts": {
+      "title":  { "family": "Fraunces",      "file": "apps/web/public/fonts/Fraunces-Variable.woff2" },
+      "lines":  { "family": "Inter",         "file": "apps/web/public/fonts/Inter-Variable.woff2" },
+      "kicker": { "family": "IBM Plex Mono", "file": "apps/web/public/fonts/IBMPlexMono-Medium.woff2" }
+    }
+  }
+  ```
+
+  - **Colours** are `#rrggbb`: `background`, `foreground` (the title), `muted` (the kicker and the lines) and `accent` (the mark).
+  - **The mark** is an SVG file, drawn above the title in the accent. Only `svg`, `g`, `path`, `circle`, `line` and `polyline` survive, with geometry and presentation attributes; scripts, links, `href`, `style`, event handlers and any `url(…)` are dropped, and a paint other than `none` becomes the accent. A stroked icon on a 24 px grid (Lucide style) works well.
+  - **Fonts** are woff2 files, each `{family, file}`, for the title, the lines and the kicker. Any role left out keeps the system font.
+  - Paths are relative to the repo root and may not leave it. Everything is inlined into the page (the fonts as data URIs, the mark as SVG elements), so nothing is fetched.
+- The order on a card is the mark, the title, the kicker (`card.kicker`, in capitals), then the lines.
+
 ## Command
 
 ```

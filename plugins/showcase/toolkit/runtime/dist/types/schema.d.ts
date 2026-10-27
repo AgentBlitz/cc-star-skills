@@ -128,6 +128,7 @@ export type Action = ActionBase & ({
 } | {
     kind: "card";
     title: string;
+    kicker?: string;
     lines?: string[];
     ms?: number;
 } | {
@@ -148,6 +149,8 @@ export type Sentence = string | {
 };
 export interface Card {
     title: string;
+    /** A small line in capitals under the title. */
+    kicker?: string;
     lines?: string[];
 }
 export interface Beat {

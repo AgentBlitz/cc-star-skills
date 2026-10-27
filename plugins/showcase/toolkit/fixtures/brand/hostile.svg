@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24" onload="alert(1)" style="background:url(https://tracker.example/x.png)">
+  <script>alert("mark")</script>
+  <a href="https://phish.example/"><path d="M0 0h24"/></a>
+  <g class="x" id="g1" transform="translate(1 1)">
+    <path d="M4 4h16" stroke="red" fill="url(#grad)" href="https://tracker.example/" onclick="steal()"/>
+    <use href="#g1"/>
+    <image xlink:href="https://tracker.example/pixel.png" width="1" height="1"/>
+    <polyline points="2 2 4 4" stroke="javascript:alert(1)"/>
+  </g>
+  <foreignObject><div>html</div></foreignObject>
+  <line x1="1" y1="1" x2="23" y2="23" stroke="none"/>
+</svg>

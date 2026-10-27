@@ -757,7 +757,7 @@ export function createExecutor(deps: ExecutorDeps): Executor {
         if (!instant) await deps.pace.sleep(action.ms, signal);
         return null;
       case "card":
-        overlay.card({ title: action.title, lines: action.lines ?? [] });
+        overlay.card({ title: action.title, ...(action.kicker ? { kicker: action.kicker } : {}), lines: action.lines ?? [] });
         if (action.ms !== undefined && !instant) await deps.pace.sleep(action.ms, signal);
         return null;
       case "invoke":

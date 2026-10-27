@@ -5,10 +5,12 @@
  */
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { resolveCards } from "../lib/cards.ts";
 import { type Config, loadConfig, withDefaults } from "../lib/config.ts";
 import { repoRoot } from "../lib/paths.ts";
 import { loadTour, resolveTour, type TourFile } from "../lib/tours.ts";
 import { manifestFile } from "../voice/manifest.ts";
+import type { CardBrand } from "../runtime/src/overlay/brand.ts";
 import type { VoiceManifest } from "../runtime/src/protocol.ts";
 import type { Tour } from "../runtime/src/schema.ts";
 import { acquireLock, type App, type Lock, startApp } from "./app.ts";
@@ -56,6 +58,11 @@ export function outDir(p: Project, id: string, out?: string): string {
 }
 
 /** The browser settings, with `storageState` resolved against the `showcase/` dir. */
+/** `film.cards` for the overlay: null for showcase's own look, else the brand, inlined. */
+export function cardsFor(p: Project): CardBrand | null {
+  return resolveCards(p.config.film.cards, p.root);
+}
+
 export function browserSettings(p: Project, o: { storageState?: boolean } = {}): BrowserSettings {
   const b = p.config.browser;
   const state = b.storageState && o.storageState !== false ? (isAbsolute(b.storageState) ? b.storageState : resolve(p.showcaseDir ?? p.root, b.storageState)) : undefined;

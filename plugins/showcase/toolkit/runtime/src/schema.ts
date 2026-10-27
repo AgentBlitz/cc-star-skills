@@ -68,7 +68,7 @@ export type Action = ActionBase &
     | { kind: "spotlight"; target: AnchorRef; callout?: { title: string; body: string } }
     | { kind: "wait"; ms?: number; until?: Ready }
     | { kind: "hold"; ms: number }
-    | { kind: "card"; title: string; lines?: string[]; ms?: number }
+    | { kind: "card"; title: string; kicker?: string; lines?: string[]; ms?: number }
     | { kind: "invoke"; name: string; args?: Record<string, unknown> }
     | { kind: "camera"; target?: AnchorRef; scale?: number; end?: true }
   );
@@ -79,6 +79,8 @@ export type Sentence = string | { text: string; after: string };
 
 export interface Card {
   title: string;
+  /** A small line in capitals under the title. */
+  kicker?: string;
   lines?: string[];
 }
 

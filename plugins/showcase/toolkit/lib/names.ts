@@ -3,6 +3,7 @@
 /** Read from the environment, an ignored `.env.local` or the user file. */
 export const KEY_NAMES = [
   "OPENROUTER_API_KEY",
+  "REQUESTY_API_KEY",
   "SHOWCASE_TTS_MODEL",
   "SHOWCASE_TTS_VOICE",
   "SHOWCASE_TTS_INSTRUCTIONS",
@@ -14,6 +15,7 @@ export type KeyName = (typeof KEY_NAMES)[number];
 /** Secrets: masked by `redact()`, stripped from the app server's environment. */
 export const SECRET_NAMES = [
   "OPENROUTER_API_KEY",
+  "REQUESTY_API_KEY",
   "ELEVENLABS_API_KEY",
   "OPENAI_API_KEY",
   "AZURE_SPEECH_KEY",

@@ -13,7 +13,7 @@ import { join } from "node:path";
 import type { Snapshot } from "../runtime/src/protocol.ts";
 import type { Tour } from "../runtime/src/schema.ts";
 import { type Host, launchHost } from "./launch.ts";
-import { appUrl, browserSettings, openSession, type Project, voiceFor } from "./project.ts";
+import { appUrl, browserSettings, cardsFor, openSession, type Project, voiceFor } from "./project.ts";
 
 export interface WatchProgress {
   pid: number;
@@ -118,6 +118,7 @@ export async function watch(o: WatchOptions): Promise<{ end: WatchEnd; last: Sna
       browser: browserSettings(p),
       assetsDir: p.showcaseDir ?? p.root,
       manifest: voice.manifest,
+      cards: cardsFor(p),
       ...(voice.dir ? { voiceDir: voice.dir } : {}),
       onExit: () => {
         exited = true;

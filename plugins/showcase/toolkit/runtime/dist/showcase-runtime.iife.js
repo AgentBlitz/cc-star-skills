@@ -1865,7 +1865,7 @@
           if (!instant) await deps.pace.sleep(action.ms, signal);
           return null;
         case "card":
-          overlay.card({ title: action.title, lines: action.lines ?? [] });
+          overlay.card({ title: action.title, ...action.kicker ? { kicker: action.kicker } : {}, lines: action.lines ?? [] });
           if (action.ms !== void 0 && !instant) await deps.pace.sleep(action.ms, signal);
           return null;
         case "invoke":
@@ -2593,6 +2593,11 @@
           title: {
             type: "string",
             minLength: 1
+          },
+          kicker: {
+            type: "string",
+            minLength: 1,
+            description: "A small line in capitals under the title (showcase 1.1)."
           },
           lines: {
             type: "array",
@@ -3675,6 +3680,11 @@
                 type: "string",
                 minLength: 1
               },
+              kicker: {
+                type: "string",
+                minLength: 1,
+                description: "A small line in capitals under the title (showcase 1.1)."
+              },
               lines: {
                 type: "array",
                 items: {
@@ -4538,13 +4548,13 @@
       const overlay = this.deps.overlay ?? NO_OVERLAY;
       const navDispatched = resumed && at.stage === "nav";
       if (at.stage === "begin") {
-        if (beat.card) overlay.card({ title: beat.card.title, lines: beat.card.lines ?? [] });
+        if (beat.card) overlay.card({ title: beat.card.title, ...beat.card.kicker ? { kicker: beat.card.kicker } : {}, lines: beat.card.lines ?? [] });
         this.beatStart(step, beat);
         at.stage = "tracks";
         this.persist();
       } else {
         r.beatId = beat.id;
-        if (beat.card) overlay.card({ title: beat.card.title, lines: beat.card.lines ?? [] });
+        if (beat.card) overlay.card({ title: beat.card.title, ...beat.card.kicker ? { kicker: beat.card.kicker } : {}, lines: beat.card.lines ?? [] });
       }
       if (at.speaking !== null) {
         this.film({ type: "sentence:end", beat: beat.id, index: at.speaking });
@@ -5222,6 +5232,86 @@
     return parts.filter(Boolean).join("\n");
   }
 
+  // toolkit/runtime/src/overlay/brand.ts
+  var MARK_TAGS = ["svg", "g", "path", "circle", "line", "polyline"];
+  var MARK_ATTRS = [
+    "viewBox",
+    "width",
+    "height",
+    "preserveAspectRatio",
+    "d",
+    "cx",
+    "cy",
+    "r",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+    "points",
+    "transform",
+    "fill",
+    "fill-opacity",
+    "fill-rule",
+    "clip-rule",
+    "opacity",
+    "stroke",
+    "stroke-width",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "stroke-miterlimit",
+    "stroke-dasharray",
+    "stroke-dashoffset",
+    "stroke-opacity",
+    "vector-effect"
+  ];
+  var UNSAFE_VALUE = /url\s*\(|[a-z][a-z0-9+.-]*:|[<>"'`&;{}\\]/i;
+  var MAX_NODES = 200;
+  function sanitiseMark(node) {
+    let count = 0;
+    const walk = (n) => {
+      if (!n || typeof n !== "object") return null;
+      const { tag, attrs, children } = n;
+      if (typeof tag !== "string" || !MARK_TAGS.includes(tag) || ++count > MAX_NODES) return null;
+      const clean = {};
+      if (attrs && typeof attrs === "object") {
+        for (const [k, v] of Object.entries(attrs)) {
+          if (!MARK_ATTRS.includes(k) || typeof v !== "string" || UNSAFE_VALUE.test(v)) continue;
+          clean[k] = (k === "fill" || k === "stroke") && v.trim() !== "none" ? "currentColor" : v;
+        }
+      }
+      const kids = Array.isArray(children) ? children.map(walk).filter((c) => c !== null) : [];
+      return { tag, attrs: clean, children: kids };
+    };
+    const root = walk(node);
+    return root && root.tag === "svg" ? root : null;
+  }
+  var COLOUR = /^#[0-9A-Fa-f]{6}$/;
+  var FONT_SRC = /^data:font\/woff2;base64,[A-Za-z0-9+/]+=*$/;
+  var BRAND_FAMILY = { title: "Showcase Card Title", lines: "Showcase Card Lines", kicker: "Showcase Card Kicker" };
+  var ROLES = ["title", "lines", "kicker"];
+  function fontOf(brand, role) {
+    const f = brand.fonts?.[role];
+    return f && FONT_SRC.test(f.src) ? f : null;
+  }
+  function brandFontCss(brand) {
+    return ROLES.map((role) => {
+      const f = fontOf(brand, role);
+      return f ? `@font-face { font-family: "${BRAND_FAMILY[role]}"; src: url("${f.src}") format("woff2"); font-weight: 100 900; font-display: block; }
+` : "";
+    }).join("");
+  }
+  function brandCss(brand, base) {
+    if (![brand.background, brand.foreground, brand.muted, brand.accent].every((c) => COLOUR.test(c))) return null;
+    const face = (role) => fontOf(brand, role) ? `"${BRAND_FAMILY[role]}", ${base}` : base;
+    return `
+.card, .end { background: ${brand.background}; color: ${brand.foreground}; }
+.card h1, .end h1 { font-family: ${face("title")}; color: ${brand.foreground}; }
+.card li, .end p { font-family: ${face("lines")}; color: ${brand.muted}; }
+.card .kicker, .end .kicker { font-family: ${face("kicker")}; font-weight: 500; color: ${brand.muted}; }
+.mark { color: ${brand.accent}; }
+`;
+  }
+
   // toolkit/runtime/src/overlay/place.ts
   var CALLOUT_GAP = 12;
   var clamp = (v, lo, hi) => Math.min(Math.max(v, lo), Math.max(lo, hi));
@@ -5289,6 +5379,11 @@
   font: 600 clamp(18px, 2.6vh, 30px)/1.35 ${FONT}; font-variant-numeric: tabular-nums; box-shadow: 0 6px 20px rgb(0 0 0 / 0.3); }
 
 :host([data-motion="reduce"]) .spot, :host([data-motion="none"]) .spot { transition: none; }
+`;
+  var CARD_CSS = `
+.card .kicker { margin: -12px 0 0; font: 600 clamp(14px, 2vh, 22px)/1.2 ${FONT}; letter-spacing: 0.24em; text-transform: uppercase; color: #93c5fd; }
+.mark { display: flex; justify-content: center; color: #93c5fd; }
+.mark svg { display: block; width: auto; height: clamp(56px, 10vh, 112px); overflow: visible; }
 `;
   var CONTROLS_CSS = `
 :host { all: initial; position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 2147483647;
@@ -5473,6 +5568,20 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
     svg.append(path);
     return svg;
   }
+  function buildMark(doc, mark) {
+    const safe = sanitiseMark(mark);
+    if (!safe) return null;
+    const build = (n) => {
+      const el = doc.createElementNS(SVG, n.tag);
+      for (const [k, v] of Object.entries(n.attrs)) el.setAttribute(k, v);
+      for (const c of n.children) el.append(build(c));
+      return el;
+    };
+    const svg = build(safe);
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    return svg;
+  }
   function sheetOf(doc, css) {
     try {
       const View = doc.defaultView;
@@ -5484,15 +5593,18 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
     }
   }
   var FONT_MARK = "__showcaseFonts";
-  function declareFonts(doc) {
+  var BRAND_FONT_MARK = "__showcaseBrandFonts";
+  function declareFonts(doc, brandFonts = "") {
     const d = doc;
-    if (d[FONT_MARK]) return;
-    const sheet = sheetOf(doc, FONT_CSS);
-    if (!sheet) return;
-    try {
-      doc.adoptedStyleSheets = [...doc.adoptedStyleSheets, sheet];
-      d[FONT_MARK] = true;
-    } catch {
+    for (const [mark, css] of [[FONT_MARK, FONT_CSS], [BRAND_FONT_MARK, brandFonts]]) {
+      if (!css || d[mark] === css) continue;
+      const sheet = sheetOf(doc, css);
+      if (!sheet) continue;
+      try {
+        doc.adoptedStyleSheets = [...doc.adoptedStyleSheets, sheet];
+        d[mark] = css;
+      } catch {
+      }
     }
   }
   function createOverlay(options) {
@@ -5514,12 +5626,16 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
     }
     const wantsControls = options.controls ?? ui === "watch";
     const wantsCaptions = options.captions ?? ui !== "film";
-    declareFonts(doc);
+    const brand = options.cards ?? null;
+    const brandStyles = brand ? brandCss(brand, FONT) : null;
+    declareFonts(doc, brand && brandStyles ? brandFontCss(brand) : "");
     const host = make2(doc, OVERLAY_TAG, { popover: "manual", "aria-hidden": "true", "data-ui": ui, "data-controls": wantsControls ? "on" : "off" });
     if (reduced) host.setAttribute("data-motion", "reduce");
     const root = host.attachShadow({ mode: "open" });
-    const sheet = sheetOf(doc, OVERLAY_CSS);
-    if (sheet) root.adoptedStyleSheets = [sheet];
+    root.adoptedStyleSheets = [OVERLAY_CSS, CARD_CSS, brandStyles].flatMap((css) => {
+      const sheet = css ? sheetOf(doc, css) : null;
+      return sheet ? [sheet] : [];
+    });
     const card = make2(doc, "div", { class: "card", hidden: "" });
     const spot = make2(doc, "div", { class: "spot", hidden: "" });
     const callout = make2(doc, "div", { class: "callout", hidden: "" });
@@ -5686,13 +5802,16 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
       captionText.textContent = text ?? "";
       captions.hidden = text === null;
     }
+    const mark = brand?.mark && brandStyles ? buildMark(doc, brand.mark) : null;
     function fillCard(el, c) {
       el.replaceChildren();
       if (!c) {
         el.hidden = true;
         return;
       }
+      if (mark) el.append(make2(doc, "div", { class: "mark" }, mark.cloneNode(true)));
       el.append(make2(doc, "h1", {}, c.title));
+      if (c.kicker) el.append(make2(doc, "p", { class: "kicker" }, c.kicker));
       if (c.lines.length) el.append(make2(doc, "ul", {}, ...c.lines.map((l) => make2(doc, "li", {}, l))));
       el.hidden = false;
     }
@@ -5931,6 +6050,7 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
       lingerCaptions: ui === "rehearse",
       ...ui === "rehearse" ? { reducedMotion: true } : {},
       title: config.tour.title,
+      ...config.cards ? { cards: config.cards } : {},
       onCommand: (c) => control(api, bridge, c)
     });
     api.overlay = overlay;
@@ -6024,7 +6144,7 @@ button.text { width: auto; padding: 0 14px; border-radius: 999px; font: 600 14px
         checkpoint: async ({ stepIndex, beatIndex, step, beat }) => {
           await nextFrame(n);
           await nextFrame(n);
-          const card = beat.card ? { title: beat.card.title, lines: beat.card.lines ?? [] } : null;
+          const card = beat.card ? { title: beat.card.title, ...beat.card.kicker ? { kicker: beat.card.kicker } : {}, lines: beat.card.lines ?? [] } : null;
           await bridge.checkpoint({ stepIndex, beatIndex, step: step.id, beat: beat.id, narration: (beat.narration ?? []).map(sentenceText), card });
           overlay.clearCaption();
         }

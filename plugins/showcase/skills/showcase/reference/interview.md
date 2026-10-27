@@ -89,10 +89,12 @@ The options are drafted from the explorers' reports.
 
 | Ask | Options |
 |---|---|
-| Narrator? | Your saved default (offered only if one exists) · Audition about 9 OpenRouter voices (a few cents) · The draft voice for now |
+| Narrator? | Your saved default (offered only if one exists) · Audition the shortlist: 9 British voices through OpenRouter and OpenAI's Fable through Requesty (a few cents) · The draft voice for now |
 | Language? | UK English · US English |
 | What must never be on screen? (multi) | People's names · Hostnames and internal URLs · Emails and customer data · Nothing sensitive |
 | Where should it be built? | Here, now (when the path allows) · An approved brief handed to `/planning:roadmap` |
+
+An audition voice needs its provider's key (`OPENROUTER_API_KEY` or `REQUESTY_API_KEY`, `showcase keys status`); without it that voice is skipped, unspent. To compare deliveries of one voice (Fable warm against Fable brisk, say), list them in `voice.audition` with their own `instructions` (`showcase docs voice`).
 
 **Here, now** is offered only if all of these hold: the deliverables are a film and/or live demo; one tour of 3 minutes or less; determinism needs config only, no app code. Otherwise the last question isn't asked: say why, and take the roadmap path (`showcase docs roadmap-brief`).
 
@@ -136,6 +138,7 @@ On the roadmap path, every answer also goes into `showcase/BRIEF.md` §1, word f
 
 ```json
 { "narrator": { "model": "elevenlabs/eleven-v3", "voice": "george" }, "language": "en-GB" }
+{ "narrator": { "provider": "requesty", "model": "openai/gpt-4o-mini-tts", "voice": "fable", "instructions": "Warm and unhurried." }, "language": "en-GB" }
 ```
 
 It holds no key and no approval: a new repo's narrator starts unapproved until its own final cut.

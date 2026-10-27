@@ -51,7 +51,7 @@ export interface Checkpoint {
   beat: string;
   /** The beat's sentences and card, for the spoken-number check. */
   narration: string[];
-  card: { title: string; lines: string[] } | null;
+  card: { title: string; kicker?: string; lines: string[] } | null;
 }
 
 export interface AssetData {

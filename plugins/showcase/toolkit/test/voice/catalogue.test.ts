@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { fetchCatalogue, offered } from "../../voice/catalogue.ts";
+import { fetchCatalogue, fetchRequestyCatalogue, OPENAI_TTS_VOICES, offered } from "../../voice/catalogue.ts";
 
 const body = {
   data: [
@@ -35,5 +35,31 @@ describe("catalogue", () => {
 
   it("fails clearly on an error status", async () => {
     await assert.rejects(fetchCatalogue((async () => new Response("", { status: 503 })) as typeof fetch), /returned 503/);
+  });
+});
+
+describe("Requesty's catalogue", () => {
+  const listing = { object: "list", data: [{ api: "speech", id: "openai/tts-1" }, { api: "speech", id: "openai/gpt-4o-mini-tts" }, { api: "speech", id: "openai/gpt-4o-mini-tts-2025-12-15" }, { id: null }] };
+
+  it("lists the speech models, with OpenAI's thirteen voices for gpt-4o-mini-tts, and sends no key", async () => {
+    let seen: { url: string; init: RequestInit | undefined } | null = null;
+    const fetchImpl = (async (u: unknown, init?: RequestInit) => {
+      seen = { url: String(u), init };
+      return new Response(JSON.stringify(listing), { status: 200 });
+    }) as typeof fetch;
+    const c = await fetchRequestyCatalogue(fetchImpl);
+    const s = seen as unknown as { url: string; init: RequestInit | undefined };
+    assert.equal(s.url, "https://router.requesty.ai/v1/models/speech");
+    assert.equal(new Headers(s.init?.headers).has("authorization"), false);
+    assert.deepEqual(c.map((m) => m.id), ["openai/gpt-4o-mini-tts", "openai/gpt-4o-mini-tts-2025-12-15", "openai/tts-1"]);
+    assert.equal(OPENAI_TTS_VOICES.length, 13);
+    assert.deepEqual(c[0]?.voices, [...OPENAI_TTS_VOICES]);
+    assert.ok(c[0]?.voices.includes("fable") && c[0]?.voices.includes("marin") && c[0]?.voices.includes("cedar"));
+    assert.deepEqual(offered(c, "openai/gpt-4o-mini-tts", "fable"), { model: true, voice: true });
+    assert.deepEqual(offered(c, "openai/gpt-4o-mini-tts", "george"), { model: true, voice: false });
+  });
+
+  it("fails clearly on an error status", async () => {
+    await assert.rejects(fetchRequestyCatalogue((async () => new Response("", { status: 500 })) as typeof fetch), /Requesty's catalogue returned 500/);
   });
 });

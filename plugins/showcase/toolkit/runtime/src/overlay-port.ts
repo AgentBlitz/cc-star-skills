@@ -17,7 +17,7 @@ export interface OverlayPort {
   /** Dims everything but the rectangle (null clears it), with its callout; it follows the element when given one. */
   spotlight(target: { rect: Rect; callout: Callout | null; element?: Element | null } | null): void;
   /** A title or closing card over the screen; null clears it. */
-  card(card: { title: string; lines: string[] } | null): void;
+  card(card: { title: string; kicker?: string; lines: string[] } | null): void;
   /** Watch captions: the sentence being spoken; null clears it. */
   caption(text: string | null): void;
   /** The shield clears while the host acts, so trusted input reaches the page. */

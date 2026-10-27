@@ -23,7 +23,7 @@ A tour is one JSON file, `showcase/tours/<id>.json`. It's the only source: the s
 - **Step:** `{id, title?, path?, ready?, beats[]}`: one screen. `path` is where it happens; `ready` must hold on arrival, before the first beat.
 - **Beat:** `{id, narration?, actions?, ready?, dwellMs?, card?}`. Beat ids are unique across the tour: the voice manifest and the film's events key on them. A beat lasts the longest of its narration, its actions and its `ready`, plus `dwellMs`.
 - **Sentence:** a string, or `{text, after}`: start once the beat's action `after` is done. One sentence is one caption.
-- **Card:** `{title, lines?}` on a beat shows a title card instead of the screen (openings and closes).
+- **Card:** `{title, kicker?, lines?}` on a beat shows a title card instead of the screen (openings and closes). The `kicker` (1.1) is a small line in capitals under the title, such as a product's descriptor. The card's look is `film.cards` (`showcase docs film`).
 
 ## meta
 
@@ -80,7 +80,7 @@ Every action has `id` (unique in its beat) and `kind`, and may have:
 | `spotlight` | `target`, `callout?: {title, body}` | Lights up the target; it holds for its sentence and clears when the pointer moves on |
 | `wait` | `ms` or `until` | Waits a fixed time or for a predicate |
 | `hold` | `ms` | Lets it be seen, on the tour's pace (fast-forward skips it) |
-| `card` | `title`, `lines?`, `ms?` | Shows a card over the screen mid-beat |
+| `card` | `title`, `kicker?`, `lines?`, `ms?` | Shows a card over the screen mid-beat |
 | `invoke` | `name`, `args?` | Calls an adapter action (in-app only) |
 | `camera` | `target?`, `scale?` (1–2), `end?` | Accepted and ignored in v1 (D19) |
 

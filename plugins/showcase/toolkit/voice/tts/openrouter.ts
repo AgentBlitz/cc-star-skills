@@ -69,7 +69,8 @@ export interface OpenRouterOptions {
 
 const realSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-function magicFormat(bytes: Buffer): AudioFormat | null {
+/** The container a response's bytes declare, or null (pcm has none). `requesty.ts` shares it. */
+export function magicFormat(bytes: Buffer): AudioFormat | null {
   if (bytes.length < 4) return null;
   const head = bytes.toString("latin1", 0, 4);
   if (head === "RIFF" && bytes.length >= 12 && bytes.toString("latin1", 8, 12) === "WAVE") return "wav";

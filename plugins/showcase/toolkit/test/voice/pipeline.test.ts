@@ -25,8 +25,8 @@ const ffmpeg = requireFfmpeg();
 const base = loadTour(resolveTour(join(FIXTURE, "tours", "fixture-tour.json"))).tour as Tour;
 const SENTENCES = base.steps.flatMap((s) => s.beats).flatMap((b) => b.narration ?? []).length;
 
-const draftOnly: VoiceSetup = { narrator: null, approved: false, draft: { provider: "fake", voice: "tone", rate: 0 }, draftWarning: null, apiKey: undefined, keySource: null, keyProblem: null };
-const narrator: VoiceSetup = { ...draftOnly, narrator: { model: "vendor/model-a", voice: "v" }, apiKey: CANARY, keySource: "environment" };
+const draftOnly: VoiceSetup = { narrator: null, approved: false, draft: { provider: "fake", voice: "tone", rate: 0 }, draftWarning: null, apiKey: undefined, keyName: "OPENROUTER_API_KEY", keys: {}, keySource: null, keyProblem: null };
+const narrator: VoiceSetup = { ...draftOnly, narrator: { provider: "openrouter", model: "vendor/model-a", voice: "v" }, apiKey: CANARY, keys: { openrouter: CANARY }, keySource: "environment" };
 
 function dirs() {
   const root = scratch("showcase-voice-");

@@ -214,10 +214,18 @@
             "voice"
           ],
           "properties": {
+            "provider": {
+              "enum": [
+                "openrouter",
+                "requesty"
+              ],
+              "default": "openrouter",
+              "description": "Who voices it: OpenRouter (the default), or Requesty's router (OpenAI's gpt-4o-mini-tts, with its voices and `instructions`). Each needs its own key."
+            },
             "model": {
               "type": "string",
               "minLength": 1,
-              "description": "An OpenRouter speech model id."
+              "description": "A speech model id at the provider (`showcase voices --list`)."
             },
             "voice": {
               "type": "string",
@@ -225,7 +233,8 @@
             },
             "instructions": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "How to deliver it (tone, pace, accent), for models that honour it."
             },
             "speed": {
               "type": "number",
@@ -263,6 +272,46 @@
             }
           }
         },
+        "audition": {
+          "type": "array",
+          "minItems": 1,
+          "description": "The voices `voice --audition` tries, instead of the built-in shortlist. Two entries may share a voice with different `instructions`, to compare deliveries.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "model",
+              "voice"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$",
+                "description": "Names the row and its clips."
+              },
+              "provider": {
+                "enum": [
+                  "openrouter",
+                  "requesty"
+                ],
+                "default": "openrouter"
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1
+              },
+              "voice": {
+                "type": "string",
+                "minLength": 1
+              },
+              "instructions": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
         "lexicon": {
           "type": "object",
           "additionalProperties": {
@@ -294,8 +343,116 @@
           "default": true
         },
         "cards": {
-          "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "true: the title and closing cards in showcase's own look; or a brand for them. Everything is inlined, nothing fetched.",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "background",
+                "foreground",
+                "muted",
+                "accent"
+              ],
+              "properties": {
+                "background": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$",
+                  "description": "The card's background."
+                },
+                "foreground": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$",
+                  "description": "The title."
+                },
+                "muted": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$",
+                  "description": "The kicker and the lines."
+                },
+                "accent": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$",
+                  "description": "The mark."
+                },
+                "mark": {
+                  "type": "string",
+                  "pattern": "^[^/].*\\.svg$",
+                  "description": "An SVG file, relative to the repo root, drawn above the title. Only svg, g, path, circle, line and polyline survive, with presentation attributes; scripts and references are dropped."
+                },
+                "fonts": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "title": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "family",
+                        "file"
+                      ],
+                      "description": "The title's face.",
+                      "properties": {
+                        "family": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "file": {
+                          "type": "string",
+                          "pattern": "^[^/].*\\.woff2$",
+                          "description": "A woff2 file, relative to the repo root; inlined, never fetched."
+                        }
+                      }
+                    },
+                    "lines": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "family",
+                        "file"
+                      ],
+                      "description": "The lines' face.",
+                      "properties": {
+                        "family": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "file": {
+                          "type": "string",
+                          "pattern": "^[^/].*\\.woff2$",
+                          "description": "A woff2 file, relative to the repo root; inlined, never fetched."
+                        }
+                      }
+                    },
+                    "kicker": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "family",
+                        "file"
+                      ],
+                      "description": "The kicker's face, set in capitals.",
+                      "properties": {
+                        "family": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "file": {
+                          "type": "string",
+                          "pattern": "^[^/].*\\.woff2$",
+                          "description": "A woff2 file, relative to the repo root; inlined, never fetched."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
         },
         "targetSec": {
           "type": "integer",

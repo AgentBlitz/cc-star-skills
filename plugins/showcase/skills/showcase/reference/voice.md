@@ -1,11 +1,11 @@
 # Voice
 
-How a tour's narration becomes audio: `showcase voice <tour>` voices every sentence through one pipeline, and `--audition` helps the user choose the narrator by ear. Drafts cost nothing; the narrator costs a few cents a minute through OpenRouter.
+How a tour's narration becomes audio: `showcase voice <tour>` voices every sentence through one pipeline, and `--audition` helps the user choose the narrator by ear. Drafts cost nothing; the narrator costs a few cents a minute through OpenRouter or Requesty.
 
 ## The pipeline
 
 ```
-tour sentence ─► lexicon ─► TTS (OpenRouter | say | fake) ─► raw cache
+tour sentence ─► lexicon ─► TTS (OpenRouter | Requesty | say | fake) ─► raw cache
               ─► trim ─► ebur128 measure ─► gain to −16 LUFS ─► alimiter ─► soxr 24 kHz mono
               ─► 30 ms lead, 80 ms tail ─► MP3 64k ─► <voice.dir>/<hash>.mp3 + <tour>.manifest.json
 ```
@@ -16,7 +16,7 @@ tour sentence ─► lexicon ─► TTS (OpenRouter | say | fake) ─► raw cac
 
 ## Keys
 
-One key, `OPENROUTER_API_KEY`, reaches every narrator. It lives in one user-level file, read in every repo, so it travels with the user rather than with the code:
+Each narrator provider has one key: `OPENROUTER_API_KEY` for OpenRouter (the default), `REQUESTY_API_KEY` for Requesty (from 1.1). Both live in one user-level file, read in every repo, so they travel with the user rather than with the code:
 
 ```
 ${SHOWCASE_CONFIG_DIR:-${XDG_CONFIG_HOME:-~/.config}/showcase}/.env      file 600, directory 700
@@ -28,31 +28,39 @@ ${SHOWCASE_CONFIG_DIR:-${XDG_CONFIG_HOME:-~/.config}/showcase}/.env      file 60
 
 | Command | Does |
 |---|---|
-| `showcase keys status` | Each variable: `set` or `unset`, and where from (`OPENROUTER_API_KEY  set  (user file)`). Never a value |
+| `showcase keys status` | Each variable, both keys included: `set` or `unset`, and where from (`REQUESTY_API_KEY  set  (user file)`). Never a value |
 | `showcase keys init` | Creates the directory and file with the right modes and commented template lines, no key |
-| `showcase keys import <file>` | Copies only the `OPENROUTER_API_KEY` line from another file (a repo's `.env.local`), without printing it. `--force` replaces one already set |
-| `showcase keys test` | Checks the key with OpenRouter's free `GET /api/v1/key`, never a synthesis |
-| `showcase keys set` | Asks for the key with hidden input. It refuses without a terminal, so only the user's own terminal can run it |
+| `showcase keys import <file> [NAME]` | Copies only that key's line (`OPENROUTER_API_KEY` by default, or `REQUESTY_API_KEY`) from another file (a repo's `.env.local`), without printing it. `--force` replaces one already set |
+| `showcase keys test [NAME]` | Checks a key for free, never a synthesis: OpenRouter's `GET /api/v1/key`, Requesty's `GET /v1/manage/apikey/self` (a key may ask about itself; its id and name are never shown). Without a name, every key that is set |
+| `showcase keys set [NAME]` | Asks for the key (`OPENROUTER_API_KEY` by default, or `REQUESTY_API_KEY`) with hidden input. It refuses without a terminal, so only the user's own terminal can run it |
 
 **Claude's rules:**
 
 - **Never ask for the key in chat, and never print, read or `cat` the key file**, a `.env*` file or `showcase/.auth/`. The plugin's hook denies any tool call that names them.
-- To set it, the user runs `showcase shim` (once, for `~/.local/bin/showcase`) and then `showcase keys set` **in their own terminal**, or edits the file themselves.
+- To set it, the user runs `showcase shim` (once, for `~/.local/bin/showcase`) and then `showcase keys set` (or `showcase keys set REQUESTY_API_KEY`) **in their own terminal**, or edits the file themselves.
 - `keys import` only with the user's go, naming the file they chose.
-- Without the key everything still works on the draft voice; only the narrator and the audition's paid voices need it.
+- Without the key everything still works on the draft voice; only the narrator and the audition's paid voices need it. The narrator needs its own provider's key.
 
-Inside the toolkit, only `lib/env.ts` reads keys and only the OpenRouter provider sends one; every error passes through `redact()`; the app server gets its environment minus showcase's keys, and ffmpeg and Chromium a minimal allowlist.
+Inside the toolkit, only `lib/env.ts` reads keys and only the two providers send them, each its own; every error passes through `redact()`; the app server gets its environment minus showcase's keys, and ffmpeg and Chromium a minimal allowlist.
 
 ## Voices
 
 | Voice | What | Cost | Needs |
 |---|---|---|---|
-| **Narrator** | An OpenRouter speech model, `voice.narrator {model, voice, instructions?, speed?, approved}` | Paid; `--yes` required | `OPENROUTER_API_KEY` |
+| **Narrator** | A speech model at its provider, `voice.narrator {provider?, model, voice, instructions?, speed?, approved}`. `provider` is `"openrouter"` (the default, so a 1.0 config is unchanged) or `"requesty"` | Paid; `--yes` required | `OPENROUTER_API_KEY` or `REQUESTY_API_KEY` |
 | **Draft** | macOS `say` (Daniel, 24 kHz) | Free | macOS. Off macOS, or without `say`, a fake tone is used, with a warning |
 | **Fake** | A sine tone, length = characters ÷ 16 seconds | Free | ffmpeg; for tests |
 
 - `SHOWCASE_TTS_MODEL`, `SHOWCASE_TTS_VOICE`, `SHOWCASE_TTS_INSTRUCTIONS` and `SHOWCASE_TTS_SPEED` override the narrator for one run (process environment, an ignored `.env.local`, or the user key file).
 - `voice.draft` is `{provider: "say" | "fake", voice?}`.
+- OpenAI's `gpt-4o-mini-tts` (its voices include **Fable**) is reached through Requesty, never by calling OpenAI directly:
+
+  ```json
+  "narrator": { "provider": "requesty", "model": "openai/gpt-4o-mini-tts", "voice": "fable",
+                "instructions": "Warm and unhurried, like a colleague showing you round." }
+  ```
+
+  `instructions` steer the delivery (tone, pace, accent); they are part of the synth key, so a new delivery is a new take. Fix pacing by rewording, not `speed`.
 
 ## Commands
 
@@ -113,19 +121,31 @@ Keys are sorted and nothing is timestamped, so a re-run that changes nothing cha
 
 ## The audition
 
-`showcase voice <tour> --audition [--yes] [--max-chars <n>]` writes a page with three sample lines for each voice on the British shortlist, plus the draft voice, and nothing else changes.
+`showcase voice <tour> --audition [--yes] [--max-chars <n>]` writes a page with three sample lines for each voice on the shortlist, plus the draft voice, and nothing else changes.
 
-| Model | Voices |
-|---|---|
-| `elevenlabs/eleven-v3` | george, daniel, alice, lily |
-| `microsoft/mai-voice-2.1` | en-GB-Harry, en-GB-Emily |
-| `google/gemini-3.8-flash-tts` | Charon, Orus, Kore |
+| Provider | Model | Voices |
+|---|---|---|
+| OpenRouter | `elevenlabs/eleven-v3` | george, daniel, alice, lily |
+| OpenRouter | `microsoft/mai-voice-2.1` | en-GB-Harry, en-GB-Emily |
+| OpenRouter | `google/gemini-3.8-flash-tts` | Charon, Orus, Kore |
+| Requesty | `openai/gpt-4o-mini-tts` | fable |
+
+**Your own list.** `voice.audition` in `showcase/config.json` replaces the shortlist: entries `{id, provider?, model, voice, instructions?}`. Two entries may share a voice with different `instructions`, so two deliveries are compared side by side:
+
+```json
+"audition": [
+  { "id": "fable-warm",  "provider": "requesty", "model": "openai/gpt-4o-mini-tts", "voice": "fable", "instructions": "Warm and unhurried." },
+  { "id": "fable-brisk", "provider": "requesty", "model": "openai/gpt-4o-mini-tts", "voice": "fable", "instructions": "Brisk and clear." },
+  { "id": "marin",       "provider": "requesty", "model": "openai/gpt-4o-mini-tts", "voice": "marin" }
+]
+```
+
 
 - The lines are the tour's opening, its line with the most figures and its closing. If they would push the cost over the budget (**1,500 characters** by default, across all voices), the shortest lines that fit are used.
-- With the key, `--yes` is required, because it is paid (a few cents). Without the key the page still gets the draft voice, and each other voice is marked skipped.
-- Shortlisted voices the live catalogue no longer offers are skipped, unspent. `showcase voices --list` shows what is offered, with no key.
+- With a key, `--yes` is required, because it is paid (a few cents). A voice whose provider has no key is marked skipped (`no REQUESTY_API_KEY`); with no key at all the page still gets the draft voice.
+- Voices their provider's live catalogue no longer offers are skipped, unspent. `showcase voices --list` shows what is offered, with no key.
 - The raw audio is cached, so rerunning the audition costs nothing.
-- Afterwards the user chooses by ear. Put the chosen `model` and `voice` in `voice.narrator` in `showcase/config.json` and set `approved` to the date once they sign it off (Round 5 of the interview), then run `showcase voice <tour> --final --yes`.
+- Afterwards the user chooses by ear. Put the chosen row's `provider`, `model`, `voice` and any `instructions` in `voice.narrator` in `showcase/config.json` and set `approved` to the date once they sign it off (Round 5 of the interview), then run `showcase voice <tour> --final --yes`.
 
 ## OpenRouter details
 
@@ -135,10 +155,18 @@ Keys are sorted and nothing is timestamped, so a re-run that changes nothing cha
 - **Retries:** network errors, timeouts, 429 and 5xx, three times, after 1, 3 and 9 s (or the `Retry-After`, capped at two minutes).
 - **Never retried:** 401 and 403 (a rejected key) and 402 (no credits). Their bodies are never read or printed, and one of them stops the queue so nothing more is spent.
 
+## Requesty details
+
+- `POST https://router.requesty.ai/v1/audio/speech`, OpenAI-compatible: `{model, voice, input, instructions, response_format}` and a bearer key. One request takes at most 4,096 characters.
+- The catalogue is `GET /v1/models/speech` (public). It lists model ids only, so `voices --list` names OpenAI's 13 voices for `openai/gpt-4o-mini-tts`: alloy, ash, ballad, coral, echo, fable, nova, onyx, sage, shimmer, verse, marin and cedar.
+- **Format chain:** wav → pcm (24 kHz, 16-bit mono) → mp3, remembered per model as OpenRouter's is (as `requesty:<model>` in `formats.json`).
+- **Retries and refusals** are OpenRouter's: network errors, timeouts, 429 and 5xx three times after 1, 3 and 9 s (or a capped `Retry-After`); 401, 403 and 402 never, unread, and they stop the queue. Errors arrive as `{"error": {"origin", "message"}}`; the message is redacted before it is shown.
+- **OpenAI's `gpt-4o-mini-tts` is due to shut down on 6 January 2027.** Committed clips keep re-rendering after that; re-voicing needs another narrator.
+
 ## Cost
 
 - **Drafts, `say` and the fake are free**, and so are `voices --list`, `keys test` and `voice --check`.
-- **The narrator** is billed by OpenRouter per character, at the model's own rate: a two-minute film is about 1,500 characters, typically a few cents. Check the model's price on OpenRouter before a long film.
+- **The narrator** is billed by its provider per character, at the model's own rate (`gpt-4o-mini-tts` through Requesty: about $0.015 a minute): a two-minute film is about 1,500 characters, typically a few cents. Check the model's price on OpenRouter before a long film.
 - **The pre-scan:** run `showcase voice <tour>` without `--yes` first. A run that needs paid calls is refused, saying how many sentences and characters it would send (`--dry-run` lists the sentences). Show those numbers to the user and get their go before adding `--yes`.
 - **Caps:** `--max-chars` (default `voice.maxChars`, else 20,000) refuses a bigger run even with `--yes`; the audition stays under 1,500 characters across all voices.
 - **Nothing is paid for twice:** raw audio is cached by synth key, so re-processing, a lexicon change on other sentences, or a re-render costs nothing. Only edited sentences and `--redo` takes are new spend.
@@ -154,7 +182,7 @@ Keys are sorted and nothing is timestamped, so a re-run that changes nothing cha
 ## Troubleshooting
 
 - **"there is no narrator":** choose one with `--audition`, then set `voice.narrator`.
-- **"OPENROUTER_API_KEY is unset" / "mode 644":** run `showcase keys status`; the user fixes the file or runs `showcase keys set`.
-- **"rejected the key (401)":** `showcase keys test` checks it, free.
+- **"OPENROUTER_API_KEY is unset" / "REQUESTY_API_KEY is unset" / "mode 644":** run `showcase keys status`; the user fixes the file or runs `showcase keys set [NAME]`.
+- **"rejected the key (401)":** `showcase keys test [NAME]` checks it, free.
 - **"no credits (402)":** the account needs topping up, or use `--draft`.
 - **Everything is `stale` after a plugin update:** the processing chain changed (`chain` in the post settings); rerun `voice`. It re-processes from the raw cache without spending.

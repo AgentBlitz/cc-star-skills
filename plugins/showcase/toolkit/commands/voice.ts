@@ -4,7 +4,7 @@ import { loadValidTour, projectOf, type Project } from "../host/project.ts";
 import { cacheDir } from "../lib/paths.ts";
 import { requireFfmpeg } from "../voice/audio.ts";
 import { audition, AUDITION_MAX_CHARS } from "../voice/audition.ts";
-import { fetchCatalogue, type SpeechModel } from "../voice/catalogue.ts";
+import { fetchCatalogue, fetchRequestyCatalogue, type SpeechModel } from "../voice/catalogue.ts";
 import { DEFAULT_MAX_CHARS, type Mode, type Report, run, sentencesOf, VoiceRefusal } from "../voice/pipeline.ts";
 import { loadSetup } from "../voice/setup.ts";
 import { type Command, UsageError } from "./types.ts";
@@ -53,13 +53,13 @@ export const voice: Command = {
     "Usage: showcase voice <tour> [--draft | --final] [--check] [--yes] [--max-chars <n>] [--redo <beat/n>] [--prune] [--dry-run] [--audition] [--json]",
     "  Writes <voice.dir>/<id>.manifest.json and one MP3 per sentence. Re-runs redo only what is stale.",
     "  --draft          the offline voice (macOS `say`, else a tone): free, for timing",
-    "  --final          the narrator only (needs voice.narrator and OPENROUTER_API_KEY); fails on any draft clip",
+    "  --final          the narrator only (needs voice.narrator and its provider's key); fails on any draft clip",
     "  --check          report missing, stale, draft and fresh; no network, no key, no ffmpeg",
-    `  --yes            allow the paid OpenRouter calls (refused without it); --max-chars caps them (default ${DEFAULT_MAX_CHARS})`,
+    `  --yes            allow the paid narrator calls (refused without it); --max-chars caps them (default ${DEFAULT_MAX_CHARS})`,
     "  --redo <beat/n>  voice that sentence again with a new take (n counts from 0)",
     "  --prune          delete clips no manifest in the voice dir points to",
     "  --dry-run        say what would be voiced; change nothing",
-    `  --audition       write showcase/out/voices/index.html: three lines per voice on the British shortlist, plus the draft (default budget ${AUDITION_MAX_CHARS} characters)`,
+    `  --audition       write showcase/out/voices/index.html: three lines per voice on the shortlist (or voice.audition), plus the draft (default budget ${AUDITION_MAX_CHARS} characters)`,
     "The pacing table warns outside 120–185 wpm and outside the preset's narration window: rewrite the text, never speed the voice up.",
   ].join("\n"),
   options: {
@@ -88,19 +88,23 @@ export const voice: Command = {
     try {
       if (values.audition) {
         const outDir = project.showcaseDir ? join(project.showcaseDir, "out", "voices") : resolve("showcase-out", "voices");
-        const catalogue = await fetchCatalogue().catch((): SpeechModel[] | undefined => undefined);
-        if (!catalogue) log.warn("the catalogue couldn't be fetched: every shortlisted voice will be tried");
+        const none = (): SpeechModel[] | undefined => undefined;
+        const [openrouter, requesty] = await Promise.all([fetchCatalogue().catch(none), fetchRequestyCatalogue().catch(none)]);
+        if (!openrouter || !requesty) log.warn(`${!openrouter ? "OpenRouter's" : "Requesty's"}${!openrouter && !requesty ? " and Requesty's catalogues" : " catalogue"} couldn't be fetched: every candidate there will be tried`);
+        const catalogue = { ...(openrouter ? { openrouter } : {}), ...(requesty ? { requesty } : {}) };
+        const candidates = config.voice.audition;
+        const keyed = Object.keys(setup.keys).length > 0;
         const maxChars = maxCharsOf(values["max-chars"], AUDITION_MAX_CHARS) as number;
         if (values["dry-run"]) {
-          log.result({ audition: true, dryRun: true, key: Boolean(setup.apiKey) }, () => `dry run: would write ${join(outDir, "index.html")}${setup.apiKey ? ` using OpenRouter (up to ${maxChars} characters)` : " with the draft voice only (no key)"}`);
+          log.result({ audition: true, dryRun: true, key: keyed }, () => `dry run: would write ${join(outDir, "index.html")}${keyed ? ` using ${Object.keys(setup.keys).join(" and ")} (up to ${maxChars} characters)` : " with the draft voice only (no key)"}`);
           return 0;
         }
-        const result = await audition({ sentences: sentencesOf(tour, config.voice.lexicon), title: tour.title, outDir, cacheDir: cache, setup, ffmpeg: requireFfmpeg(), catalogue, yes: Boolean(values.yes), maxChars, say: (l) => log.info(l) });
+        const result = await audition({ sentences: sentencesOf(tour, config.voice.lexicon), title: tour.title, outDir, cacheDir: cache, setup, ffmpeg: requireFfmpeg(), catalogue, ...(candidates ? { candidates } : {}), yes: Boolean(values.yes), maxChars, say: (l) => log.info(l) });
         log.result({ ...result }, () => [
           `wrote ${result.file}`,
           `${result.voices.filter((v) => v.clips.some(Boolean)).length}/${result.voices.length} voices voiced · ${result.samples.length} lines · ${result.charsSent} characters sent`,
           ...result.voices.filter((v) => v.skipped).map((v) => `  skipped ${v.id}: ${v.skipped}`),
-          ...(setup.apiKey ? [] : ["no OPENROUTER_API_KEY: only the draft voice has clips (see `showcase keys status`)"]),
+          ...(keyed ? [] : ["no OPENROUTER_API_KEY or REQUESTY_API_KEY: only the draft voice has clips (see `showcase keys status`)"]),
         ]);
         return 0;
       }

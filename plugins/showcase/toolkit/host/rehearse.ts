@@ -24,7 +24,7 @@ import { beatPlanMs } from "../runtime/src/narrative.ts";
 import { type SyntheticGap, syntheticGaps } from "../runtime/src/in-app.ts";
 import { beatsOf, type Tour } from "../runtime/src/schema.ts";
 import { type Host, launchHost } from "./launch.ts";
-import { appUrl, browserSettings, openSession, type Project } from "./project.ts";
+import { appUrl, browserSettings, cardsFor, openSession, type Project } from "./project.ts";
 
 export const REHEARSE_SPEED = 10;
 
@@ -189,7 +189,7 @@ export async function rehearse(o: RehearseOptions): Promise<RehearseReport> {
       shot += 1;
       const name = `${String(shot).padStart(2, "0")}-${c.beat}.png`;
       const text = String(await h.page.evaluate("__showcase.visibleText()"));
-      const screen = [text, c.card?.title ?? "", ...(c.card?.lines ?? [])].join("\n");
+      const screen = [text, c.card?.title ?? "", c.card?.kicker ?? "", ...(c.card?.lines ?? [])].join("\n");
       const deny = denyHits(screen, p.config.privacy.deny);
       const missing = rule === "on-screen-only" ? missingNumbers(c.narration, screen) : [];
       await h.page.screenshot({ path: join(stills, name) });
@@ -209,6 +209,7 @@ export async function rehearse(o: RehearseOptions): Promise<RehearseReport> {
       ...(o.synthetic ? { input: "synthetic" as const } : {}),
       headless: true,
       browser: browserSettings(p),
+      cards: cardsFor(p),
       assetsDir: o.assetsDir ?? p.showcaseDir ?? p.root,
       onCheckpoint,
       ...(o.marker ? { marker: o.marker } : {}),

@@ -1,4 +1,5 @@
 import type { OverlayPort } from "../overlay-port.ts";
+import { type CardBrand, type MarkNode } from "./brand.ts";
 import { type TopLayer } from "./top-layer.ts";
 export declare const OVERLAY_TAG = "showcase-overlay";
 export declare const CONTROLS_TAG = "showcase-controls";
@@ -40,6 +41,8 @@ export interface OverlayOptions {
     reducedMotion?: boolean;
     /** The tour's title, for the end card. */
     title?: string;
+    /** `film.cards` as a brand (colours, mark, fonts); absent or null: showcase's own look. */
+    cards?: CardBrand | null;
     onCommand?: (command: ControlCommand) => void;
 }
 export interface Overlay extends OverlayPort {
@@ -52,4 +55,6 @@ export interface Overlay extends OverlayPort {
     /** Re-shows the overlay on top and puts the controls where they can be clicked. */
     raise(): void;
 }
+/** Builds a sanitised mark (sanitised again here: the overlay trusts no input). */
+export declare function buildMark(doc: Document, mark: MarkNode): SVGElement | null;
 export declare function createOverlay(options: OverlayOptions): Overlay;

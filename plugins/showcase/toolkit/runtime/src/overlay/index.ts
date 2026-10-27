@@ -17,8 +17,9 @@
 import { type Rect, rectOf } from "../anchors.ts";
 import { Aborted } from "../clock.ts";
 import type { Callout, OverlayPort } from "../overlay-port.ts";
+import { brandCss, brandFontCss, type CardBrand, type MarkNode, sanitiseMark } from "./brand.ts";
 import { placeCallout } from "./place.ts";
-import { CONTROLS_CSS, FONT_CSS, OVERLAY_CSS } from "./styles.ts";
+import { CARD_CSS, CONTROLS_CSS, FONT, FONT_CSS, OVERLAY_CSS } from "./styles.ts";
 import { safeMatches, type TopLayer, topmostAutoPopover, topmostModal } from "./top-layer.ts";
 
 export const OVERLAY_TAG = "showcase-overlay";
@@ -65,6 +66,8 @@ export interface OverlayOptions {
   reducedMotion?: boolean;
   /** The tour's title, for the end card. */
   title?: string;
+  /** `film.cards` as a brand (colours, mark, fonts); absent or null: showcase's own look. */
+  cards?: CardBrand | null;
   onCommand?: (command: ControlCommand) => void;
 }
 
@@ -125,6 +128,22 @@ function pointerSvg(doc: Document): SVGSVGElement {
   return svg;
 }
 
+/** Builds a sanitised mark (sanitised again here: the overlay trusts no input). */
+export function buildMark(doc: Document, mark: MarkNode): SVGElement | null {
+  const safe = sanitiseMark(mark);
+  if (!safe) return null;
+  const build = (n: MarkNode): SVGElement => {
+    const el = doc.createElementNS(SVG, n.tag) as SVGElement;
+    for (const [k, v] of Object.entries(n.attrs)) el.setAttribute(k, v);
+    for (const c of n.children) el.append(build(c));
+    return el;
+  };
+  const svg = build(safe);
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  return svg;
+}
+
 function sheetOf(doc: Document, css: string): CSSStyleSheet | null {
   try {
     const View = doc.defaultView as (Window & typeof globalThis) | null;
@@ -139,17 +158,21 @@ function sheetOf(doc: Document, css: string): CSSStyleSheet | null {
 
 const FONT_MARK = "__showcaseFonts";
 
-/** `@font-face` only works at document level, so the fonts are declared there, once. */
-function declareFonts(doc: Document): void {
+const BRAND_FONT_MARK = "__showcaseBrandFonts";
+
+/** `@font-face` only works at document level, so the fonts are declared there, once (a brand's once per brand). */
+function declareFonts(doc: Document, brandFonts = ""): void {
   const d = doc as unknown as Record<string, unknown>;
-  if (d[FONT_MARK]) return;
-  const sheet = sheetOf(doc, FONT_CSS);
-  if (!sheet) return;
-  try {
-    doc.adoptedStyleSheets = [...doc.adoptedStyleSheets, sheet];
-    d[FONT_MARK] = true;
-  } catch {
-    // The page froze its stylesheets: system fonts it is.
+  for (const [mark, css] of [[FONT_MARK, FONT_CSS], [BRAND_FONT_MARK, brandFonts]] as const) {
+    if (!css || d[mark] === css) continue;
+    const sheet = sheetOf(doc, css);
+    if (!sheet) continue;
+    try {
+      doc.adoptedStyleSheets = [...doc.adoptedStyleSheets, sheet];
+      d[mark] = css;
+    } catch {
+      // The page froze its stylesheets: system fonts it is.
+    }
   }
 }
 
@@ -173,14 +196,18 @@ export function createOverlay(options: OverlayOptions): Overlay {
   const wantsControls = options.controls ?? ui === "watch";
   const wantsCaptions = options.captions ?? ui !== "film";
 
-  declareFonts(doc);
+  const brand = options.cards ?? null;
+  const brandStyles = brand ? brandCss(brand, FONT) : null;
+  declareFonts(doc, brand && brandStyles ? brandFontCss(brand) : "");
 
   // ——— The drawing ———
   const host = make(doc, OVERLAY_TAG, { popover: "manual", "aria-hidden": "true", "data-ui": ui, "data-controls": wantsControls ? "on" : "off" });
   if (reduced) host.setAttribute("data-motion", "reduce");
   const root = host.attachShadow({ mode: "open" });
-  const sheet = sheetOf(doc, OVERLAY_CSS);
-  if (sheet) root.adoptedStyleSheets = [sheet];
+  root.adoptedStyleSheets = [OVERLAY_CSS, CARD_CSS, brandStyles].flatMap((css) => {
+    const sheet = css ? sheetOf(doc, css) : null;
+    return sheet ? [sheet] : [];
+  });
 
   const card = make(doc, "div", { class: "card", hidden: "" });
   const spot = make(doc, "div", { class: "spot", hidden: "" });
@@ -365,13 +392,16 @@ export function createOverlay(options: OverlayOptions): Overlay {
     captionText.textContent = text ?? "";
     captions.hidden = text === null;
   }
-  function fillCard(el: HTMLElement, c: { title: string; lines: string[] } | null): void {
+  const mark = brand?.mark && brandStyles ? buildMark(doc, brand.mark) : null;
+  function fillCard(el: HTMLElement, c: { title: string; kicker?: string; lines: string[] } | null): void {
     el.replaceChildren();
     if (!c) {
       el.hidden = true;
       return;
     }
+    if (mark) el.append(make(doc, "div", { class: "mark" }, mark.cloneNode(true) as SVGElement));
     el.append(make(doc, "h1", {}, c.title));
+    if (c.kicker) el.append(make(doc, "p", { class: "kicker" }, c.kicker));
     if (c.lines.length) el.append(make(doc, "ul", {}, ...c.lines.map((l) => make(doc, "li", {}, l))));
     el.hidden = false;
   }

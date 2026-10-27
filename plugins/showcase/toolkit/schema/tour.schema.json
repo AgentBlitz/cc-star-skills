@@ -638,6 +638,11 @@
           "type": "string",
           "minLength": 1
         },
+        "kicker": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A small line in capitals under the title (showcase 1.1)."
+        },
         "lines": {
           "type": "array",
           "items": {
@@ -1718,6 +1723,11 @@
             "title": {
               "type": "string",
               "minLength": 1
+            },
+            "kicker": {
+              "type": "string",
+              "minLength": 1,
+              "description": "A small line in capitals under the title (showcase 1.1)."
             },
             "lines": {
               "type": "array",
