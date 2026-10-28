@@ -49,9 +49,24 @@ export const FILM_EVENT_NAME = "showcase:film";
 export const FILM_LOG_KEY = "__showcaseFilmLog";
 
 /**
+ * The events the host stamps itself: `nav`, from Chrome's navigation messages. The host stamps
+ * one with its own `Date.now()` when the message reaches it, and the page's events arrive by
+ * another channel, so a page event made a moment before the host heard of the navigation can be
+ * listed after it. The two clocks agree (the page's `t` and `Date.now()` are within 1 ms); the
+ * host's stamp is late by the message's delivery, a few ms.
+ */
+export const HOST_EVENTS: ReadonlySet<FilmEventType> = new Set(["nav"]);
+
+/** How far a host stamp and a page stamp may disagree (ms): under a frame at 60 fps. */
+export const HOST_SKEW_MS = 15;
+
+/**
  * Whether a run's events are in a valid order: armed once, started once, beats in index order
  * with their sentences inside them and never overlapping, `seq` strictly increasing, `t` never
  * going back within a document, one ending. Returns the problems found; none means valid.
+ *
+ * `t` is checked with no slack between two page stamps, or between two host stamps. Between a
+ * host stamp and a page stamp (`HOST_EVENTS`), either may lead by up to `HOST_SKEW_MS`.
  */
 export function filmOrderProblems(events: readonly FilmEvent[]): string[] {
   const problems: string[] = [];
@@ -63,7 +78,9 @@ export function filmOrderProblems(events: readonly FilmEvent[]): string[] {
   let speaking: number | null = null;
   let seq = Number.NEGATIVE_INFINITY;
   let doc = Number.NEGATIVE_INFINITY;
-  let t = Number.NEGATIVE_INFINITY;
+  // The latest page stamp and the latest host stamp in this document.
+  let pageT = Number.NEGATIVE_INFINITY;
+  let hostT = Number.NEGATIVE_INFINITY;
 
   for (const [i, e] of events.entries()) {
     const at = `#${i} ${e.type}`;
@@ -71,10 +88,19 @@ export function filmOrderProblems(events: readonly FilmEvent[]): string[] {
     if (!(e.seq > seq)) problems.push(`${at}: seq ${e.seq} after ${seq}`);
     seq = e.seq;
     if (e.doc < doc) problems.push(`${at}: doc ${e.doc} after ${doc}`);
-    if (e.doc === doc && e.t < t) problems.push(`${at}: time went back`);
-    if (e.doc !== doc) t = Number.NEGATIVE_INFINITY;
+    if (e.doc !== doc) {
+      pageT = Number.NEGATIVE_INFINITY;
+      hostT = Number.NEGATIVE_INFINITY;
+    }
     doc = e.doc;
-    t = e.t;
+    const host = HOST_EVENTS.has(e.type);
+    const same = (host ? hostT : pageT) - e.t;
+    const other = (host ? pageT : hostT) - e.t;
+    const ms = (n: number) => Math.round(n * 10) / 10;
+    if (same > 0) problems.push(`${at}: time went back ${ms(same)} ms`);
+    else if (other > HOST_SKEW_MS) problems.push(`${at}: time went back ${ms(other)} ms across host and page stamps (at most ${HOST_SKEW_MS})`);
+    if (host) hostT = Math.max(hostT, e.t);
+    else pageT = Math.max(pageT, e.t);
     if (ended) problems.push(`${at}: after the film ended`);
     switch (e.type) {
       case "film:armed":

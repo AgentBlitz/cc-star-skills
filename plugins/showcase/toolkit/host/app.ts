@@ -230,10 +230,44 @@ async function waitHealthy(url: string, child: ChildProcess | null, timeoutMs: n
   throw new Error(`the app wasn't healthy after ${Math.round(timeoutMs / 1000)} s: ${url} (${last})`);
 }
 
+/** Whether `url` answers within `ms` with a status below `below`. */
+async function answers(url: string, ms: number, below = 400): Promise<boolean> {
+  try {
+    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(ms) });
+    await res.arrayBuffer().catch(() => null);
+    return res.status < below;
+  } catch {
+    return false;
+  }
+}
+
+/** How long the app has, after its reset, to answer at its URL. */
+export const ANSWER_TIMEOUT_MS = 30_000;
+
+/**
+ * After the reset, before the tour opens: the app answers at its own URL, and `app.start` hasn't
+ * failed. Health can pass on an instance from an earlier run while `app.start` is still bringing
+ * the new one up, and a reset can take the app down; either way the film would open a dead page.
+ */
+async function waitAnswering(url: string, child: ChildProcess, after: string, timeoutMs: number): Promise<void> {
+  const started = Date.now();
+  for (;;) {
+    if (child.exitCode !== null && child.exitCode !== 0) {
+      throw new Error(`app.start failed (exit ${child.exitCode}) after the app answered: it may have been an earlier instance answering, not the one app.start was starting (see the app log)`);
+    }
+    // Any page but a server error: the tour may start somewhere other than `/`.
+    if (await answers(url, 5_000, 500)) return;
+    if (Date.now() - started > timeoutMs) {
+      throw new Error(`the app isn't answering at ${url} after ${after} (waited ${Math.round(timeoutMs / 1000)} s): check that app.start brought every part up, then film again (see the app log)`);
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+}
+
 /**
  * Brings the app up (PLAN §2.5 "Take"): build → snapshot → start on its own port → health →
- * reset. With no `start` command, or an explicit URL, it only checks health: the app is the
- * user's (a deployed site, or a server they run).
+ * reset → answering at its URL. With no `start` command, or an explicit URL, it only checks
+ * health: the app is the user's (a deployed site, or a server they run).
  */
 export async function startApp(app: Config["app"], o: StartOptions): Promise<App> {
   const say = o.say ?? (() => {});
@@ -275,6 +309,8 @@ export async function startApp(app: Config["app"], o: StartOptions): Promise<App
     await runHook(app.snapshot, "app.snapshot", vars, run);
   }
   const start = fill(app.start as string, vars);
+  const health = new URL(app.health ?? "/", `${url}/`).href;
+  if (await answers(health, 2_000)) say(`note: ${health} answers before app.start runs (an earlier instance?), so health may pass before app.start has finished`);
   say(`starting: ${start}`);
   const child = spawn("sh", ["-c", start], { cwd: o.root, env, stdio: ["ignore", out, out], detached: true });
   const pid = child.pid ?? null;
@@ -299,11 +335,13 @@ export async function startApp(app: Config["app"], o: StartOptions): Promise<App
   };
   stopOnExit(pid);
   try {
-    await waitHealthy(new URL(app.health ?? "/", `${url}/`).href, child, timeoutMs);
-    if (reset && app.reset) {
+    await waitHealthy(health, child, timeoutMs);
+    const didReset = reset && !!app.reset;
+    if (didReset) {
       say("resetting");
-      await runHook(app.reset, "app.reset", vars, run);
+      await runHook(app.reset as Hook, "app.reset", vars, run);
     }
+    await waitAnswering(`${url}/`, child, didReset ? "app.reset" : "health", Math.min(timeoutMs, ANSWER_TIMEOUT_MS));
   } catch (e) {
     await stop();
     throw e;

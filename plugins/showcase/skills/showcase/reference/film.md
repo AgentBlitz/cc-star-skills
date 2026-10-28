@@ -13,7 +13,7 @@ How a tour becomes a finished, verified film: `showcase film <tour>` plays the t
 ## The pipeline
 
 ```
-app (own port, snapshot, reset, health) ─► headless Chromium at browser.scale, fixed clock
+app (own port, snapshot, health, reset, answering) ─► headless Chromium at browser.scale, fixed clock
   ─► runtime in film mode ─► CDP screencast (JPEG q90, every frame) + events on the video's clock
   ─► 30 fps CFR schedule ─┬─► video.mp4               the picture: BT.601 full → BT.709 limited, x264 CRF 17
                           └─► <tour>[-draft].mp4      the same frames + ASS captions burned in after scaling
@@ -22,8 +22,9 @@ voice clips ─► mixed in Node at sentence:start − t0 ─► two-pass loudno
 ```
 
 - **Sound:** each clip is decoded once to 32-bit float at 48 kHz and summed where its sentence starts. A take's slices tile it, so sentences with no gate between them play back to back exactly as the take was read. Loudnorm runs twice (measure, then apply) and then resamples, because it works at 192 kHz inside.
-- **Captions:** one cue per sentence, at most 2 lines of 42 characters, wrapped greedily (the same rule as `check`'s T007). A voiced caption starts when its voice does: the sentence's start plus the clip's **onset**. A clip cut from a take (manifest v2) records its own onset, the half pause it opens with (often 100–400 ms); any other clip's is the 30 ms lead. Burned in by ffmpeg's `ass` filter in the bundled font, **Atkinson Hyperlegible Bold** (`toolkit/fonts/`, SIL Open Font License), so macOS and Linux match: 46 px, white on a 60 %-opaque dark box, bottom centre. In-page captions are for Watch only.
+- **Captions:** one cue per sentence, at most 2 lines of 42 characters, wrapped greedily (the same rule as `check`'s T007). A voiced caption starts when its voice does: the sentence's start plus the clip's **onset**. A clip cut from a take (manifest v2) records its own onset, the half pause it opens with (often 100–400 ms); any other clip's is the 30 ms lead. Each start then moves to the **nearest frame** (within 17 ms at 30 fps), never before the cue it follows ends, and the ASS start is rounded down to its centisecond, so the caption shows on that frame and not the next. Burned in by ffmpeg's `ass` filter in the bundled font, **Atkinson Hyperlegible Bold** (`toolkit/fonts/`, SIL Open Font License), so macOS and Linux match: 46 px, white on a 60 %-opaque dark box, bottom centre. In-page captions are for Watch only.
 - **The SRT** comes from the same timings as the burned-in captions.
+- **Before the tour opens**, the app must answer at its own URL after `app.reset` (any page but a server error, within 30 s), and `app.start` must not have failed. Otherwise the film stops there with the reason. Health can pass on an instance left from an earlier run while `app.start` is still starting the new one, so a start that recreates containers can be left half-done.
 - **Draft or final:** the film is `<tour>-draft.mp4`, with a DRAFT watermark top right, unless every sentence has a narrator clip and `voice.narrator.approved` is set. Then it's `<tour>.mp4`. Only one of the two is kept.
 
 ## Cards
@@ -90,14 +91,15 @@ Each check is ✓, ⚠ (a warning: fails only with `--strict`) or ✗ (a failure
 
 | Check | Rule | Level |
 |---|---|---|
-| size, cfr, codec, colour, frames, duration, keyframes, order | The picture is 1920×1080 CFR 30 fps H.264 High yuv420p BT.709, as long as the timeline, a keyframe at each beat | ✗ |
+| size, cfr, codec, colour, frames, duration, keyframes | The picture is 1920×1080 CFR 30 fps H.264 High yuv420p BT.709, as long as the timeline, a keyframe at each beat | ✗ |
+| order | The events are in a valid order: armed, started, beats in index order with their sentences inside them, `seq` rising, time never going back within a page, one ending. The host stamps `nav` events when Chrome's message reaches it, a few ms after the page's events of that moment, so a host stamp and a page stamp may disagree by up to 15 ms. Two page stamps, or two host stamps, may not | ✗ |
 | sync-probe | The clock-sync flash lands 0–100 ms after the page's time | ✗ |
 | motion-gap | No capture gap over 100 ms, except the held frame of a page load (`nav`) | ✗ |
 | duration-target | Within `meta.length.targetSec` ± max(5 s, 10 %) | ⚠ |
 | loudness, true-peak | −16 ± 1 LUFS integrated; true peak ≤ −1 dBTP, on the master | ⚠ |
 | silence | No silence over 2.5 s between the first sound and the last | ⚠ |
 | srt | One cue per sentence, in order, with the tour's text, ≤ 2 × 42, no overlaps, all before the end | ✗ |
-| av-sync | Each caption that follows a blank shows within 50 ms of its sound (measured in the master: the caption band against the picture's, the sound's onset in its own audio, both looked for from the sentence's start plus its clip's onset) | ⚠ |
+| av-sync | Each caption that follows a blank shows within 50 ms of its sound (measured in the master: the caption band against the picture's, and the speech's onset in its own audio, the first 10 ms above −35 dB, so the breath before a sentence isn't its sound; both looked for from the sentence's start plus its clip's onset, the sound from 100 ms before it) | ⚠ |
 | voiced | Every sentence has its clip | ⚠ |
 | audio, faststart, chapters | AAC 48 kHz stereo; `moov` before `mdat`; a chapter per beat | ✗ |
 | deny-list | The last rehearse was clean (✗ if not; ⚠ if there's none, or it's older than the tour) | ✗ / ⚠ |
@@ -117,4 +119,7 @@ The checks can't tell whether the film says the right thing. Read `contact-sheet
 | ⚠ deny-list: no rehearse | Run `showcase rehearse <tour>` (with the same `--out`, if any) |
 | ✗ motion-gap | Something stalled the capture: close heavy apps; try `--capture worker`; check `timeline.json` › `capture.pageStalls` (the page itself stalled) |
 | ⚠ silence | A long hold with nothing said: shorten the `hold`/`dwellMs`, or add a sentence |
+| ⚠ av-sync | Read `report.md`'s captions-against-sound table. Every row late by about the same amount points at the clips' onsets (re-cut the take: `showcase voice <tour>`); a few rows far out, at a sentence that starts softly or after a loud breath |
+| ✗ order: "time went back" | Two events of the same page out of order, or a page event more than 15 ms from the host's `nav` stamp: a runtime or host bug, worth reporting with `timeline.json` |
+| "the app isn't answering at … after app.reset" | Part of the app is down: check the app log (`out/<tour>/app.log`). With Docker Compose, a `start` that rebuilds or recreates containers while an old instance still answers health can leave one created but not started; `docker compose up -d --wait` brings it up |
 | The renderer note says SwiftShader | No GPU: WebGL and canvases will be slow; set `browser.gpu: "required"` to refuse it |

@@ -94,8 +94,21 @@ export declare const API_KEY = "__showcase";
 export declare const FILM_EVENT_NAME = "showcase:film";
 export declare const FILM_LOG_KEY = "__showcaseFilmLog";
 /**
+ * The events the host stamps itself: `nav`, from Chrome's navigation messages. The host stamps
+ * one with its own `Date.now()` when the message reaches it, and the page's events arrive by
+ * another channel, so a page event made a moment before the host heard of the navigation can be
+ * listed after it. The two clocks agree (the page's `t` and `Date.now()` are within 1 ms); the
+ * host's stamp is late by the message's delivery, a few ms.
+ */
+export declare const HOST_EVENTS: ReadonlySet<FilmEventType>;
+/** How far a host stamp and a page stamp may disagree (ms): under a frame at 60 fps. */
+export declare const HOST_SKEW_MS = 15;
+/**
  * Whether a run's events are in a valid order: armed once, started once, beats in index order
  * with their sentences inside them and never overlapping, `seq` strictly increasing, `t` never
  * going back within a document, one ending. Returns the problems found; none means valid.
+ *
+ * `t` is checked with no slack between two page stamps, or between two host stamps. Between a
+ * host stamp and a page stamp (`HOST_EVENTS`), either may lead by up to `HOST_SKEW_MS`.
  */
 export declare function filmOrderProblems(events: readonly FilmEvent[]): string[];

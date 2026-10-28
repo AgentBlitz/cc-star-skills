@@ -22,7 +22,7 @@
     {
       "name": "showcase",
       "source": "./plugins/showcase",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "license": "MIT",
       "description": "Interview-led wizard that makes a narrated, captioned, verified product film of any web app from one tour file, plus a self-playing live demo and an in-app guided tour (showcase).",
       "author": { "name": "Kam Star" }

@@ -602,6 +602,8 @@ var GO_KEY = "__showcaseGo";
 var API_KEY = "__showcase";
 var FILM_EVENT_NAME = "showcase:film";
 var FILM_LOG_KEY = "__showcaseFilmLog";
+var HOST_EVENTS = /* @__PURE__ */ new Set(["nav"]);
+var HOST_SKEW_MS = 15;
 function filmOrderProblems(events) {
   const problems = [];
   let armed = false;
@@ -612,17 +614,27 @@ function filmOrderProblems(events) {
   let speaking = null;
   let seq = Number.NEGATIVE_INFINITY;
   let doc = Number.NEGATIVE_INFINITY;
-  let t = Number.NEGATIVE_INFINITY;
+  let pageT = Number.NEGATIVE_INFINITY;
+  let hostT = Number.NEGATIVE_INFINITY;
   for (const [i, e] of events.entries()) {
     const at = `#${i} ${e.type}`;
     if (e.v !== FILM_VERSION) problems.push(`${at}: version ${String(e.v)}`);
     if (!(e.seq > seq)) problems.push(`${at}: seq ${e.seq} after ${seq}`);
     seq = e.seq;
     if (e.doc < doc) problems.push(`${at}: doc ${e.doc} after ${doc}`);
-    if (e.doc === doc && e.t < t) problems.push(`${at}: time went back`);
-    if (e.doc !== doc) t = Number.NEGATIVE_INFINITY;
+    if (e.doc !== doc) {
+      pageT = Number.NEGATIVE_INFINITY;
+      hostT = Number.NEGATIVE_INFINITY;
+    }
     doc = e.doc;
-    t = e.t;
+    const host = HOST_EVENTS.has(e.type);
+    const same = (host ? hostT : pageT) - e.t;
+    const other = (host ? pageT : hostT) - e.t;
+    const ms = (n) => Math.round(n * 10) / 10;
+    if (same > 0) problems.push(`${at}: time went back ${ms(same)} ms`);
+    else if (other > HOST_SKEW_MS) problems.push(`${at}: time went back ${ms(other)} ms across host and page stamps (at most ${HOST_SKEW_MS})`);
+    if (host) hostT = Math.max(hostT, e.t);
+    else pageT = Math.max(pageT, e.t);
     if (ended) problems.push(`${at}: after the film ended`);
     switch (e.type) {
       case "film:armed":
@@ -6391,7 +6403,7 @@ function syntheticGaps(tour) {
 }
 
 // toolkit/runtime/src/index.ts
-var RUNTIME_VERSION = true ? "1.1.0" : "dev";
+var RUNTIME_VERSION = true ? "1.1.2" : "dev";
 var STILL_MS = 400;
 async function filmReady(n, signal, doc) {
   await doc.fonts?.ready;
@@ -6833,6 +6845,8 @@ export {
   FakeClock,
   GO_KEY,
   HOST_BINDING,
+  HOST_EVENTS,
+  HOST_SKEW_MS,
   KIND_DEFAULT_SEC,
   KIND_FACTOR,
   MODE_PARAM,

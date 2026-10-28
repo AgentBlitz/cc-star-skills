@@ -7,7 +7,8 @@
  * **A caption starts when its voice does:** at the sentence's start plus the clip's onset. A clip
  * cut from a take (manifest v2) records its own onset, the half pause it opens with; any other
  * clip opens with the lead the voice chain puts at its head (`post.leadMs` in the manifest,
- * 30 ms). Frames come every 33 ms, so this keeps a caption within a frame of its sound either way.
+ * 30 ms). Each caption then starts on the frame nearest that onset, within half a frame (17 ms
+ * at 30 fps) of its sound.
  *
  * **Draft or final** (a decision of Session 8): the film is a draft, written as
  * `<tour>-draft.mp4` with a watermark, unless every sentence has a clip in the narrator's voice
@@ -81,15 +82,33 @@ export function speechOnsets(spans: Spans, manifest: VoiceManifest | null): numb
   });
 }
 
-/** One cue per sentence; a voiced one starts at its clip's onset. */
-export function captionCues(spans: Spans, manifest: VoiceManifest | null): Cue[] {
+/** The time of the frame nearest `ms`, to a tenth of a ms. */
+export function nearestFrameMs(ms: number, fps: number): number {
+  const frameMs = 1000 / fps;
+  return Math.round(Math.round(ms / frameMs) * frameMs * 10) / 10;
+}
+
+/**
+ * One cue per sentence; a voiced one starts at its clip's onset. With `fps`, each start moves to
+ * the nearest frame, so the caption shows within half a frame of its sound, never before the
+ * cue it follows has ended.
+ */
+export function captionCues(spans: Spans, manifest: VoiceManifest | null, fps?: number): Cue[] {
   const onsets = speechOnsets(spans, manifest);
-  return spans.sentences.map((s, i) => ({ startMs: s.audio ? Math.min(s.startMs + (onsets[i] as number), s.endMs - 1) : s.startMs, endMs: s.endMs, text: s.text }));
+  const cues: Cue[] = [];
+  for (const [i, s] of spans.sentences.entries()) {
+    let startMs = s.audio ? s.startMs + (onsets[i] as number) : s.startMs;
+    if (fps) startMs = Math.max(nearestFrameMs(startMs, fps), cues.at(-1)?.endMs ?? 0);
+    cues.push({ startMs: Math.min(startMs, s.endMs - 1), endMs: s.endMs, text: s.text });
+  }
+  return cues;
 }
 
 export interface PostResult {
   master: Omit<MasterOptions, "out">;
   cues: Cue[];
+  /** Where each sentence's speech starts, from its start (`speechOnsets`): what av-sync looks from. */
+  onsets: number[];
   srt: string;
   placements: Placement[];
   missingClips: string[];
@@ -106,6 +125,8 @@ export async function preparePost(o: {
   manifest: VoiceManifest | null;
   voiceDir: string | null;
   draft: boolean;
+  /** The video's frame rate: each caption starts on the frame nearest its sound. */
+  fps: number;
 }): Promise<PostResult> {
   const dir = join(o.out, ".post");
   rmSync(dir, { recursive: true, force: true });
@@ -128,7 +149,7 @@ export async function preparePost(o: {
   await writeMix(o.ffmpeg, placements, o.durationMs, join(dir, "mix.wav"));
   const loudnorm = await normalise(o.ffmpeg, join(dir, "mix.wav"), join(dir, "audio.wav"));
 
-  const cues = captionCues(o.spans, o.manifest);
+  const cues = captionCues(o.spans, o.manifest, o.fps);
   writeFileSync(join(dir, "captions.ass"), buildAss(cues, { durationMs: o.durationMs, draft: o.draft }));
   const srt = buildSrt(cues);
   writeFileSync(join(o.out, `${o.tour.id}.srt`), srt);
@@ -136,6 +157,7 @@ export async function preparePost(o: {
   return {
     master: { cwd: dir, ass: "captions.ass", fontsDir: "fonts", audio: "audio.wav", chapters: "chapters.ffmeta" },
     cues,
+    onsets: speechOnsets(o.spans, o.manifest),
     srt,
     placements,
     missingClips,

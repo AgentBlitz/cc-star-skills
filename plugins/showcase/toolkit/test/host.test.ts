@@ -77,6 +77,24 @@ test("an app that never gets healthy, or exits, is a clear failure and leaves no
   await assert.rejects(startApp({ url: "http://127.0.0.1:{port}" }, { root }), /no app\.start/);
 });
 
+test("an app that stops answering after its reset, or whose start fails once healthy, fails before filming", async () => {
+  const root = scratch("showcase-app-");
+  const pid = join(root, "server.pid");
+  const serve = `node --disable-warning=ExperimentalWarning ${JSON.stringify(SERVE)} --port {port}`;
+  // Healthy, then the reset takes the server down (Session 7: `web` left created but not started).
+  const t0 = Date.now();
+  await assert.rejects(
+    startApp({ start: `${serve} & echo $! > ${JSON.stringify(pid)}; wait`, url: "http://127.0.0.1:{port}", health: "/index.html", reset: `kill $(cat ${JSON.stringify(pid)})` }, { root, healthTimeoutMs: 3_000 }),
+    /isn't answering at http:\/\/127\.0\.0\.1:\d+\/ after app\.reset/,
+  );
+  assert.ok(Date.now() - t0 < 15_000, "it fails within the wait, not when the tour opens");
+  // Healthy, but the start command then fails: the app is up only by chance.
+  await assert.rejects(
+    startApp({ start: `${serve} & sleep 1; exit 4`, url: "http://127.0.0.1:{port}", health: "/index.html", reset: "sleep 2" }, { root, healthTimeoutMs: 5_000 }),
+    /app\.start failed \(exit 4\) after the app answered/,
+  );
+});
+
 test("the per-repo lock: one holder at a time, a dead holder's lock is taken over, and release removes it", () => {
   const dir = join(scratch("showcase-lock-"), "showcase");
   mkdirSync(dir);

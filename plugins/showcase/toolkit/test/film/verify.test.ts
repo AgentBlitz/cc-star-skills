@@ -79,6 +79,51 @@ test("sync rows: a caption after a blank, found by the band difference, against 
   assert.deepEqual(frameDiffs(a, [Float64Array.from([12, 8]), Float64Array.from([0, 4])]), [2, 2]);
 });
 
+// Session 7's master (28 October): after loudness normalisation, the 50–150 ms before a
+// sentence's speech is breath and room tone at −37 to −50 dB, and the speech starts at −8 to
+// −30 dB. A −45 dB onset found the breath, so a caption on the speech read 57–93 ms late.
+const breathy = (speechMs: number, o: { breathFrom?: number; soundFrom?: number } = {}) => {
+  const lv = new Float64Array(400).fill(-90);
+  for (let w = (o.breathFrom ?? speechMs - 150) / 10; w < speechMs / 10; w++) lv[w] = w % 2 ? -40 : -44;
+  for (let w = (o.soundFrom ?? speechMs) / 10; w < 300; w++) lv[w] = -20;
+  return lv;
+};
+const one = (startMs: number, onset: number) => ({ s: [{ beat: "b", index: 0, text: "s", audio: { hash: "h", durationMs: 2000 }, startMs, endMs: startMs + 2000 }], onsets: [onset] });
+
+test("sync rows: breath before the speech isn't its sound; the caption on the speech's nearest frame is in sync", () => {
+  const fps = 30;
+  // The speech starts at 1030 ms; the caption shows on frame 31 (1033.3 ms), the nearest.
+  const diffs = Array.from({ length: 120 }, (_, k) => (k >= 31 ? 20 : 0.5));
+  const { s, onsets } = one(830, 200);
+  const [row] = syncRows(s, diffs, breathy(1030), fps, onsets);
+  assert.equal(row?.audioMs, 1030, JSON.stringify(row));
+  assert.equal(row?.captionMs, 1033.3);
+  assert.ok(Math.abs(row?.deltaMs as number) <= 1000 / fps / 2, JSON.stringify(row));
+});
+
+test("sync rows: a sound that starts early is measured early, not where the search starts", () => {
+  const fps = 30;
+  const diffs = Array.from({ length: 120 }, (_, k) => (k >= 31 ? 20 : 0.5));
+  const { s, onsets } = one(830, 200);
+  // The voice starts 80 ms before the caption's onset says: more than the limit, and reported.
+  const [row] = syncRows(s, diffs, breathy(1030, { breathFrom: 850, soundFrom: 950 }), fps, onsets);
+  assert.equal(row?.audioMs, 950, JSON.stringify(row));
+  assert.ok((row?.deltaMs as number) < -50, JSON.stringify(row));
+});
+
+test("caption cues start on the frame nearest their speech, never before the cue they follow", () => {
+  const fps = 30;
+  const m = { ...manifest("draft"), post: { leadMs: 5 } };
+  // 805 ms is nearest frame 24 (800 ms); 4505 ms nearest frame 135 (4500 ms).
+  assert.deepEqual(captionCues(spans(), m, fps).map((c) => [c.startMs, c.endMs]), [[800, 2800], [4500, 6500], [6500, 8100]]);
+  // 821 ms rounds up to frame 25 (833.3 ms).
+  const later = { ...m, post: { leadMs: 21 } };
+  assert.deepEqual(captionCues(spans(), later, fps)[0]?.startMs, 833.3);
+  // Back to back: 2815 ms is nearest frame 84 (2800 ms), before the last cue ends at 2810.
+  const close = [{ ...(sentences[0] as SentenceSpan), endMs: 2810 }, { ...(sentences[1] as SentenceSpan), startMs: 2810 }];
+  assert.equal(captionCues(spans(close), m, fps)[1]?.startMs, 2810);
+});
+
 test("stills: just before each beat's last sentence ends, else its end", () => {
   assert.deepEqual(stillTimes(beats, sentences), [2650, 7950]);
   assert.deepEqual(stillTimes(beats, []), [3850, 8850]);

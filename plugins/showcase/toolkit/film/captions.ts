@@ -22,9 +22,14 @@ export interface Cue {
   text: string;
 }
 
-/** `H:MM:SS.cc`, ASS's clock (centiseconds). */
-export function assTime(ms: number): string {
-  const cs = Math.max(0, Math.round(ms / 10));
+/**
+ * `H:MM:SS.cc`, ASS's clock (centiseconds), rounded to the nearest; `down` rounds down instead.
+ * libass shows an event on a frame whose time is at or after its start, so a start is rounded
+ * down: the caption shows on the frame its start names, never the one after (frames come every
+ * 33 ms, more than a centisecond apart).
+ */
+export function assTime(ms: number, down = false): string {
+  const cs = Math.max(0, down ? Math.floor(ms / 10 + 1e-6) : Math.round(ms / 10));
   const h = Math.floor(cs / 360_000);
   const m = Math.floor((cs % 360_000) / 6_000);
   const s = Math.floor((cs % 6_000) / 100);
@@ -80,7 +85,7 @@ export function buildAss(cues: readonly Cue[], o: AssOptions): string {
     "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
   ];
   if (o.draft) lines.push(`Dialogue: 1,${assTime(0)},${assTime(o.durationMs)},Draft,,0,0,0,,DRAFT`);
-  for (const c of cues) lines.push(`Dialogue: 0,${assTime(c.startMs)},${assTime(c.endMs)},Caption,,0,0,0,,${wrapCaption(assText(c.text)).join("\\N")}`);
+  for (const c of cues) lines.push(`Dialogue: 0,${assTime(c.startMs, true)},${assTime(c.endMs)},Caption,,0,0,0,,${wrapCaption(assText(c.text)).join("\\N")}`);
   return `${lines.join("\n")}\n`;
 }
 
