@@ -17,7 +17,7 @@ import { decodeMono, levels, RATE, wavFloat } from "../../film/mix.ts";
 import { syncRows } from "../../film/verify.ts";
 import { loadTour, resolveTour } from "../../lib/tours.ts";
 import type { Tour } from "../../runtime/src/schema.ts";
-import { detectPauses, fitBoundaries, mid, type Pause, parseSilences, slicesFor } from "../../voice/align.ts";
+import { detectPauses, fitBoundaries, mid, type Pause, parseSilences, SOFT_PAUSE_DB, slicesFor } from "../../voice/align.ts";
 import { probeDurationMs, processClip, requireFfmpeg } from "../../voice/audio.ts";
 import { POST } from "../../voice/keys.ts";
 import { clipOnsetMs, manifestFile, parseManifest, readManifest } from "../../voice/manifest.ts";
@@ -87,6 +87,30 @@ async function cutErrors(wav: string, truth: readonly number[], sentences: reado
   const fit = fitBoundaries({ pauses, weights: sentences.map((s) => s.spoken.length), speechStartMs: lead, speechEndMs: tail });
   assert.ok(fit, "the take has enough pauses");
   return fit.map((p, k) => Math.abs(mid(p) - (truth[k] as number)));
+}
+
+/** Whisper's stamps, in the tests that make them back to back, lag the speech by this much. */
+const LAG_MS = 300;
+/** Each sentence read `factor(i)` times as long as its characters say: the first five slow, the rest fast. */
+const factor = (i: number) => (i < 5 ? 1.8 : 0.55);
+const stretch = (s: Sentence, f: number): Sentence => ({
+  ...s,
+  spoken: s.spoken
+    .split(",")
+    .map((p) => (f >= 1 ? p + "x".repeat(Math.round(p.trim().length * (f - 1))) : p.slice(0, Math.max(2, Math.round(p.length * f)))))
+    .join(","),
+});
+/** A fake take of these sentences whose lengths drift from their characters, so the fit drifts by seconds. */
+const drifting = (sentences: readonly Sentence[]) => fakeTake(sentences.map((s, i) => stretch(s, factor(i))));
+
+/** Word stamps that tile the take back to back, each word's end the next one's start, `LAG_MS` after the speech. */
+function contiguous(texts: readonly string[], spans: readonly { startMs: number; endMs: number }[], offsetMs = 0): Word[] {
+  return texts.flatMap((text, k) => {
+    const from = (spans[k]?.startMs as number) + offsetMs + LAG_MS;
+    const to = (k + 1 < spans.length ? (spans[k + 1]?.startMs as number) : (spans[k]?.endMs as number)) + offsetMs + LAG_MS;
+    const w = text.split(/\s+/);
+    return w.map((word, i) => ({ word, startMs: Math.round(from + ((to - from) * i) / w.length), endMs: Math.round(from + ((to - from) * (i + 1)) / w.length) }));
+  });
 }
 
 describe("takes: grouping and the script", () => {
@@ -343,6 +367,125 @@ describe("takes: the transcription check", () => {
     assert.deepEqual(out.boundaries, [between(0), between(1)]);
     assert.deepEqual(out.unconfirmed, []);
   });
+
+  it("reads a hyphenated compound and its closed form as one word, but not a number", () => {
+    const line = ["Open the sign-up link, then sign in."];
+    for (const said of ["Open the signup link, then sign in.", "Open the sign-up link, then sign in.", "Open the sign up link, then sign in."]) {
+      const c = checkTake(line, words([said]));
+      assert.deepEqual([c.ok, c.sentences[0]?.matched, c.sentences[0]?.words], [true, 7, 7], said);
+    }
+    assert.deepEqual(normaliseWords("the sign-up and up-to-date"), ["the", "signup", "and", "uptodate"]);
+    assert.deepEqual(normaliseWords("twenty-first forty-two"), ["twenty", "first", "forty", "two"]);
+  });
+});
+
+/**
+ * showcase 1.1.1: the cut follows the heard words. A real narrator's take doesn't last in
+ * proportion to its characters, so the fit can drift by seconds; Whisper's word stamps can run
+ * back to back and lag the speech. Each cut snaps to the pause nearest the gap the heard words
+ * leave between two sentences, so neither matters.
+ */
+describe("takes: cuts that follow the heard words", () => {
+  it("snaps every cut to its pause when the fit drifts and the stamps run back to back", async () => {
+    const take = drifting(SENTENCES);
+    const file = join(scratch(), "drift.wav");
+    writeFileSync(file, take.wav);
+    const truth = take.sentences.slice(1).map((s, k) => ((take.sentences[k] as { endMs: number }).endMs + s.startMs) / 2);
+    const durationMs = await probeDurationMs(ffmpeg, file);
+    const pauses = await detectPauses(ffmpeg, file, durationMs);
+    const fit = fitBoundaries({ pauses, weights: SENTENCES.map((s) => s.spoken.length), speechStartMs: 0, speechEndMs: durationMs });
+    assert.ok(fit);
+    const drift = Math.max(...fit.map((p, k) => Math.abs(mid(p) - (truth[k] as number))));
+    assert.ok(drift > 1000, `the fit drifts (${drift.toFixed(0)} ms at worst)`);
+
+    const heard = contiguous(SENTENCES.map((s) => s.spoken), take.sentences);
+    assert.ok(heard.every((w, i) => i === 0 || w.startMs === heard[i - 1]?.endMs), "the stamps run back to back");
+    const check = checkTake(SENTENCES.map((s) => s.spoken), heard);
+    assert.equal(check.ok, true);
+    const soft = await detectPauses(ffmpeg, file, durationMs, SOFT_PAUSE_DB);
+    const out = confirmBoundaries(fit, pauses, check, soft);
+    assert.deepEqual(out.unconfirmed, []);
+    const errors = out.boundaries.map((p, k) => Math.abs(mid(p) - (truth[k] as number)));
+    assert.ok(Math.max(...errors) <= TOLERANCE_MS, `cut errors ${errors.map((e) => e.toFixed(1)).join(", ")} ms`);
+  });
+
+  it("finds a pause a breath fills in the quieter pass, and starts the next sentence after the breath", async () => {
+    // Two tones 500 ms apart, with a faint noise at −41 dB (under −35, over −45) in the gap:
+    // filling it, or after 200 ms of silence.
+    const ms = (n: number) => Math.round((n * 24000) / 1000);
+    const breathFrom = (fromMs: number) => {
+      const all = new Int16Array(ms(2500));
+      for (let i = 0; i < ms(1000); i++) all[i] = Math.round(0.3 * 32767 * Math.sin((2 * Math.PI * 220 * i) / 24000));
+      for (let i = ms(fromMs); i < ms(1500); i++) all[i] = Math.round(0.0089 * 32767 * Math.sin((2 * Math.PI * 300 * i) / 24000));
+      for (let i = ms(1500); i < ms(2500); i++) all[i] = Math.round(0.3 * 32767 * Math.sin((2 * Math.PI * 220 * i) / 24000));
+      const file = join(scratch(), `breath-${fromMs}.wav`);
+      writeFileSync(file, wav16(all));
+      return file;
+    };
+    const check = checkTake(["One two three.", "Four five six."], [
+      { word: "One", startMs: 0, endMs: 300 },
+      { word: "two", startMs: 300, endMs: 600 },
+      { word: "three", startMs: 600, endMs: 1100 },
+      { word: "Four", startMs: 1600, endMs: 1900 },
+      { word: "five", startMs: 1900, endMs: 2200 },
+      { word: "six", startMs: 2200, endMs: 2500 },
+    ]);
+    const near = (a: number, b: number) => Math.abs(a - b) <= TOLERANCE_MS;
+
+    const filled = breathFrom(1000);
+    assert.deepEqual(await detectPauses(ffmpeg, filled, 2500), [], "the strict pass hears the breath");
+    const soft = await detectPauses(ffmpeg, filled, 2500, SOFT_PAUSE_DB);
+    assert.equal(soft.length, 1);
+    const out = confirmBoundaries([{ startMs: 400, endMs: 460 }], [], check, soft);
+    assert.deepEqual(out.unconfirmed, []);
+    assert.ok(near(mid(out.boundaries[0] as Pause), 1250), `cut at ${mid(out.boundaries[0] as Pause)} ms`);
+
+    const after = breathFrom(1200);
+    const strict = await detectPauses(ffmpeg, after, 2500);
+    assert.ok(strict.length === 1 && near((strict[0] as Pause).endMs, 1200), JSON.stringify(strict));
+    const widened = confirmBoundaries([{ startMs: 400, endMs: 460 }], strict, check, await detectPauses(ffmpeg, after, 2500, SOFT_PAUSE_DB));
+    assert.ok(near((widened.boundaries[0] as Pause).endMs, 1500), `the next sentence starts at ${(widened.boundaries[0] as Pause).endMs} ms`);
+  });
+
+  it("keeps a fitted cut no pause confirms, and reports it; the cuts stay in order", () => {
+    const lines3 = ["One two three.", "Four five six.", "Seven eight nine."];
+    const heard: Word[] = lines3.flatMap((s, k) => s.split(" ").map((word, i) => ({ word, startMs: k * 3000 + i * 600, endMs: k * 3000 + (i + 1) * 600 })));
+    const check = checkTake(lines3, heard);
+    // The gaps the heard words leave: 1800–3000 and 4800–6000. A pause sits only in the second.
+    const fitted: Pause[] = [
+      { startMs: 7000, endMs: 7100 },
+      { startMs: 7400, endMs: 7500 },
+    ];
+    const second: Pause = { startMs: 5200, endMs: 5600 };
+    const out = confirmBoundaries(fitted, [second], check);
+    assert.deepEqual(out.unconfirmed, [0]);
+    assert.equal(out.boundaries[1], second);
+    // The fitted cut for the first would fall after the second's pause, so it moves to its heard gap.
+    assert.ok(mid(out.boundaries[0] as Pause) > 1800 && mid(out.boundaries[0] as Pause) < 3000, JSON.stringify(out.boundaries));
+    // A fitted cut already in order stands.
+    const inOrder = confirmBoundaries([{ startMs: 2000, endMs: 2100 }, fitted[1] as Pause], [second], check);
+    assert.deepEqual(inOrder.boundaries, [{ startMs: 2000, endMs: 2100 }, second]);
+    assert.deepEqual(inOrder.unconfirmed, [0]);
+    // No pause is used twice, and every slice has length.
+    const slices = slicesFor(out.boundaries, { durationMs: 9000, speechStartMs: 30, sampleRate: 24000 });
+    assert.ok(slices.every((s) => s.toMs > s.fromMs), JSON.stringify(slices));
+  });
+
+  it("a pause belongs to the heard gap nearest it, so a short sentence keeps its own", () => {
+    // Sentence 1 lasts under a second: the pause that ends it lies within 1 s of the gap before it too.
+    const lines3 = ["One two three four.", "Five.", "Six seven eight nine."];
+    const heard: Word[] = [
+      ...["One", "two", "three", "four"].map((word, i) => ({ word, startMs: i * 400, endMs: (i + 1) * 400 })),
+      { word: "Five", startMs: 2000, endMs: 2500 },
+      ...["Six", "seven", "eight", "nine"].map((word, i) => ({ word, startMs: 3300 + i * 400, endMs: 3300 + (i + 1) * 400 })),
+    ];
+    const check = checkTake(lines3, heard);
+    const first: Pause = { startMs: 1650, endMs: 1900 };
+    const second: Pause = { startMs: 2550, endMs: 3250 };
+    const out = confirmBoundaries([{ startMs: 100, endMs: 200 }, { startMs: 4000, endMs: 4100 }], [first, second], check);
+    assert.deepEqual(out.boundaries, [first, second]);
+    assert.deepEqual(out.unconfirmed, []);
+  });
 });
 
 /**
@@ -354,6 +497,9 @@ describe("takes: voiced through a mock Requesty", () => {
   let heard: (call: number, count: number) => number[] = (_c, n) => [...Array(n).keys()];
   let transcriptions = 0;
   let lastScript: string[][] = [];
+  /** How the mock voices a script, and whether its word stamps run back to back. */
+  let voice: (sentences: readonly Sentence[]) => ReturnType<typeof fakeTake> = (s) => fakeTake(s);
+  let backToBack = false;
   const scriptOf = (input: string) => input.split("\n\n").map((p) => p.split(/(?<=[.!?])\s+/).filter(Boolean));
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const chunks: Buffer[] = [];
@@ -365,11 +511,16 @@ describe("takes: voiced through a mock Requesty", () => {
       if (req.url === "/audio/speech") {
         lastScript = scriptOf((JSON.parse(body) as { input: string }).input);
         const sentences = lastScript.flatMap((beat, b) => beat.map((text, n): Sentence => ({ beat: `b${b}`, n, text, spoken: text })));
-        return void res.writeHead(200, { "content-type": "audio/wav" }).end(fakeTake(sentences).wav);
+        return void res.writeHead(200, { "content-type": "audio/wav" }).end(voice(sentences).wav);
       }
       if (req.url === "/audio/transcriptions") {
         const texts = lastScript.flat();
-        const spans = fakeTake(lastScript.flatMap((beat, b) => beat.map((text, n): Sentence => ({ beat: `b${b}`, n, text, spoken: text })))).sentences;
+        const spans = voice(lastScript.flatMap((beat, b) => beat.map((text, n): Sentence => ({ beat: `b${b}`, n, text, spoken: text })))).sentences;
+        if (backToBack) {
+          transcriptions++;
+          const said = contiguous(texts, spans, POST.leadMs).map((w) => ({ word: w.word, start: w.startMs / 1000, end: w.endMs / 1000 }));
+          return void res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ text: texts.join(" "), words: said }));
+        }
         const said = heard(transcriptions++, texts.length).flatMap((k) => {
           const w = (texts[k] as string).split(/\s+/);
           const span = spans[k] as { startMs: number; endMs: number };
@@ -391,10 +542,12 @@ describe("takes: voiced through a mock Requesty", () => {
     server.closeAllConnections();
     server.close();
   });
-  const reset = (fn: typeof heard) => {
+  const reset = (fn: typeof heard, o: { voice?: typeof voice; backToBack?: boolean } = {}) => {
     seen.length = 0;
     transcriptions = 0;
     heard = fn;
+    voice = o.voice ?? ((s) => fakeTake(s));
+    backToBack = o.backToBack ?? false;
   };
   const speechCalls = () => seen.filter((s) => s.path === "/audio/speech").length;
 
@@ -439,6 +592,21 @@ describe("takes: voiced through a mock Requesty", () => {
     );
     assert.equal(speechCalls(), 3);
     assert.equal(existsSync(manifestFile(d.voiceDir, tour.id)), false, "nothing is written for a take that failed");
+  });
+
+  it("cuts a drifting take where its sentences are heard, from stamps that run back to back", async () => {
+    reset((_c, n) => [...Array(n).keys()], { voice: drifting, backToBack: true });
+    const d = dirs();
+    const report = await run(opts(d, { setup: requestyNarrator, mode: "final", yes: true, retryDelaysMs: [] }));
+    assert.deepEqual(report.warnings.filter((w) => w.startsWith("take")), [], "every cut is confirmed by the heard words");
+    const m = readManifest(manifestFile(d.voiceDir, tour.id));
+    assert.equal(m?.takes?.[0]?.check, "passed");
+    assert.equal(m?.takes?.[0]?.unconfirmed, undefined);
+    // Where each sentence's tone starts in the processed take (after the 30 ms lead), against its slice's onset.
+    const truth = drifting(SENTENCES).sentences.map((s) => s.startMs + POST.leadMs);
+    const errors = (m?.clips ?? []).map((c, i) => Math.abs((c.slice?.fromMs as number) + (c.slice?.onsetMs as number) - (truth[i] as number)));
+    assert.equal(errors.length, SENTENCES.length);
+    assert.ok(Math.max(...errors) <= TOLERANCE_MS, `onset errors ${errors.join(", ")} ms`);
   });
 
   it("stops retaking at --max-chars", async () => {

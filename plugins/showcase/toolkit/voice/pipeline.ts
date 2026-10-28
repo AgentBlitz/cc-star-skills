@@ -22,7 +22,7 @@ import { join } from "node:path";
 import { budgetFor, readingMs, wordCount } from "../runtime/src/narrative.ts";
 import { narrationFingerprint, narrationLines } from "../runtime/src/narration.ts";
 import { beatsOf, sentenceText, type Tour } from "../runtime/src/schema.ts";
-import { ALIGN_VERSION, detectPauses, fitBoundaries, type Pause, slicesFor, writeSlices } from "./align.ts";
+import { ALIGN_VERSION, detectPauses, fitBoundaries, type Pause, SOFT_PAUSE_DB, slicesFor, writeSlices } from "./align.ts";
 import { encodeMp3, type FfmpegPaths, processClip, requireFfmpeg } from "./audio.ts";
 import { fileKey, fileName, type PostConfig, POST, synthKey } from "./keys.ts";
 import { applyLexicon, type Lexicon } from "./lexicon.ts";
@@ -790,7 +790,10 @@ async function voiceTake(ctx: TakeContext, t: TakePlan): Promise<TakeOutcome> {
           ctx.warnings.push(`take ${group.id} wasn't checked by transcription: ${(err as Error).message}`);
           model = null;
         }
-        if (check?.ok && boundaries) ({ boundaries, unconfirmed } = confirmBoundaries(boundaries, pauses, check));
+        if (check?.ok && boundaries) {
+          const soft = await detectPauses(ctx.ffmpeg, processed.wavPath, processed.durationMs, SOFT_PAUSE_DB);
+          ({ boundaries, unconfirmed } = confirmBoundaries(boundaries, pauses, check, soft));
+        }
       }
       const wrong = (check && !check.ok) || !boundaries;
       if (wrong) {

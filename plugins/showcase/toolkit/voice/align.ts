@@ -1,12 +1,14 @@
 /**
- * One take, cut back into sentences (showcase 1.1). The take is processed as a whole (one
- * loudness pass), its pauses are found with `silencedetect`, and the sentence boundaries are
- * fitted to them:
+ * One take, cut back into sentences (showcase 1.1; from 1.1.1 the heard words place the cuts).
+ * The take is processed as a whole (one loudness pass), its pauses are found with
+ * `silencedetect`, and the sentence boundaries are fitted to them:
  *
  * - **The fit** is dynamic programming over the pauses, in order. Each sentence is expected to
  *   last in proportion to its characters, at the take's own rate; a boundary costs the squared
  *   relative miss of the sentences either side of it, and a short pause costs more than a long
  *   one, so of two candidates near the expected place the longer pause wins (commas pause too).
+ * - **The heard words** then place each cut, when a transcription checked the take
+ *   (`confirmBoundaries` in `transcribe.ts`): the fit only stands where they can't.
  * - **The cut** is at the middle of each chosen pause. Slice `i` runs from cut `i` to cut `i+1`
  *   (the take's start and end at the edges), so the slices joined are the take, sample for
  *   sample, and each slice's **onset** is where its speech starts inside it.
@@ -25,8 +27,17 @@ const execFileAsync = promisify(execFile);
 /** `silencedetect`'s threshold, against a take normalised to −16 LUFS, and the shortest pause it reports. */
 export const PAUSE_DB = -45;
 export const MIN_PAUSE_MS = 60;
-/** Bumped when the fit or the cut changes, so every slice is cut again (from the cached raw take). */
-export const ALIGN_VERSION = 1;
+/**
+ * The quieter pass, for a take the heard words check. A breath or room tone between two
+ * sentences often sits between −45 and −35 dB: this pass finds a pause the strict one misses, and
+ * widens a strict pause to where the speech after it starts (its slice's onset).
+ */
+export const SOFT_PAUSE_DB = -35;
+/**
+ * Bumped when the fit or the cut changes, so every slice is cut again (from the cached raw take).
+ * 2 (showcase 1.1.1): a checked take's cuts follow the heard words.
+ */
+export const ALIGN_VERSION = 2;
 /** How much a pause's shortness counts against it, against the length fit. */
 const PAUSE_WEIGHT = 0.35;
 /** Added to a sentence's expected length before the miss is squared, so very short lines aren't judged too harshly. */
@@ -56,11 +67,11 @@ export function parseSilences(stderr: string, durationMs: number): Pause[] {
   return out;
 }
 
-/** The pauses in a processed take. */
-export async function detectPauses(paths: FfmpegPaths, wav: string, durationMs: number): Promise<Pause[]> {
+/** The pauses in a processed take: every stretch under `db` for at least {@link MIN_PAUSE_MS}. */
+export async function detectPauses(paths: FfmpegPaths, wav: string, durationMs: number, db = PAUSE_DB): Promise<Pause[]> {
   let stderr: string;
   try {
-    ({ stderr } = await execFileAsync(paths.ffmpeg, ["-hide_banner", "-nostats", "-i", wav, "-af", `silencedetect=noise=${PAUSE_DB}dB:d=${(MIN_PAUSE_MS / 1000).toFixed(3)}`, "-f", "null", "-"], {
+    ({ stderr } = await execFileAsync(paths.ffmpeg, ["-hide_banner", "-nostats", "-i", wav, "-af", `silencedetect=noise=${db}dB:d=${(MIN_PAUSE_MS / 1000).toFixed(3)}`, "-f", "null", "-"], {
       env: toolEnv(),
       encoding: "utf8",
       maxBuffer: 64 * 1024 * 1024,

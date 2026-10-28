@@ -8,7 +8,8 @@
  *
  * Then, pure: what was heard is aligned word by word with what was written, after normalising
  * case, punctuation and numbers, and each sentence is judged: read as written, skipped, garbled,
- * or repeated. The heard words' times also confirm (or move) each cut.
+ * or repeated. The heard words' times then place each cut: at the pause nearest the gap they
+ * leave between two sentences (showcase 1.1.1).
  */
 import { redact } from "../lib/redact.ts";
 import { mid, type Pause } from "./align.ts";
@@ -120,10 +121,22 @@ function ordinalWords(n: number): string {
 
 const NUMBER_WORDS = new Set([...ONES, ...TENS.filter(Boolean), "hundred", "thousand", "million", "billion"]);
 
-/** Pure: lower-case words with the punctuation gone and the figures spelled out. */
+/**
+ * A hyphenated compound reads as its closed form ("sign-up" as "signup", as Whisper often writes
+ * it), unless it's a number ("twenty-first" stays two words, as the figures are spelled).
+ */
+const COMPOUND = /\b[a-z]+(?:-[a-z]+)+\b/g;
+const NUMBERISH = new Set([...NUMBER_WORDS, ...Array.from({ length: 99 }, (_, i) => ordinalWords(i + 1).split(" ").pop() as string), "hundredth", "thousandth", "millionth"]);
+const closeCompound = (c: string): string => {
+  const parts = c.split("-");
+  return parts.join(parts.some((p) => NUMBERISH.has(p)) ? " " : "");
+};
+
+/** Pure: lower-case words with the punctuation gone, the figures spelled out and each hyphenated compound closed. */
 export function normaliseWords(text: string): string[] {
   let t = text.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
   t = t.replace(/[‘’ʼ]/g, "'").replace(/[–—]/g, " ");
+  t = t.replace(COMPOUND, closeCompound);
   t = t.replace(/(\d),(?=\d{3}\b)/g, "$1");
   t = t.replace(/([£$€])\s?(\d+(?:\.\d+)?)/g, (_m, sym: string, num: string) => `${num} ${sym === "£" ? "pounds" : sym === "$" ? "dollars" : "euros"}`);
   // Whisper times "per" and "cent" as two words, so "percent" and "%" become them too.
@@ -169,6 +182,31 @@ function allowedMisses(words: number): number {
   return Math.max(1, Math.floor(words * MISS_SHARE));
 }
 
+/** The script's hyphenated compounds, closed, as {@link normaliseWords} writes them. */
+function closedCompounds(text: string): string[] {
+  const t = text.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[‘’ʼ']/g, "");
+  return [...t.matchAll(COMPOUND)].map((m) => closeCompound(m[0])).filter((w) => !w.includes(" "));
+}
+
+/** Heard words that spell one of the script's compounds apart ("sign up" for "sign-up") become that one word, timed across them. */
+function joinCompounds(said: readonly { w: string; h: Word }[], closed: ReadonlySet<string>): { w: string; h: Word }[] {
+  if (closed.size === 0) return [...said];
+  const out: { w: string; h: Word }[] = [];
+  for (let i = 0; i < said.length; ) {
+    const n = [3, 2].find((len) => i + len <= said.length && closed.has(said.slice(i, i + len).map((x) => x.w).join("")));
+    if (!n) {
+      out.push(said[i] as { w: string; h: Word });
+      i++;
+      continue;
+    }
+    const parts = said.slice(i, i + n);
+    const w = parts.map((x) => x.w).join("");
+    out.push({ w, h: { word: w, startMs: (parts[0] as { h: Word }).h.startMs, endMs: (parts[n - 1] as { h: Word }).h.endMs } });
+    i += n;
+  }
+  return out;
+}
+
 /** Pure: the longest common subsequence's length. */
 function lcs(a: readonly string[], b: readonly string[]): number {
   const row = new Array<number>(b.length + 1).fill(0);
@@ -190,7 +228,10 @@ function lcs(a: readonly string[], b: readonly string[]): number {
  */
 export function checkTake(sentences: readonly string[], heard: readonly Word[]): TakeCheck {
   const script = sentences.flatMap((s, i) => normaliseWords(s).map((w) => ({ w, s: i })));
-  const said = heard.flatMap((h) => normaliseWords(h.word).map((w) => ({ w, h })));
+  const said = joinCompounds(
+    heard.flatMap((h) => normaliseWords(h.word).map((w) => ({ w, h }))),
+    new Set(sentences.flatMap(closedCompounds)),
+  );
   const n = script.length;
   const m = said.length;
   // Edit distance with a full table (a five-minute take is about 700 words each way).
@@ -262,29 +303,97 @@ export function checkTake(sentences: readonly string[], heard: readonly Word[]):
   return { ok: checks.every((c) => c.verdict === "ok"), sentences: checks };
 }
 
-/** How sure Whisper's word times are: a cut may sit this far outside the gap between two sentences' words. */
-const WORD_TIME_SLACK_MS = 150;
+/**
+ * How far a pause may lie outside the heard gap between two sentences and still be its pause.
+ * Whisper's stamps can run back to back, and lag or lead the speech by a few hundred ms.
+ */
+export const SNAP_TOLERANCE_MS = 1000;
+/** Of the pauses near one heard gap, each loses this much of its length per ms it lies outside the gap. */
+const SNAP_DISTANCE_WEIGHT = 0.5;
+/** The shortest slice a cut may leave, so a cut kept from the fit never undoes its neighbours' order. */
+const MIN_SLICE_MS = 100;
+
+interface HeardGap {
+  lo: number;
+  hi: number;
+}
+
+/** The heard gap after sentence `k`: from its last heard word's end to the next sentence's first heard word's start. */
+function heardGap(check: TakeCheck, k: number): HeardGap | null {
+  const last = check.sentences[k]?.lastMs;
+  const first = check.sentences[k + 1]?.firstMs;
+  if (last == null || first == null) return null;
+  return { lo: Math.min(last, first), hi: Math.max(last, first) };
+}
+
+const outside = (p: Pause, g: HeardGap): number => Math.max(0, g.lo - p.endMs, p.startMs - g.hi);
 
 /**
- * Pure: the boundaries, confirmed against the heard words. A cut whose pause lies between the
- * last word of one sentence and the first of the next stands; otherwise the longest pause there
- * replaces it. When no pause lies there, the cut stands and is reported.
+ * Pure: the pause each heard gap snaps to, or null. Every pause belongs to the gap it lies
+ * nearest, so a short sentence keeps the pause that ends it; within {@link SNAP_TOLERANCE_MS} of
+ * its gap, the longest wins, less half of how far outside the gap it lies.
  */
-export function confirmBoundaries(boundaries: readonly Pause[], pauses: readonly Pause[], check: TakeCheck): { boundaries: Pause[]; unconfirmed: number[] } {
-  const out = [...boundaries];
+function snapTo(pool: readonly Pause[], gaps: readonly (HeardGap | null)[]): (Pause | null)[] {
+  const best: ({ p: Pause; score: number } | null)[] = gaps.map(() => null);
+  for (const p of pool) {
+    let owner = -1;
+    let near = Number.POSITIVE_INFINITY;
+    gaps.forEach((g, k) => {
+      if (!g) return;
+      const d = outside(p, g);
+      if (d < near) {
+        near = d;
+        owner = k;
+      }
+    });
+    if (owner < 0 || near > SNAP_TOLERANCE_MS) continue;
+    const score = p.endMs - p.startMs - SNAP_DISTANCE_WEIGHT * near;
+    const held = best[owner];
+    if (!held || score > held.score) best[owner] = { p, score };
+  }
+  return best.map((b) => b?.p ?? null);
+}
+
+/**
+ * Pure: the cuts, following the heard words. Each boundary snaps to the pause nearest the gap the
+ * heard words leave between its two sentences (the last heard word of one, the first of the next),
+ * within about a second, the longest there preferred: from `pauses` first, else from `softPauses`
+ * (a quieter pass that finds a pause a breath fills). A strict pause widens to the quieter pause
+ * that holds it, so its end is where the next sentence's speech starts.
+ *
+ * The fitted cut matters only where neither pass has a pause near the gap: it stands there and is
+ * reported, unless it would fall out of order with the cuts around it, when the cut goes to the
+ * middle of the heard gap instead. A boundary whose sentences weren't heard keeps its fitted cut,
+ * unreported, as long as it stays in order (moved, it is reported). The cuts come back in order,
+ * with no slice shorter than {@link MIN_SLICE_MS}.
+ */
+export function confirmBoundaries(boundaries: readonly Pause[], pauses: readonly Pause[], check: TakeCheck, softPauses: readonly Pause[] = []): { boundaries: Pause[]; unconfirmed: number[] } {
+  const gaps = boundaries.map((_, k) => heardGap(check, k));
+  const strict = snapTo(pauses, gaps);
+  const soft = snapTo(softPauses, gaps);
+  // A strict pause widens to the quieter stretch around it, so a breath before the next sentence
+  // counts as pause, and the slice's onset is where that sentence's speech starts.
+  const widen = (p: Pause | null, g: HeardGap): Pause | null => {
+    if (!p) return null;
+    const q = softPauses.find((x) => x.startMs <= mid(p) && x.endMs >= mid(p));
+    return q && outside(q, g) <= SNAP_TOLERANCE_MS ? q : p;
+  };
+  const snapped = gaps.map((g, k) => (g ? (widen(strict[k] ?? null, g) ?? soft[k] ?? null) : null));
   const unconfirmed: number[] = [];
-  boundaries.forEach((b, k) => {
-    const last = check.sentences[k]?.lastMs;
-    const first = check.sentences[k + 1]?.firstMs;
-    if (last == null || first == null) return;
-    const lo = last - WORD_TIME_SLACK_MS;
-    const hi = first + WORD_TIME_SLACK_MS;
-    if (mid(b) >= lo && mid(b) <= hi) return;
-    const before = k > 0 ? mid(out[k - 1] as Pause) : Number.NEGATIVE_INFINITY;
-    const afterB = k + 1 < out.length ? mid(out[k + 1] as Pause) : Number.POSITIVE_INFINITY;
-    const there = pauses.filter((p) => mid(p) >= lo && mid(p) <= hi && mid(p) > before && mid(p) < afterB).sort((x, y) => y.endMs - y.startMs - (x.endMs - x.startMs));
-    if (there[0]) out[k] = there[0];
-    else unconfirmed.push(k);
+  const out: Pause[] = [];
+  let prev = 0;
+  boundaries.forEach((fitted, k) => {
+    const nextSnap = snapped.slice(k + 1).find((p): p is Pause => p !== null && mid(p) > prev + 2 * MIN_SLICE_MS);
+    const next = nextSnap ? mid(nextSnap) : Number.POSITIVE_INFINITY;
+    const fits = (p: Pause) => mid(p) >= prev + MIN_SLICE_MS && mid(p) <= next - MIN_SLICE_MS;
+    const g = gaps[k];
+    const middle: Pause | null = g ? { startMs: (g.lo + g.hi) / 2, endMs: (g.lo + g.hi) / 2 } : null;
+    const between: Pause = { startMs: (prev + next) / 2, endMs: (prev + next) / 2 };
+    const options = [snapped[k], fitted, middle].filter((p): p is Pause => p != null);
+    const chosen = options.find(fits) ?? (Number.isFinite(next) ? between : { startMs: prev + MIN_SLICE_MS, endMs: prev + MIN_SLICE_MS });
+    if (chosen !== (g ? snapped[k] : fitted)) unconfirmed.push(k);
+    out.push(chosen);
+    prev = mid(chosen);
   });
   return { boundaries: out, unconfirmed };
 }
