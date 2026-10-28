@@ -4,11 +4,12 @@
  * watermark on a draft), the chapters, and the bundled font. The SRT goes straight to the
  * outputs. `record.ts` then encodes the picture and the master side by side.
  *
- * **A caption starts when its voice does:** at the sentence's start plus the clip's onset. A clip
- * cut from a take (manifest v2) records its own onset, the half pause it opens with; any other
- * clip opens with the lead the voice chain puts at its head (`post.leadMs` in the manifest,
- * 30 ms). Each caption then starts on the frame nearest that onset, within half a frame (17 ms
- * at 30 fps) of its sound.
+ * **A caption starts when its voice does.** A clip cut from a take (manifest v2) records its own
+ * onset, the half pause it opens with; any other clip opens with the lead the voice chain puts at
+ * its head (`post.leadMs` in the manifest, 30 ms). From that onset the speech is found in the
+ * normalised mix (`speechStartMs`), past a breath or a lip click that can sit between the pause
+ * and the first word (100–320 ms in Session 7's take). Each caption then starts on the frame
+ * nearest that speech, within half a frame (17 ms at 30 fps) of its sound.
  *
  * **Draft or final** (a decision of Session 8): the film is a draft, written as
  * `<tour>-draft.mp4` with a watermark, unless every sentence has a clip in the narrator's voice
@@ -23,7 +24,7 @@ import type { VoiceManifest } from "../runtime/src/protocol.ts";
 import { beatsOf, type Tour } from "../runtime/src/schema.ts";
 import { buildAss, buildSrt, CAPTION_FONT_FILE, type Cue } from "./captions.ts";
 import type { MasterOptions } from "./encode.ts";
-import { type LoudnormMeasure, normalise, type Placement, writeMix } from "./mix.ts";
+import { decodeMono, levels, type LoudnormMeasure, normalise, type Placement, speechStartMs, writeMix } from "./mix.ts";
 import { chaptersMeta } from "./script.ts";
 import type { Spans } from "./timeline.ts";
 
@@ -70,17 +71,28 @@ export function clipLeadMs(manifest: VoiceManifest | null): number {
   return Number.isFinite(lead) && lead > 0 ? lead : 0;
 }
 
-/** Where each sentence's speech starts, from its start: its clip's onset (a v2 slice's own, else the lead), 0 when it has no clip. */
-export function speechOnsets(spans: Spans, manifest: VoiceManifest | null): number[] {
+/**
+ * Where each sentence's speech starts, from its start, 0 when it has no clip. The clip's onset
+ * (a v2 slice's own, else the lead) is where its pause ends. With the mix's levels (`lv`), the
+ * speech is found from there to the clip's end (`speechStartMs`), past any breath or click
+ * between the two; the onset stands when none is found.
+ */
+export function speechOnsets(spans: Spans, manifest: VoiceManifest | null, lv?: Float64Array): number[] {
   const m = manifest ? parseManifest(manifest) : null;
   const byHash = new Map((m?.clips ?? []).map((c) => [c.hash, c]));
   const lead = clipLeadMs(manifest);
   return spans.sentences.map((s) => {
     if (!s.audio) return 0;
     const clip = byHash.get(s.audio.hash);
-    return clip && m ? clipOnsetMs(clip, m) : lead;
+    const onset = clip && m ? clipOnsetMs(clip, m) : lead;
+    if (!lv) return onset;
+    const heard = speechStartMs(lv, s.startMs + Math.max(0, onset - ONSET_SLACK_MS), s.startMs + s.audio.durationMs);
+    return heard === null ? onset : heard - s.startMs;
   });
 }
+
+/** How far before its recorded onset a clip's speech is looked for: a pause's end is found to about a window (Session 7b: within 6 ms). */
+const ONSET_SLACK_MS = 20;
 
 /** The time of the frame nearest `ms`, to a tenth of a ms. */
 export function nearestFrameMs(ms: number, fps: number): number {
@@ -89,12 +101,12 @@ export function nearestFrameMs(ms: number, fps: number): number {
 }
 
 /**
- * One cue per sentence; a voiced one starts at its clip's onset. With `fps`, each start moves to
- * the nearest frame, so the caption shows within half a frame of its sound, never before the
- * cue it follows has ended.
+ * One cue per sentence; a voiced one starts where its speech does (`speechOnsets`, from the mix's
+ * levels `lv` when given). With `fps`, each start moves to the nearest frame, so the caption
+ * shows within half a frame of its sound, never before the cue it follows has ended.
  */
-export function captionCues(spans: Spans, manifest: VoiceManifest | null, fps?: number): Cue[] {
-  const onsets = speechOnsets(spans, manifest);
+export function captionCues(spans: Spans, manifest: VoiceManifest | null, fps?: number, lv?: Float64Array): Cue[] {
+  const onsets = speechOnsets(spans, manifest, lv);
   const cues: Cue[] = [];
   for (const [i, s] of spans.sentences.entries()) {
     let startMs = s.audio ? s.startMs + (onsets[i] as number) : s.startMs;
@@ -149,7 +161,9 @@ export async function preparePost(o: {
   await writeMix(o.ffmpeg, placements, o.durationMs, join(dir, "mix.wav"));
   const loudnorm = await normalise(o.ffmpeg, join(dir, "mix.wav"), join(dir, "audio.wav"));
 
-  const cues = captionCues(o.spans, o.manifest, o.fps);
+  // The captions follow the speech in the very sound the master carries.
+  const lv = levels(await decodeMono(o.ffmpeg, join(dir, "audio.wav")));
+  const cues = captionCues(o.spans, o.manifest, o.fps, lv);
   writeFileSync(join(dir, "captions.ass"), buildAss(cues, { durationMs: o.durationMs, draft: o.draft }));
   const srt = buildSrt(cues);
   writeFileSync(join(o.out, `${o.tour.id}.srt`), srt);
@@ -157,7 +171,7 @@ export async function preparePost(o: {
   return {
     master: { cwd: dir, ass: "captions.ass", fontsDir: "fonts", audio: "audio.wav", chapters: "chapters.ffmeta" },
     cues,
-    onsets: speechOnsets(o.spans, o.manifest),
+    onsets: speechOnsets(o.spans, o.manifest, lv),
     srt,
     placements,
     missingClips,

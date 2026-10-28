@@ -187,15 +187,28 @@ export function longestInnerSilence(lv: Float64Array, windowMs = 10): { ms: numb
 }
 
 /**
- * Where speech starts in the master, for the av-sync check. The master is normalised to −16 LUFS,
- * where speech runs at −8 to −30 dB and the breath and room tone before a sentence at −37 to
- * −50 dB, around `SILENCE_DB` (Session 7's take). Above −35 dB is speech, as `voice/align.ts`'s
- * `SOFT_PAUSE_DB` reads a take.
+ * Where speech starts, for the captions and the av-sync check, in audio normalised to −16 LUFS.
+ * There speech runs at −8 to −30 dB, and the breath and room tone before a sentence at −36 to
+ * −50 dB (Session 7's take). A breath can reach −34 dB for a window and a lip click −32 dB, so a
+ * level alone can't tell them from a word: speech is above `SPEECH_DB` and is voiced, past
+ * `VOICED_DB`, within `SPEECH_RISE_MS` (Session 7b's first strict film).
  */
 export const SPEECH_DB = -35;
+export const VOICED_DB = -25;
+export const SPEECH_RISE_MS = 50;
 
 /** Pure: the first 10 ms window at or after `fromMs` (and before `toMs`) louder than `thresholdDb` (default: not silent), in ms. */
 export function onsetMs(lv: Float64Array, fromMs: number, toMs: number, windowMs = 10, thresholdDb = SILENCE_DB): number | null {
   for (let i = Math.max(0, Math.floor(fromMs / windowMs)); i < lv.length && i * windowMs < toMs; i++) if ((lv[i] as number) > thresholdDb) return i * windowMs;
+  return null;
+}
+
+/** Pure: where speech starts at or after `fromMs` (and before `toMs`), in ms: the first window above `SPEECH_DB` that a window above `VOICED_DB` follows within `SPEECH_RISE_MS`. */
+export function speechStartMs(lv: Float64Array, fromMs: number, toMs: number, windowMs = 10): number | null {
+  const rise = Math.round(SPEECH_RISE_MS / windowMs);
+  for (let i = Math.max(0, Math.floor(fromMs / windowMs)); i < lv.length && i * windowMs < toMs; i++) {
+    if (!((lv[i] as number) > SPEECH_DB)) continue;
+    for (let j = i; j <= i + rise && j < lv.length; j++) if ((lv[j] as number) > VOICED_DB) return i * windowMs;
+  }
   return null;
 }

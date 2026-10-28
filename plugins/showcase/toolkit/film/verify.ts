@@ -10,9 +10,8 @@
  * - the SRT equals the sentences (a failure);
  * - captions and audio within 50 ms: each caption that appears after a blank is found in the
  *   master by comparing its caption band with the picture's, and the speech's onset is found in
- *   the master's own audio (`SPEECH_DB`, so a breath isn't the sound), both looked for from
- *   where the clip's speech should start (its onset: a take's slice opens with half a pause)
- *   (a warning);
+ *   the master's own audio (`speechStartMs`, so a breath or a click isn't the sound), both looked
+ *   for from where the sentence's speech starts in the mix (`speechOnsets`) (a warning);
  * - the largest motion gap ≤ 100 ms, a `nav` load's held frame exempt (Session 7's check);
  * - the last `rehearse` deny-list result clean (a failure when it isn't; a warning when there's
  *   no rehearse, or it's older than the tour).
@@ -26,7 +25,7 @@ import { join, relative } from "node:path";
 import { playHash } from "../lib/tours.ts";
 import type { Tour } from "../runtime/src/schema.ts";
 import { runTool } from "./encode.ts";
-import { decodeMono, type Loudness, levels, longestInnerSilence, measureLoudness, onsetMs, SPEECH_DB } from "./mix.ts";
+import { decodeMono, type Loudness, levels, longestInnerSilence, measureLoudness, speechStartMs } from "./mix.ts";
 import type { BeatSpan, SentenceSpan } from "./timeline.ts";
 
 export type Level = "ok" | "warn" | "fail";
@@ -94,9 +93,9 @@ export interface SyncRow {
 
 /**
  * Pure: for each cue that follows a blank (no caption for at least one frame before it), the
- * first frame showing it, and the first speech (`SPEECH_DB`) from twice the limit before its
- * speech should start (the sentence's start plus `onsets[i]`, its clip's onset; 0 when not
- * given), but not before the last sentence ended. Looking that far back, a voice that starts
+ * first frame showing it after the last sentence ended, and the first speech (`speechStartMs`) from twice the limit before
+ * its speech should start (the sentence's start plus `onsets[i]`, where the mix's speech starts;
+ * 0 when not given), but not before the last sentence ended. Looking that far back, a voice that starts
  * early is measured as early, not where the search began.
  */
 export function syncRows(sentences: readonly SentenceSpan[], diffs: readonly number[], lv: Float64Array, fps: number, onsets: readonly number[] = []): SyncRow[] {
@@ -107,14 +106,15 @@ export function syncRows(sentences: readonly SentenceSpan[], diffs: readonly num
     const speech = s.startMs + (onsets[i] ?? 0);
     if (prev && speech - prev.endMs < frameMs) return;
     let captionMs: number | null = null;
-    const from = Math.max(0, Math.floor((speech - 100) / frameMs));
+    // Not before the last caption has gone: a later speech start leaves it on screen 100 ms before.
+    const from = Math.max(0, Math.floor((speech - 100) / frameMs), Math.ceil((prev?.endMs ?? 0) / frameMs - 1e-6));
     for (let k = from; k < diffs.length && k * frameMs <= speech + 250; k++) {
       if ((diffs[k] as number) > CAPTION_DIFF) {
         captionMs = Math.round(k * frameMs * 10) / 10;
         break;
       }
     }
-    const audioMs = s.audio ? onsetMs(lv, Math.max(prev?.endMs ?? 0, speech - 2 * SYNC_MAX_MS), speech + 400, 10, SPEECH_DB) : null;
+    const audioMs = s.audio ? speechStartMs(lv, Math.max(prev?.endMs ?? 0, speech - 2 * SYNC_MAX_MS), speech + 400) : null;
     rows.push({ beat: s.beat, index: s.index, startMs: s.startMs, captionMs, audioMs, deltaMs: captionMs !== null && audioMs !== null ? Math.round((audioMs - captionMs) * 10) / 10 : null });
   });
   return rows;

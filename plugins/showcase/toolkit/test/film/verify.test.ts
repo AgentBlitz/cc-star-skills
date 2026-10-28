@@ -6,11 +6,11 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { withDefaults } from "../../lib/config.ts";
 import type { Project } from "../../host/project.ts";
-import { captionCues, clipLeadMs, voiceInfo } from "../../film/post.ts";
+import { captionCues, clipLeadMs, speechOnsets, voiceInfo } from "../../film/post.ts";
 import { chaptersMeta, scriptMd, timecode } from "../../film/script.ts";
 import type { BeatSpan, SentenceSpan, Spans } from "../../film/timeline.ts";
 import { durationTolerance, frameDiffs, isFaststart, stillName, stillTimes, syncRows, type VerifyInput, verifyChecks } from "../../film/verify.ts";
-import { levels, mixdown, RATE } from "../../film/mix.ts";
+import { levels, mixdown, RATE, speechStartMs } from "../../film/mix.ts";
 
 const beats: BeatSpan[] = [
   { beat: "open", index: 0, step: "a", kind: "card", title: "Hello", startMs: 750, endMs: 4000, narrationMs: 3000, waitedMs: 0 },
@@ -109,6 +109,61 @@ test("sync rows: a sound that starts early is measured early, not where the sear
   const [row] = syncRows(s, diffs, breathy(1030, { breathFrom: 850, soundFrom: 950 }), fps, onsets);
   assert.equal(row?.audioMs, 950, JSON.stringify(row));
   assert.ok((row?.deltaMs as number) < -50, JSON.stringify(row));
+});
+
+// Session 7b's first strict film (28 October): some clips open with 100–320 ms of breath, or a
+// lip click, between the end of the pause (the clip's recorded onset) and the first word. The
+// breath runs at −36 to −45 dB with single windows up to −34, a click reaches −32 for a window
+// or two, and the word rises past −25 dB at once.
+const opensSoftly = () => {
+  const lv = new Float64Array(1000).fill(-90);
+  for (let w = 81; w < 110; w++) lv[w] = w % 3 ? -40 : -36; // breath from 810 ms
+  lv[90] = -32; // a lip click at 900 ms
+  lv[104] = -34; // a loud breath at 1040 ms, more than 50 ms before the word
+  lv[105] = -38;
+  for (let w = 110; w < 280; w++) lv[w] = -18; // "When…" from 1100 ms
+  for (let w = 451; w < 650; w++) lv[w] = -18; // the second sentence from 4510 ms
+  return lv;
+};
+
+test("speech starts where the voice does: past a breath or a click, on a soft start that rises at once", () => {
+  const lv = opensSoftly();
+  assert.equal(speechStartMs(lv, 800, 2800), 1100);
+  // A start at −30 dB that is voiced within 50 ms (a soft consonant) counts from its first window.
+  const soft = opensSoftly();
+  soft[108] = -30;
+  soft[109] = -29;
+  assert.equal(speechStartMs(soft, 800, 2800), 1080);
+  assert.equal(speechStartMs(lv, 3000, 4000), null);
+});
+
+test("a caption starts on its speech, not on the breath or click its clip opens with", () => {
+  const fps = 30;
+  const m = { ...manifest("draft"), post: { leadMs: 10 } };
+  // From the clip's onset (810 ms) the voice starts at 1100 ms: frame 33. The second at 4510 ms: frame 135 (4500 ms).
+  assert.deepEqual(captionCues(spans(), m, fps, opensSoftly()).map((c) => c.startMs), [1100, 4500, 6500]);
+  assert.deepEqual(speechOnsets(spans(), m, opensSoftly()), [300, 10, 0]);
+  // With no speech found (a silent mix), the clip's own onset stands.
+  assert.deepEqual(speechOnsets(spans(), m, new Float64Array(1000).fill(-90)), [10, 10, 0]);
+  // And the sync row measures the same speech: in sync, not 290 ms late.
+  const diffs = Array.from({ length: 300 }, (_, k) => ((k >= 33 && k < 84) || k >= 135 ? 20 : 0.5));
+  const [row] = syncRows(sentences, diffs, opensSoftly(), fps, speechOnsets(spans(), m, opensSoftly()));
+  assert.deepEqual([row?.captionMs, row?.audioMs, row?.deltaMs], [1100, 1100, 0]);
+});
+
+test("sync rows: a caption is looked for after the one before it ends, not on it", () => {
+  const fps = 30;
+  // Two sentences back to back; the second's speech starts 60 ms in (2860 ms, nearest frame 86).
+  const s: SentenceSpan[] = [
+    { beat: "a", index: 0, text: "One.", audio: { hash: "h1", durationMs: 2000 }, startMs: 800, endMs: 2800 },
+    { beat: "a", index: 1, text: "Two.", audio: { hash: "h2", durationMs: 2000 }, startMs: 2800, endMs: 4800 },
+  ];
+  const diffs = Array.from({ length: 150 }, (_, k) => ((k >= 24 && k < 84) || k >= 86 ? 20 : 0.5));
+  const lv = new Float64Array(500).fill(-90);
+  for (let w = 80; w < 270; w++) lv[w] = -18;
+  for (let w = 286; w < 470; w++) lv[w] = -18;
+  const rows = syncRows(s, diffs, lv, fps, [0, 60]);
+  assert.deepEqual(rows[1], { beat: "a", index: 1, startMs: 2800, captionMs: 2866.7, audioMs: 2860, deltaMs: -6.7 });
 });
 
 test("caption cues start on the frame nearest their speech, never before the cue they follow", () => {
