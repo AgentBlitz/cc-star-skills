@@ -203,7 +203,7 @@ export function checkGuides({ root = '.', setFile = DEFAULT_SET, walkDir, record
         else {
           shown.add(shot.id);
           if (!shot.guides.includes(g.id)) add(g.file, n, 'shots', `shot ${shot.id} does not list guide ${g.id}`);
-          if (rel.endsWith('.svg') && !['placeholder', 'needs-text'].includes(shot.status)) add(g.file, n, 'shots', `shot ${shot.id} is ${shot.status} but the guide still shows its placeholder`);
+          if (rel.endsWith('.svg') && !['placeholder', 'needs-text', 'blocked'].includes(shot.status)) add(g.file, n, 'shots', `shot ${shot.id} is ${shot.status} but the guide still shows its placeholder`);
         }
       }
 

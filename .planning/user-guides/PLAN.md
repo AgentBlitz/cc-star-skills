@@ -163,8 +163,8 @@ plugins/user-guides/
                 embedded, copied in with a version stamp) test-page.md (every construct, for the
                 test page)
     scripts/    guide-set.mjs kit-core.mjs md.mjs to-confluence.mjs to-html.mjs swap-shots.mjs
-                bundle.mjs publish-core.js (page or Node) publish-node.mjs (localhost only)
-                check-page.js
+                shots-kit.mjs (S6, R29) bundle.mjs publish-core.js (page or Node)
+                publish-node.mjs (localhost only) check-page.js
   fixtures/leave-app/                server-rendered, dependency-free; 3 roles; v1 and v2 (the
                                      change table in its README, R14); a CLAUDE.md and a
                                      git-ignored private/ whose canary staging generates (R13)
@@ -344,6 +344,15 @@ No dependency and no app code. An adopted set may keep its files where they are,
   - **The frozen set and R14.** `fixtures/leave-app-guides/` crops `my-requests` to the table and `request-dialog` to the dialog, so against v2 **exactly one** shot retakes (`settings`, the whole screen). The refresh eval's oracle applies R14's table to the set's own shots (`graders/refresh.mjs` › `mustRetake`), and the skill's fingerprints agree. S6 and S9 take their counts from that oracle, not from "two".
   - **Trigger tuning** (`run_loop.py`) must run with `--num-workers 1`. Parallel workers each write a near-identical `.claude/commands/write-guides-skill-<id>.md`, and a run that invokes another worker's copy counts as a miss (S3's first loop read recall 6% for that reason). The 20 queries are `evals/triggers/write-guides.json`; S9 writes its own for wiki-guides.
   - **Kept walk scripts** import the scripts folder from `USER_GUIDES_SCRIPTS` (`walking.md`), so a refresh can run them wherever the plugin is installed.
+
+- **R29. wiki-guides' screenshots as built** (S6). Facts S7–S10 build on:
+  - **Three parts.** `shots-kit.mjs` (added to the layout: `install`, `check`, `blocks`) copies `templates/guides-kit.mjs` into the project's `scripts/user-guides/` with a stamp line (the plugin version and the template's sha256) and writes `shots.mjs` from the template, one block per shot. The project's `shots.mjs` takes the pictures. `swap-shots.mjs` puts them in the guides and moves the shots in `guides.json`.
+  - **The kit and kit-core.** `templates/guides-kit.mjs` holds `kit-core.mjs` byte for byte between markers, then the shot helpers (`startShots` → `as`, `open`, `settle`, `step`, `shot`, `check`, `done`). The sync test fails when the two differ, and `node test/embed-kit.mjs` re-embeds. So a change to `kit-core.mjs` now touches three files: both copies, then the embed.
+  - **Stale or edited.** `shots-kit.mjs check` reports the project's copy as `current`, `stale` (stamped from a different template) or `edited` (its body no longer matches its own stamp). `install` replaces a stale copy and refuses an edited one without `--force`. It never overwrites the project's `shots.mjs`.
+  - **The manifest.** `shots.mjs` writes each shot to `.user-guides/out/shots/<id>.png` (scale 2) and a half-size copy (`scale: 'css'`) to `out/review/`. `out/shots.json` records per shot its file, size, role, takenAt and fingerprint, or the error. A retake by name updates only those entries.
+  - **The fingerprint** is `regionFingerprint(page.content(), shot.target.locator)`, read before the page is touched (sticky elements, mouse). A crop passed in changes the picture, not the fingerprint. On the fixture, the fetch walk, the browser walk and the shot agree for every shot, signed-out ones included.
+  - **swap-shots' rules.** It takes `placeholder`, `retake` and `blocked` shots that have a manifest entry. A retake needs an entry newer than the shot's `takenAt`. A failed entry sets `blocked` with the error as its `note`. A `taken` shot is never touched; a changed fingerprint on one is reported, so refresh can run first (D5). `--needs-text id=note` hands a shot back. The release comes from `--release`, else `publish.release`. Swapping a link leaves the guide's status alone.
+  - **check-guides fix.** A `blocked` shot may still show its card: blocked from `placeholder` there is no PNG yet (R7). Before S6, check-guides flagged it.
 
 **Session shape**
 - **R18. Adopt mode** (write-guides, §2.2 step 7, amended into the approved plan for S12) had no session. S2 builds it: its round goes in `interview.md` and its steps in `refresh.md`. S3 evaluates it.

@@ -10,6 +10,13 @@ const SKILLS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 
 export const SHARED = ['scripts/guide-set.mjs', 'reference/guide-set.md', 'scripts/kit-core.mjs'];
 export const OPTIONAL_SHARED = ['scripts/md.mjs'];
 
+test('wiki-guides templates/guides-kit.mjs embeds kit-core.mjs byte for byte', async () => {
+  const { KIT_TEMPLATE, KIT_CORE, embedded } = await import('./embed-kit.mjs');
+  const inside = embedded(fs.readFileSync(KIT_TEMPLATE, 'utf8'));
+  assert.ok(inside !== null, 'guides-kit.mjs has no kit-core markers');
+  assert.ok(inside === fs.readFileSync(KIT_CORE, 'utf8'), 'the kit-core.mjs embedded in guides-kit.mjs is out of date: run node test/embed-kit.mjs');
+});
+
 for (const rel of [...SHARED, ...OPTIONAL_SHARED]) {
   test(`${rel} is identical in write-guides and wiki-guides`, (t) => {
     const a = path.join(SKILLS, 'write-guides', rel);

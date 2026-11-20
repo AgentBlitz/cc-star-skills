@@ -19,7 +19,7 @@
 | 3 | write-guides: evals, tuning, samples for review | ✅ | `evals/run.sh` (format / scripted / all), `evals/scripted.mjs`, `evals/lib/scaffold.mjs`, the `claude` shim and git wrapper; 4 eval-format cases (`write-guides-headless-round-1`, `-code-path`, `-non-local`, `-adopt`) and 2 scripted (`-first-guides`, `-refresh-v2`); `evals/triggers/write-guides.json` (20 queries); `fixtures/leave-app-guides/` (frozen set); `.planning/user-guides/samples/` for S4; `test/cli-symlink.test.mjs` | Final pass, every case 2/2 with the skill, score 1.00. Baseline (no plugin): headless 0.625, code-path 0.30, non-local 0.60, adopt 0.375, first-guides 0.29, refresh 0.25 (Δ +0.525 mean on the format cases, +0.71 and +0.75 scripted). Trigger: held-out 7/8 queries (21/24 runs, precision 100%, recall 75%), then 20/20 on the full set after adding "check" to the description. `npm test` 69 (68 pass, 1 skipped); validate passes; no `.claude/` left behind | Cost ≈ $15 of eval runs (format ≈ $6.7, scripted ≈ $8.2), plus the trigger loops (not metered). Skill changes the evals asked for: picture rules in `style.md`, portable walk scripts (`walking.md`, `refresh.md`), a symlink-safe main guard in every script, "check" in the description. Samples for S4: `.planning/user-guides/samples/` |
 | 4 | Checkpoint 1 · interview and templates | ✅ | Kam's answers and notes (TRACKER › Review notes); `interview.md` wording v2; `style.md` lean-set rule; `guide-types.md` kind ids; `walking.md` preflight bullet; grader `lean-pictures` | npm test 68 pass; format 4/4 (Δ +0.47); scripted 2/2 + 2/2 | by hand; verdict: notes, 6 closed (language, folder, URL, Round 2a, ids, pictures) |
 | 5 | write-guides on Clarity | ✅ | Clarity: `docs/user-guides/` (6 guides, README index, `guides.json`, 12 placeholder cards; Clarity commit, by go-ahead) and its git-ignored `.user-guides/walk/states.mjs`. Plugin: `kit.screenNames`, `walk.open(role, { signedOut })`, a readable `outline.md`, `summary` with the answers and app, wording fixes in SKILL.md, `interview.md`, `walking.md`; 4 new tests | `check-guides`: 6 guides, 12 shots, walked; all checks pass, all 6 `checked`. Allowlist (R23): every person and quoted line in the guides and shot states is in the tracked seed sources; no address; no mention of `docs/feedback/`. `npm test` 72 (71 pass, 1 skip). Format 4/4 (every run 1.00, Δ +0.47); scripted 2/2 + 2/2 (1.00). `claude plugin validate` passes | by hand, from Clarity. Pictures 4/5/2/1/1/1, notChecked 23, leftOut 0. Friction: 13 items, 9 fixed (S5 log). Plan change: S6 takes signed-out shots |
-| 6 | wiki-guides: screenshots | ⬜ | — | — | |
+| 6 | wiki-guides: screenshots | ✅ | wiki-guides `templates/guides-kit.mjs` (kit-core embedded, sync-tested) and `templates/shots.template.mjs`; `scripts/shots-kit.mjs` (install / check / blocks, new, R29) and `scripts/swap-shots.mjs`; `reference/screenshots.md`; `test/shots.test.mjs` (6), `test/embed-kit.mjs`; check-guides lets a `blocked` shot keep its card | `npm test` 79 (78 pass, 1 skip: `md.mjs`); all 5 fixture shots taken, review copies half size; fetch walk = browser walk = shot for all 5 (and a signed-out shot); v2: fingerprints flag exactly `settings` (R28's oracle), swap-shots retakes only it, the other 4 PNGs and entries unchanged; no sign-in value printed or stored; `claude plugin validate` passes; genericity clean | Shots 5 (frozen set). v2 flagged: 1 (`settings`). Walk-and-shot agreement: 5/5. Plan change: `shots-kit.mjs` joins the layout (R29) |
 | 7 | wiki-guides: converter (Confluence and HTML) | ⬜ | — | — | |
 | 8 | wiki-guides: mock Confluence and the publisher | ⬜ | — | — | |
 | 9 | wiki-guides: the skill, evals, tuning (0.9.0) | ⬜ | — | — | |
@@ -257,3 +257,26 @@ Runtime: opus/high (interactive, by hand, from Clarity)
 - **Commits.** Clarity: the guides folder and the `.user-guides/` ignore line, one commit, with Kam's go-ahead. cc-star-skills: the plugin fixes, PLAN, the tracker and the summary. Nothing pushed.
 - **Deviations.** None from PLAN. PLAN §5 Session 6 gains `as(role, { signedOut: true })`, and §3 › Review notes records why.
 - **Searches.** In Clarity, every search named its folders: recon's agents and the seed allowlist. Recon's `git ls-files | cut -d/ -f1` at Clarity's root listed the top-level folders, as `recon.md` prescribes. It was a listing, not a search. No search started at a root. campaign-brief was not touched.
+
+### Session 6: wiki-guides: screenshots (20 Nov 2026) ✅
+
+Runtime: opus/high (interactive `/planning:session`)
+
+- **Built.**
+  - `shots-kit.mjs install` copies the stamped `guides-kit.mjs` and writes `shots.mjs`, one block per shot (a page per role, signed in or out; `open` the state's path; `shot`).
+  - `shots.mjs` has `--check`, all shots, names, or `--pending`. Its shots go to `.user-guides/out/` (full size, half-size review copy, manifest with fingerprints).
+  - `swap-shots.mjs` moves them into the guides and `guides.json`.
+  - The API and rules are in `reference/screenshots.md` and PLAN R29.
+- **Gate.**
+  - **Every fixture shot:** `npm test` takes all 5 shots of the frozen set on a staged v1. The whole screens are 2560 px wide; the crops are smaller. Each review copy is half size.
+  - **R14 after v2:** the shots' own fingerprints differ from v1 for `settings` only, which matches R28's oracle (`mustRetake`). Refresh marks only `settings` retake, and swap-shots retakes only it. The other four PNGs are byte-identical, and so are their `guides.json` entries.
+  - **R12:** the fetch walk's and the browser walk's `shotFingerprint` equal the shot's for all 5. A signed-out shot of `/sign-in` agrees with a signed-out walk dump.
+  - **Secrecy:** the fixture's two cookie values appear in no output and in no file under `.user-guides/out/`, `scripts/` or `docs/`.
+  - **Also:** `npm test` 79 (78 pass, 1 skip); `claude plugin validate` passes; genericity is clean over 88 plugin files and this session's `.planning/` lines.
+- **Looked at.** The review copies of all 5 shots. The first pass showed an empty band under short whole screens, so whole screens now end at their content.
+- **Deviations.**
+  - `shots-kit.mjs` was added to the layout (§2.4, R29).
+  - check-guides' rule "a card is shown only for `placeholder` / `needs-text`" now includes `blocked`: blocked from placeholder there is no PNG yet (R7).
+  - `kit-core.mjs` is unchanged, and so is the fingerprint's definition.
+- **Not run.** The write-guides evals: the only write-guides change concerns `blocked` shots, which no write-guides eval produces.
+- **Searches.** In campaign-brief: `scripts/wiki/screenshots.mjs` was read for structure, and the archived session summary was grepped by its path. No search started at a repo root. Clarity was not touched.
