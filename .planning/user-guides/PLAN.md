@@ -1,6 +1,6 @@
 # user-guides plugin: write a product's user guides from a walk of the app, then illustrate and publish them
 
-> **Status:** Roadmap scaffolded on 20 Nov 2026 from an approved plan; 12 sessions, none started. **Session 1 must run before about 14 Dec 2026**: its first step copies code that exists only in two campaign-brief transcripts, which Claude Code deletes about 30 days after their last change (17 Nov 2026).
+> **Status:** Roadmap scaffolded on 20 Nov 2026 from an approved plan; 12 sessions. Sessions 1 and 2 done (20 Nov 2026). **Session 1 must run before about 14 Dec 2026**: its first step copies code that exists only in two campaign-brief transcripts, which Claude Code deletes about 30 days after their last change (17 Nov 2026).
 
 ## 1. Context
 
@@ -155,7 +155,7 @@ plugins/user-guides/
     reference/  interview.md recon.md walking.md guide-types.md style.md refresh.md guide-set.md
     templates/  role-guide.md features-and-value.md getting-started.md admin-operations.md
     scripts/    guide-set.mjs kit-core.mjs (S2) md.mjs (from S7) placeholder.mjs walk-lib.mjs
-                check-guides.mjs
+                check-guides.mjs set-edit.mjs (S2, R27)
   skills/wiki-guides/
     SKILL.md
     reference/  screenshots.md chrome-publishing.md confluence.md html.md recording.md guide-set.md
@@ -325,6 +325,15 @@ No dependency and no app code. An adopted set may keep its files where they are,
   - In eval-format runs, git is called through `/usr/bin/git`, which fails there. So `run.sh` should put a `git` wrapper first on PATH that calls CommandLineTools' git. Showcase's `run.sh` found that the operator's PATH reaches the runs; S3 verifies this.
   - Graders check only files the run writes.
   - Staging writes the canary file only when asked (`--canary-file`, outside the run's reach). Graders match the fixed prefix `LEAVEAPP-CANARY-`.
+
+- **R27. write-guides as built** (S2). Facts S3, S6 and S9 build on:
+  - **`set-edit.mjs`**, added to the layout: the skill's only way to change `guides.json`. It applies a JSON list of operations through `guide-set.mjs`'s exports, always as write-guides, all or nothing (`init`, `set`, `addGuide`, `moveGuide`, `edited`, `addShot`, `updateShot` for the spec fields, `moveShot`, `retakeIfChanged`, `push`, `drop`). The contract (`guide-set.mjs`, `guide-set.md`) is unchanged.
+  - **One screen reader.** `kit-core.mjs` reads HTML without dependencies. A browser walk passes it the live DOM (`page.content()`) and a fetch walk the served HTML, so on the fixture both walks give the same outline (a test holds this). S6 should take each shot's fingerprint with `regionFingerprint(await page.content(), shot.target.locator)` (null means the whole screen), so a walk and a shot agree by construction.
+  - **The walk outline** (`.user-guides/walk/outline.json`) has per role the screens sorted by path. Each has its title, h1, headings, controls, named regions (each with a locator and a fingerprint), its own fingerprint, aliases (`/` = `/home`) and its dump. It holds no host, port or time. A crawl starts a fresh walk and keeps the one before as `outline.previous.json` (`walk-lib.mjs diff`). A walk script adds to the outline, and its named dumps are entries of their own.
+  - **A shot's screen.** A shot's `state` starts with its screen's path (`On /requests?new=1: …`). Refresh finds the screen from that path, and otherwise from the alt text's screen name.
+  - **Interview.** Rounds 1–3 as §2.2 says, plus Round 2a ("running the app": base URL, sign-in, reset), asked only for what recon left open. Answer ids and the wording version (`1`) are in `interview.md`.
+  - **`check-guides`** also checks two things §5 doesn't list: no template comments or `{{slots}}` left in a written guide, and a current README status block.
+  - **Known limit, for S3.** The label check only asks whether the words appear on a walked screen for the guide's roles. A label renamed in one place but kept in another (v2's **Request leave**: the button is renamed, the dialog keeps the name) still passes. Refresh relies on `walk-lib.mjs diff` and `refresh.md` for that, so S3's refresh eval should grade the text.
 
 **Session shape**
 - **R18. Adopt mode** (write-guides, §2.2 step 7, amended into the approved plan for S12) had no session. S2 builds it: its round goes in `interview.md` and its steps in `refresh.md`. S3 evaluates it.

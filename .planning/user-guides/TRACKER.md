@@ -15,7 +15,7 @@
 | # | Session | Status | Key artifacts | Verification | Notes |
 |---|---|---|---|---|---|
 | 1 | Foundations: scaffold, contract, placeholder, fixture app, eval-sandbox spike | ✅ | `plugins/user-guides/` at 0.1.0; the contract (`guide-set.mjs` and `reference/guide-set.md`, identical in both skills); `placeholder.mjs`; `fixtures/leave-app` (v1/v2, change table in its README); `test/stage.mjs`; `test/genericity.mjs`; `sources/` (git-ignored): 23 js + 9 uploads + 4 walk files + README + deny.txt (12 terms) | `npm test` 40 tests (38 pass, 2 skipped: kit-core/md.mjs not built); `claude plugin validate` passes (icon warning); genericity clean over the plugin and the added `.planning/` lines; `sources/` ignored, `git ls-files` empty | Spike: SP1 no (EPERM listen/connect), SP2 no (Chromium dies), SP3 yes (with git caveats), SP4 yes; the scripted `claude -p --plugin-dir` fallback works. S2: read R26 and the contract reference |
-| 2 | write-guides: the skill | ⬜ | — | — | |
+| 2 | write-guides: the skill | ✅ | `SKILL.md` (85 lines, model-invocable); reference `interview.md` `recon.md` `walking.md` `guide-types.md` `style.md` `refresh.md`; 4 templates; `kit-core.mjs` (identical in both skills), `walk-lib.mjs`, `check-guides.mjs`, `set-edit.mjs` (new, R27); 4 test files | `npm test` 68 tests (67 pass, 1 skipped: `md.mjs` not built); sync test includes `kit-core.mjs`; two walks of the staged fixture byte-identical (40,498-byte outline); `check-guides` passes on the dry run; `claude plugin validate` passes; genericity clean | Dry run: 4 guides and 8 placeholders, all `checked`; v2 refresh and an adopt both passed. A browser walk equals a fetch walk. Known limit for S3: a label renamed in one place but kept in another passes the label check (R27) |
 | 3 | write-guides: evals, tuning, samples for review | ⬜ | — | — | |
 | 4 | Checkpoint 1 · interview and templates | ⬜ | — | — | by hand |
 | 5 | write-guides on Clarity | ⬜ | — | — | by hand, from Clarity |
@@ -110,3 +110,34 @@ Runtime: opus/high (autopilot attempt 1)
   - a non-local `baseUrl` or an unknown role is a warning, not an error;
   - a placeholder's `path` must be the `.svg`.
 - **Searches.** None started at a repo root. campaign-brief was read only through its two transcript files (by script), and `briefs/` was never touched.
+
+### Session 2: write-guides: the skill (20 Nov 2026) ✅
+
+Runtime: opus/high (autopilot attempt 1)
+
+- **Skill.** `SKILL.md` (85 lines) is orchestration only: it routes by argument (`refresh`, `adopt`, `check`, answers), lists the never-dos and gives seven steps, each naming its reference file. Its frontmatter has `argument-hint` and `allowed-tools`, with no `disable-model-invocation`; `claude plugin validate` passes.
+- **References and templates.** `interview.md` is wording version 1: three rounds plus Round 2a (running the app, only for what recon left open), adopt's round, skip rules with `id=value` arguments, the answer → file map, and the headless print-and-stop form. The other references are `recon.md` (three briefs, report shapes, ≤ 15 lines), `walking.md`, `guide-types.md`, `style.md` and `refresh.md` (refresh and adopt), plus four templates.
+- **Scripts.**
+  - `kit-core.mjs` (identical in both skills; the sync test now requires it): the D10 Playwright lookup, sign-in for D9's five kinds, and one dependency-free HTML reader with D3's fingerprint. A browser walk passes it `page.content()`, so a browser walk and a fetch walk agree, and a test holds this.
+  - `walk-lib.mjs`: generalised from session 42's `open`/`go`/`dump`/`api`, plus a crawl, deterministic outlines, `diff` and `refresh`.
+  - `check-guides.mjs`: every check in §5, plus `template` and `index`.
+  - `set-edit.mjs`: new (R27). Every change to `guides.json` goes through the contract. `guide-set.mjs` and `guide-set.md` are unchanged.
+- **Dry run** (R13), on staged copies, with every answer in `guides.json`:
+  - recon read the tracked files only, never `private/`; the canary is nowhere in the output;
+  - preflight and a browser crawl: employee 5 screens, manager 6, admin 6;
+  - a second crawl gave a byte-identical outline;
+  - two walk scripts: a request sent and approved, and the refusal pages;
+  - four guides (getting started, employee, manager, admin) and eight placeholders;
+  - `check-guides` first found two real problems. The employee guide bolded **Inbox**, which employees never see, and the admin's refusal message had not been walked. Both were fixed, and then it passed and `--mark-checked` set every guide to `checked`.
+  - **Refresh:** after `releaseV2`, `diff` named the renamed button and the removed checkbox, and the check flagged the removed label. The text was updated and the two edited guides were checked again.
+  - **Adopt:** a hand-written guide with a PNG was registered as `written` and the image as `taken`; the refresh marked it `retake`, and the guide passed once its alt text and left-out screens were fixed.
+- **Headless smoke run** (`claude -p "/user-guides:write-guides" --plugin-dir …`, sonnet, about $0.10): it printed Round 1 in the fixed form and stopped, with nothing written.
+- **Small choices.**
+  - Headless printing happens before recon, with generic role options.
+  - A shot's `state` starts with its screen's path.
+  - The label check is per audience.
+  - Named dumps are separate outline entries (found in the dry run).
+  - `updateShot` changes the spec fields only.
+- **Deviation from PLAN:** `set-edit.mjs` was added to §2.4's layout (R27). Nothing else changed shape.
+- **Searches.** None started at a repo root. In campaign-brief, the session read one session summary and listed the headings of three guides, all named files, and never touched `briefs/`. Sources were read from `.planning/user-guides/sources/`.
+- **Caution.** One `pkill -f "node server.mjs"`, used to stop the dry-run fixture, was broader than needed. Later servers were stopped by PID. No other stack is known to have been affected.
