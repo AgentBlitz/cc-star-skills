@@ -4,6 +4,8 @@
 //
 //   node bundle.mjs [--pages .user-guides/out/confluence/pages.json] [--limit 9000000]
 //                   [--out <the pages.json folder>/batches.json] [--root .]
+//                   [--only a.png,b.png]   only these images: the ones the publisher's plan
+//                                          lists under attach, replace and foreign
 //
 // Reads the images to-confluence.mjs listed in pages.json (every image is attached to the top
 // page), in that order, and writes batches.json: [{ batch, bytes, files: [{ name, path, bytes,
@@ -40,7 +42,7 @@ export function bundle(files, limit = LIMIT) {
 function main(argv) {
   const a = { pages: path.join('.user-guides', 'out', 'confluence', 'pages.json'), limit: String(LIMIT), root: '.' };
   for (let i = 0; i < argv.length; i++) {
-    const m = argv[i].match(/^--(pages|limit|out|root)(?:=(.*))?$/);
+    const m = argv[i].match(/^--(pages|limit|out|root|only)(?:=(.*))?$/);
     if (!m) return console.error(`unexpected argument: ${argv[i]}`), 2;
     a[m[1]] = m[2] ?? argv[++i];
   }
@@ -50,7 +52,10 @@ function main(argv) {
   const manifest = JSON.parse(fs.readFileSync(pagesFile, 'utf8'));
   const problems = [];
   const files = [];
+  const only = a.only ? a.only.split(',') : null;
+  for (const name of only || []) if (!manifest.images.some((img) => img.name === name)) problems.push(`${name}: not an image in ${a.pages}`);
   for (const img of manifest.images) {
+    if (only && !only.includes(img.name)) continue;
     const file = path.resolve(a.root, img.path);
     if (!fs.existsSync(file)) {
       problems.push(`${img.path}: missing`);

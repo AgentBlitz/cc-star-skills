@@ -10,6 +10,7 @@ the project root. Converting writes only into `.user-guides/out/`; it never touc
 | `.user-guides/out/confluence/<guide id>.xhtml` | one page per guide |
 | `.user-guides/out/confluence/pages.json` | the page tree, each page's images, and every image to attach, with its size and `sha256:` |
 | `.user-guides/out/confluence/batches.json` | the images in upload batches under 9 MB (`bundle.mjs`) |
+| `.user-guides/out/confluence/publish.json` | the publisher's one input file (`publish-kit.mjs input`) |
 
 ## 1. Convert
 
@@ -94,4 +95,17 @@ node $W/bundle.mjs            # reads .user-guides/out/confluence/pages.json
 It splits the images listed in `pages.json` into batches under 9 MB (raw size, in order), and
 writes `batches.json`. It stops when a file is over the limit, missing, or changed since the
 conversion (convert again). The publisher (`chrome-publishing.md`) uploads one batch at a time,
-and skips an image whose `sha256:` the wiki already holds.
+and skips an image whose `sha256:` the wiki already holds. `--only a.png,b.png` batches just the
+images named: on a republish, the ones the publisher's plan lists.
+
+## 5. The publisher's input
+
+```bash
+node $W/publish-kit.mjs input          # writes .user-guides/out/confluence/publish.json
+```
+
+It gathers what the publisher reads into one file: each page's storage format with its hash, the
+page ids and versions recorded in `guides.json`, the images with their `sha256:`, and the test
+page (made from `templates/test-page.md`, with `test-page.png` copied beside the input). It needs
+the page to publish under: `publish-kit.mjs target --top-page <page id>` records it.
+`chrome-publishing.md` takes it from there.

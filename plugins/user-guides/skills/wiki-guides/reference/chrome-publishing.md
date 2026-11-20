@@ -1,0 +1,184 @@
+# Publishing through the user's signed-in Chrome
+
+A real wiki is reached only through the user's own browser, with the Claude in Chrome tools. The
+page's sign-in does the work: `publish-core.js` runs **in the wiki page** and calls the wiki's
+REST API from there. `$W` below is this skill's `scripts/` folder. Run the commands from the
+project root.
+
+**Rules that hold at every step**
+
+- Never ask for, create, read or store a token, a password or a cookie. If the wiki answers
+  "not signed in", ask the user to sign in in that tab, then carry on.
+- **Confluence Data Center only.** The publisher detects the flavour first and refuses
+  Confluence Cloud and any wiki it cannot identify. Do not work around a refusal: offer HTML
+  files instead (`html.md`).
+- Nothing is written to a real page without the user's go-ahead **in this session**: once for
+  the test page, once for the real pages, once before the test page is removed.
+- Reports hold ids and counts, never addresses: Chrome blocks tool output that carries a query
+  string. Do not print `location.href` or a link from the page.
+- A wiki edit is never overwritten silently. When the plan says a page was edited, ask.
+
+| File | What it is |
+|---|---|
+| `$W/publish-core.js` | the publisher: its whole text is passed to `javascript_tool` |
+| `$W/check-page.js` | the page check: its whole text is passed to `javascript_tool` on a published page |
+| `.user-guides/out/confluence/publish.json` | the one file the publisher reads (`publish-kit.mjs input`) |
+| `.user-guides/out/confluence/test-page.png` | the test page's picture |
+| `.user-guides/out/confluence/batches.json` | the images in upload batches (`bundle.mjs`) |
+| `.user-guides/out/confluence/report.json` | the publish report, saved by you for `publish-kit.mjs record` |
+| `.user-guides/out/confluence/last-publish.json` | what was sent last time (written by `record`) |
+
+## 1. Open the page and identify the wiki
+
+1. Open the page the user named in a tab (`navigate`). It becomes the top page.
+2. Read `$W/publish-core.js` and pass **its whole text** as the `text` of `javascript_tool`.
+   It answers `user-guides publisher 1 ready`.
+3. Run `await userGuides.detect()`.
+
+   | `flavour` | Do |
+   |---|---|
+   | `data-center` | carry on. Note `page.id`, `page.title`, `page.space` and `contextPath` |
+   | `cloud` | stop. Tell the user that this plugin publishes to Confluence Data Center only, and offer HTML files |
+   | `unknown` | stop. Tell the user the wiki could not be identified, and offer HTML files |
+
+   Every other call refuses in the same way, so a skipped `detect()` cannot publish to Cloud.
+
+## 2. Make the input
+
+With the page's id and title from `detect()`:
+
+```bash
+node $W/publish-kit.mjs target --top-page <page id> --base-url <the wiki's address, with its context path>
+node $W/to-confluence.mjs --release <release> --top-title "<the page's title on the wiki>"
+node $W/bundle.mjs
+node $W/publish-kit.mjs input
+```
+
+- `target` records the page in `guides.json` (`publish.confluence`). `--top-guide <guide id>`
+  makes that guide's text open the top page; `--image-cap <px>` changes the widest image.
+- `--top-title` must be the title **as the wiki has it**: guide pages find their images and
+  the top page by that title. The publisher stops if the two differ.
+- `input` writes `publish.json`: each page's storage format and hash, the versions last
+  published, the images, and the test page.
+
+## 3. The upload input
+
+Chrome's `file_upload` fills a file input, so the publisher adds one to the page:
+
+1. `userGuides.input()` adds `<input type="file" multiple id="user-guides-upload">` (labelled
+   `user-guides upload`). Find its `ref` with `find` or `read_page`.
+2. `file_upload` with that `ref` and absolute paths. Each call **replaces** the input's files.
+3. `await userGuides.load()` reads `publish.json` from the input into the page's memory, where
+   it stays until the page reloads.
+
+**A reload or a navigation removes the script, the input and the loaded input.** After either
+one: pass `publish-core.js` again, `userGuides.input()`, upload `publish.json`, `load()`.
+
+## 4. The test page first
+
+Before a first publish (and whenever the user wants to see it):
+
+1. `file_upload`: `publish.json` and `test-page.png`. Then `await userGuides.load()`.
+2. With the user's go-ahead, `await userGuides.test()`. It writes one child page under the top
+   page, titled `<top page's title>: publishing test`, with every construct the guides may use
+   and its picture attached to itself. The top page is not written.
+3. Open the test page by its id (`<base>/pages/viewpage.action?pageId=<id>`), check it (step 7),
+   take a screenshot and show the user.
+4. When the user has seen it, ask before removing it. Back on the top page (script and input
+   again), `await userGuides.removeTest('<its page id>')` moves it to the space's trash.
+
+## 5. Plan, and ask
+
+`await userGuides.plan()` reads the wiki and writes nothing.
+
+| In the plan | Means | Do |
+|---|---|---|
+| `pages[].action` `create` / `update` / `skip` | a new page / the publisher's own page, unchanged since / nothing to send | nothing to ask |
+| `needs.adopted` (page ids, `top`) and `needs.foreignImages` | pages and images this publisher did not make: the page the user named on a first publish, hand-made pages given by id, a picture uploaded by hand under the same name | ask **once** for the whole batch. Say that each page's current text is replaced (its history keeps the old text). Then pass `confirm.adopted: true` |
+| `needs.edited` (`page id: version`) | someone edited that page on the wiki since the last publish | name the page and ask: bring the edit into the markdown first (recommended), or overwrite it. To overwrite, pass that id and version in `confirm.edited` |
+| `stops[]` with `title-taken` | another page in the space already has that title | stop and ask: rename the guide, or adopt that page by its id |
+| `stops[]` with `gone` | a recorded page is no longer there | stop and ask: restore it from the trash, or remove its entry from `publish.confluence.pages` to make a new page |
+| `images.attach` / `replace` | the images to upload | these are all you need to upload |
+
+A first publish always lists `top` under `needs.adopted`: the go-ahead for the real pages is
+that confirmation.
+
+## 6. Attach, publish, record
+
+```js
+const yes = { confirm: { adopted: true, edited: { "<page id>": 7 } } };   // only what the user confirmed
+await userGuides.attach(yes);    // once per upload batch
+await userGuides.publish(yes);
+```
+
+1. **Images, a batch at a time.** For each batch in `batches.json`: `file_upload` its paths,
+   then `await userGuides.attach(…)`. It attaches each image to the top page with its
+   `sha256:` in the attachment comment, skips one the wiki already holds, and lists under
+   `waiting` the ones still to come. On a republish, `node $W/bundle.mjs --only a.png,b.png`
+   batches just the images the plan listed. If `file_upload` refuses a batch for its size, make
+   smaller ones: `node $W/bundle.mjs --limit 6000000`.
+2. **Pages.** `await userGuides.publish(…)` reads every version again, then writes the top page
+   and each guide page: a new page under its parent, an update at the next version. It refuses
+   while an image is missing or a confirmation is not given, and then writes nothing at all.
+3. **If it stops part-way** (`ok: false` with `failed`), the wiki refused one page, usually
+   because someone saved it at that moment. The pages before it were published. Record the
+   report as below, plan again, and ask about that page.
+4. **Record.** Save the report exactly as returned to
+   `.user-guides/out/confluence/report.json`, then:
+
+   ```bash
+   node $W/publish-kit.mjs record --report .user-guides/out/confluence/report.json
+   ```
+
+   It writes each page's id and version into `guides.json` (`publish.confluence.pages`), the
+   space and the release. Tell the user `guides.json` changed and belongs in git.
+
+## 7. Check every page
+
+For the top page and each guide page in the report:
+
+1. Open it by id (`<base>/pages/viewpage.action?pageId=<id>`), or reload it if it is open.
+2. Pass the whole text of `$W/check-page.js` to `javascript_tool`, then run
+   `await userGuidesCheck({ version: <the version in the report> })`.
+
+| Answer | Do |
+|---|---|
+| `stale: true` | the tab still shows the old version: reload, pass the script again, check again. Never judge a stale page |
+| `tooWide` not empty | an image runs past the content column (`column`, in px). Lower the cap below it (`publish-kit.mjs target --image-cap <px>`), convert, make the input and publish again: only the pages change |
+| `notLoaded` not empty | an image did not load: is it attached to the top page under that name? |
+| `brokenAnchors`, `unresolvedPageLinks` | a link has no target: fix the guide, convert and publish again |
+| `ok: true` | take a screenshot of the first page and show the user |
+
+## 8. Publishing again
+
+After a release, or after any change to a guide: convert, `bundle.mjs`, `publish-kit.mjs input`,
+then steps 1 and 3 to 7 (the test page only if the user wants it). The publisher sends only
+what changed:
+
+- an image whose `sha256:` the wiki already holds is skipped;
+- a page whose title and storage format are what was last sent is skipped. Each update records
+  `user-guides <release> sha256:<hash>` as its version message, and that is how the next
+  publish knows. A new release changes every banner, so every page is sent;
+- a page made by the last publish and not yet updated has no message of its own. The publisher
+  knows it from `last-publish.json`. Without that file (a fresh clone), such a page is sent once
+  more, which is harmless.
+
+A page counts as untouched when its current version is the one recorded in `guides.json`, or
+when its latest version carries the publisher's own message. Anything else is `edited` or
+`adopted`, and needs the user's yes.
+
+## Rehearsing without a wiki
+
+`publish-node.mjs` runs the same `publish-core.js` in Node against the bundled mock
+(`fixtures/mock-confluence`), and refuses any address that is not on this machine:
+
+```bash
+node <plugin>/fixtures/mock-confluence/server.mjs            # prints its address
+node $W/publish-node.mjs plan    --base http://127.0.0.1:<port>
+node $W/publish-node.mjs test    --base http://127.0.0.1:<port>
+node $W/publish-node.mjs publish --base http://127.0.0.1:<port> --confirm-adopted
+```
+
+`--confirm-adopted` and `--confirm-edited <page id>=<version>` stand for the user's answers.
+`publish` attaches the images, writes the pages and saves `report.json` beside the input.
+It is for tests and rehearsals only: it never publishes to a real wiki.

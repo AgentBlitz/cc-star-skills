@@ -163,13 +163,15 @@ plugins/user-guides/
                 embedded, copied in with a version stamp) test-page.md (every construct, for the
                 test page) and its test-page.png (S7)
     scripts/    guide-set.mjs kit-core.mjs md.mjs to-confluence.mjs to-html.mjs swap-shots.mjs
-                shots-kit.mjs (S6, R29) bundle.mjs publish-core.js (page or Node)
-                publish-node.mjs (localhost only) check-page.js
+                shots-kit.mjs (S6, R29) bundle.mjs publish-kit.mjs (S8, R31: the input and the
+                record) publish-core.js (page or Node) publish-node.mjs (localhost only)
+                check-page.js
   fixtures/leave-app/                server-rendered, dependency-free; 3 roles; v1 and v2 (the
                                      change table in its README, R14); a CLAUDE.md and a
                                      git-ignored private/ whose canary staging generates (R13)
   fixtures/leave-app-guides/         S3's frozen guide set for the fixture (R15)
-  fixtures/mock-confluence/          Data Center REST subset + view page; cloud and unknown modes
+  fixtures/mock-confluence/          Data Center REST subset + view page; cloud and unknown modes;
+                                     seeds `empty` and `adopted`; control paths (its README, R31)
   test/                              node --test for every script; the staging helper; the
                                      shared-file sync test; the genericity test
   evals/<case>/…  evals/run.sh       and the claude shim (S3, R16)
@@ -365,6 +367,20 @@ No dependency and no app code. An adopted set may keep its files where they are,
   - **`to-html.mjs`** writes `index.html` and `<guide id>.html` (out: `--out`, else `publish.html.outDir`, else `.user-guides/out/html/`). The pages are XHTML-clean, with data-URI images and inline CSS, and nothing loads from outside.
   - **`bundle.mjs`** splits `pages.json`'s images into `batches.json`: in order, each batch under 9,000,000 raw bytes. A file over the limit, missing, or changed since the conversion (its `sha256:`) stops it. S8 decides whether base64 overhead needs a lower `--limit`.
   - **Goldens.** `test/golden/src/` and the template test page make a synthetic two-folder set. Its outputs are `test/golden/expected/{confluence,html}/`, which `UPDATE_GOLDENS=1 npm test` regenerates. `test/xml.mjs` checks well-formedness without dependencies, and so does `xmllint` when it is installed.
+
+- **R31. The publisher as built** (S8). Facts S9–S12 build on:
+  - **Four parts.** `publish-kit.mjs` (added to the layout) does the paperwork and never talks to a wiki: `target` records the page to publish under, `input` writes `publish.json`, `record` writes a publish report into `guides.json`. `publish-core.js` is the publisher: one script that installs `userGuides` (`input`, `load`, `detect`, `plan`, `attach`, `publish`, `test`, `removeTest`) in a wiki page or in Node. `publish-node.mjs` evaluates that same text in Node and refuses any host but localhost, before any request and on every request. `check-page.js` installs `userGuidesCheck({ version })`.
+  - **`publish.json`** is the one file the publisher reads: the release, the top page's id and title, each page's storage format with a hash of its title and body, the page ids and versions recorded in `guides.json`, the images (`name`, `bytes`, `sha256:`), and the test page. The page hashes nothing: Node computes every hash, because a wiki served over plain http has no hashing in the page.
+  - **Flavour first.** Cloud signals win: the host, a cloud id meta tag, a tenant-info answer. Data Center needs the applinks manifest (`typeId` `confluence` and a version), tried at each likely context path. Anything else is `unknown`. Every call but `input` and `load` refuses unless the flavour is Data Center.
+  - **When a page may be overwritten.** A page counts as untouched when its current version is the one recorded in `publish.confluence.pages`, **or** when its latest version carries the publisher's own message (`user-guides <release> sha256:<hash>`): any edit on the wiki makes a newer version without it. Otherwise it is `edited` (a version is recorded, and it differs) or `adopted` (none is recorded). `adopted` takes one confirmation for the whole batch, which also covers a same-named image the publisher did not upload. `edited` takes the page id with the version the user saw. Until every need is confirmed, neither `attach` nor `publish` writes anything.
+  - **The top page's version has no field of its own in the contract.** With a `topGuide`, `record` keeps it under that guide's id in `pages`. Without one, the version message is the record. So a first publish always lists `top` under `needs.adopted`, and the go-ahead for the real pages is that confirmation. The contract is unchanged; a `topVersion` field would be the alternative, should the message ever prove unreliable on a real wiki (S10 will show).
+  - **Stops no confirmation lifts:** a title used by another page in the space (`title-taken`), a recorded page that is gone (`gone`), a top title that is not the wiki's (`top-title`: convert again with `--top-title`), a page recorded in another space. A page found by its title **under its expected parent** is not a stop: it is updated in place, as `adopted`.
+  - **Unchanged pages.** An update carries the message, so the next publish skips an unchanged page. A create sends no version, exactly as the worked example's request did, so a page just made has no message. `record` therefore also writes `.user-guides/out/confluence/last-publish.json` (id, version and hash sent), and the next `input` carries it. Without that file (a fresh clone), a created page is sent once more and then skipped.
+  - **Reports** hold ids, versions, actions and counts. Wiki error messages have any address removed. A publish that stops part-way (the wiki's 409 when someone saves at that moment) reports the pages done and the one that failed; `record` takes a partial report.
+  - **The test page** is a child of the top page titled `<top title>: publishing test`, made from `templates/test-page.md`, with its picture attached to itself (`pageXhtml`'s new `ownImages` option). `removeTest(id)` trashes only that page: right title, right parent, no children.
+  - **`bundle.mjs --only a.png,b.png`** batches just the images a plan lists. The limit stays 9,000,000 raw bytes: the worked example's batches were far smaller, so nothing shows whether Chrome counts raw or base64 size. `chrome-publishing.md` gives `--limit 6000000` as the fallback, and S10 finds out.
+  - **The mock** (`fixtures/mock-confluence/server.mjs`, also `startMock()`): seeds `empty` and `adopted` (the Leave Planner guides as hand-made pages, for S9's adopt eval), `--context`, `--mode cloud|unknown`, `--width`. `/__mock/state` gives graders the pages, attachments and every write request; `/__mock/edit`, `/__mock/page` and `/__mock/race` play the colleague. In `cloud` and `unknown` modes its REST calls still work, so "no write request" proves that the publisher refused.
+  - **For S9.** `publish-core.js` is about 25 KB as `javascript_tool` text, passed again after every reload: the rehearsal should confirm that this size goes through. S8 ran it in headless Chromium with `page.evaluate(text)`; `javascript_tool` allows `await` at the top level (the worked example used it), which `page.evaluate` does not.
 
 **Session shape**
 - **R18. Adopt mode** (write-guides, §2.2 step 7, amended into the approved plan for S12) had no session. S2 builds it: its round goes in `interview.md` and its steps in `refresh.md`. S3 evaluates it.

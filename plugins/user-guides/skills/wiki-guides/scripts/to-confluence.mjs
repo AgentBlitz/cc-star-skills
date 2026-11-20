@@ -265,7 +265,7 @@ function blocksXhtml(blocks, rc, tight = false) {
           return tight && k === 0 ? inlineXhtml(b.inlines, rc) : `<p>${inlineXhtml(b.inlines, rc)}</p>`;
         case 'image': {
           const img = rc.prep.images.get(b.ref);
-          const onTop = rc.isTop ? '' : `<ri:page ri:content-title="${esc(rc.prep.topTitle)}" />`;
+          const onTop = rc.isTop || rc.ownImages ? '' : `<ri:page ri:content-title="${esc(rc.prep.topTitle)}" />`;
           return `<p><ac:image ac:width="${img.width}" ac:alt="${esc(b.alt)}" ac:title="${esc(b.alt)}"><ri:attachment ri:filename="${esc(img.name)}">${onTop}</ri:attachment></ac:image></p>`;
         }
         case 'list': {
@@ -308,10 +308,13 @@ function listXhtml(tree, rc) {
     .join('')}</ul>`;
 }
 
-/** One page in storage format; `page` is a prepared page or 'top'. */
-export function pageXhtml(prep, page, notes = []) {
+/**
+ * One page in storage format; `page` is a prepared page or 'top'. With `ownImages`, the page
+ * shows images attached to itself, not to the top page (the test page, publish-kit.mjs).
+ */
+export function pageXhtml(prep, page, notes = [], { ownImages = false } = {}) {
   const parts = pageParts(prep, page);
-  const rc = { prep, from: parts.from, isTop: page === 'top', notes };
+  const rc = { prep, from: parts.from, isTop: page === 'top', ownImages, notes };
   const out = [bannerXhtml(parts.banner)];
   if (page === 'top') {
     if (parts.intro.length) out.push(blocksXhtml(parts.intro, rc));

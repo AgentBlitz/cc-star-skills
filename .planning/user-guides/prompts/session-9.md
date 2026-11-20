@@ -14,11 +14,11 @@ Paste everything below into a fresh Claude Code session in the `cc-star-skills` 
 ## Read first
 1. `.planning/user-guides/PLAN.md`:
    - §2.2 (wiki-guides' eight steps);
-   - §3: D1, D5, D6, D7, D12, R14, R16, R20, R21, C8 and the **Spike verdicts**;
+   - §3: D1, D5, D6, D7, D12, R14, R16, R20, R21, R28–R31 (the harness, the shots, the converters and the publisher as built), C8 and the **Spike verdicts**;
    - §5 Session 9.
 2. `.planning/user-guides/TRACKER.md`: confirm Session 8 is ✅, then mark row 9 🟡.
 3. `plugins/user-guides/skills/write-guides/SKILL.md`, the sibling's pattern, and Session 3's harness (`evals/run.sh`, the shim, its cases).
-4. The wiki-guides reference files from Sessions 6–8: `screenshots.md`, `confluence.md`, `html.md` and `chrome-publishing.md`.
+4. The wiki-guides reference files from Sessions 6–8: `screenshots.md`, `confluence.md`, `html.md` and `chrome-publishing.md`; and `plugins/user-guides/fixtures/mock-confluence/README.md` (the seeds, and `/__mock/state` for graders).
 5. skill-creator, at `~/.claude/skills/synced/*/skill-creator/`: the loop and `scripts/run_loop.py`.
 
 ## Objective
