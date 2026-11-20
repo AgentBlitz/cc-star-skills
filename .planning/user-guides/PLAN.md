@@ -259,10 +259,10 @@ No dependency and no app code. An adopted set may keep its files where they are,
 
 | # | Question | Verdict | Evidence | Fallback if "no" (settled, R16) |
 |---|---|---|---|---|
-| SP1 | Can an eval run start and reach a server on 127.0.0.1 (the fixture, the mock)? | | | the same cases as scripted `claude -p --plugin-dir` runs, with the same graders |
-| SP2 | Can it start headless Chromium? | | | the fetch walk (the fixture is server-rendered); shot cases stay in `npm test` |
-| SP3 | Can it run a scaffold script such as `git init`? | | | scripted `claude -p --plugin-dir` runs |
-| SP4 | Is the skill's base directory given? | | | `run.sh` exports the path |
+| SP1 | Can an eval run start and reach a server on 127.0.0.1 (the fixture, the mock)? | **No** (S1, 20 Nov 2026, Claude Code 2.1.322) | The run's own `node server.mjs` fails with `listen EPERM: operation not permitted 127.0.0.1`. A fixture the scaffold started outside the run is unreachable too: `fetch` fails with `EPERM`. The same probe in a scripted `claude -p --plugin-dir … --allowedTools Bash` run on a staged copy listened and got `200 ok v1 1.0`. | the same cases as scripted `claude -p --plugin-dir` runs, with the same graders |
+| SP2 | Can it start headless Chromium? | **No** (S1) | The run's HOME is sealed (`<temp>/home`), so the default browsers path is missing. With `PLAYWRIGHT_BROWSERS_PATH` set to the user cache, or to a headless shell the scaffold cloned into the workspace, Chromium starts and then dies at once ("Target page, context or browser has been closed"). The same probe in a scripted `claude -p --plugin-dir` run launched Chromium 153 from every path. | the fetch walk (the fixture is server-rendered); shot cases stay in `npm test`. Because SP1 is also no, a walk can't run inside an eval-format run: walk and shot cases go to scripted `claude -p --plugin-dir` runs (SP1's fallback). |
+| SP3 | Can it run a scaffold script such as `git init`? | **Yes** (S1) | `--scaffold` ran `context.scaffold_script` as the operator, with cwd set to the run's workspace (`<temp>/home/cwd`). `test/stage.mjs --into "$PWD/app"` ran `git init` and committed, and the run saw the commit. Caveats for S3: (1) in the run, `/usr/bin/git` (macOS's xcrun shim) fails ("couldn't create cache file … Operation not permitted"), while `/Library/Developer/CommandLineTools/usr/bin/git` works; (2) `file_exists` graders see only files the run itself wrote, not scaffolded ones; (3) a server the scaffold starts outlives the run and must be stopped. | scripted `claude -p --plugin-dir` runs |
+| SP4 | Is the skill's base directory given? | **Yes** (S1) | `/user-guides:write-guides` on the staged copy (no `node_modules`) gave `Base directory for this skill: <stage>/plugin/skills/write-guides`. The run listed its `scripts/` (`guide-set.mjs`, `placeholder.mjs`) with Bash. The run cannot read paths outside the stage, its workspace and the system, for example this repo's `node_modules`. | `run.sh` exports the path |
 
 ### Reconciliations
 
@@ -318,6 +318,13 @@ No dependency and no app code. An adopted set may keep its files where they are,
   - Over the plugin's tracked files and the new files that aren't ignored, it allows no host but `localhost`, `127.0.0.1` and `example.*` (the host rule, which always runs), and no term from `.planning/user-guides/sources/deny.txt`.
   - That deny-list is git-ignored, so the test never holds the strings it forbids. S1 writes it while copying from the transcripts. With the file missing, that part is skipped and the test says so.
   - Before every commit, a session also runs the deny-list part over the lines it adds under `.planning/`.
+
+- **R26. What the spike means for S3's harness** (S1; verdicts above).
+  - Eval-format cases (`claude plugin eval`) suit only runs that need no live app: the headless print-and-stop rounds, answers given in `guides.json`, the code-only path (`notChecked[]`), and privacy.
+  - Any case that walks the fixture, takes a shot or talks to the mock runs as a scripted `claude -p --plugin-dir` run, on a staged copy, with the same graders, as SP1's fallback says.
+  - In eval-format runs, git is called through `/usr/bin/git`, which fails there. So `run.sh` should put a `git` wrapper first on PATH that calls CommandLineTools' git. Showcase's `run.sh` found that the operator's PATH reaches the runs; S3 verifies this.
+  - Graders check only files the run writes.
+  - Staging writes the canary file only when asked (`--canary-file`, outside the run's reach). Graders match the fixed prefix `LEAVEAPP-CANARY-`.
 
 **Session shape**
 - **R18. Adopt mode** (write-guides, §2.2 step 7, amended into the approved plan for S12) had no session. S2 builds it: its round goes in `interview.md` and its steps in `refresh.md`. S3 evaluates it.

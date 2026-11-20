@@ -1,0 +1,12 @@
+{
+  "name": "leave-planner",
+  "private": true,
+  "type": "module",
+  "description": "Leave Planner: request, approve and plan time off.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.mjs --port 0",
+    "reset": "node reset.mjs",
+    "sign-in": "node sign-in.mjs"
+  }
+}

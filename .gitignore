@@ -10,3 +10,8 @@ node_modules/
 **/showcase/.auth/
 plugins/showcase/toolkit/test/.out/
 plugins/showcase/evals/results/
+
+# user-guides plugin: transcript copies (internal hosts), test output, eval results
+.planning/user-guides/sources/
+plugins/user-guides/test/.out/
+plugins/user-guides/evals/results/

@@ -1,0 +1,16 @@
+{
+  "name": "user-guides-dev",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only: the plugin's own tests. Installed plugins carry no node_modules; the skills' scripts use Node built-ins only.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 \"test/*.test.mjs\"",
+    "genericity": "node test/genericity.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.63.0"
+  }
+}
