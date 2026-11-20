@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en-GB" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>User guides: test page</title>
+<style>
+body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #1f2328; background: #fff; }
+main { max-width: 52rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin: 1.6em 0 0.6em; }
+h1 { font-size: 2rem; margin-top: 0.5em; }
+a { color: #0969da; }
+code { font: 0.9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: #f3f4f6; padding: 0.1em 0.3em; border-radius: 4px; }
+pre { background: #f6f8fa; padding: 0.9rem 1rem; overflow: auto; border-radius: 6px; }
+pre code { background: none; padding: 0; }
+img { max-width: 100%; height: auto; border: 1px solid #d0d7de; border-radius: 6px; }
+table { border-collapse: collapse; margin: 1rem 0; }
+th, td { border: 1px solid #d0d7de; padding: 0.4rem 0.7rem; vertical-align: top; }
+th { background: #f6f8fa; }
+blockquote { margin: 1rem 0; padding: 0 1rem; color: #59636e; border-left: 4px solid #d0d7de; }
+hr { border: 0; border-top: 1px solid #d0d7de; margin: 2rem 0; }
+.banner { font-size: 0.9rem; color: #59636e; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 0.6rem 0.9rem; }
+.alert { margin: 1rem 0; padding: 0.5rem 1rem; border-left: 4px solid; border-radius: 4px; }
+.alert-title { font-weight: 600; margin: 0.4rem 0; }
+.alert-note { border-color: #0969da; background: #f0f6ff; }
+.alert-tip { border-color: #1a7f37; background: #effaf2; }
+.alert-important { border-color: #8250df; background: #f6f2ff; }
+.alert-warning { border-color: #9a6700; background: #fff8e6; }
+.alert-caution { border-color: #cf222e; background: #fff0f0; }
+nav.guides ul { padding-left: 1.2rem; }
+</style>
+</head>
+<body>
+<main>
+<p class="banner">This page is made from <code>docs/guides/test-page.md</code> at release 1.0.0-test. Change it there and publish again: an edit made here is overwritten by the next publish.</p>
+<h1>User guides: test page</h1>
+<p><a href="index.html">Example user guides</a></p>
+<p>This page holds every construct the guides may use, so one look shows that each one converts. It has <strong>bold</strong>, <em>italic</em>, <em>italic too</em>, <code>code</code>, <strong><em>bold and italic</em></strong>, <strong>bold with <code>code</code> inside</strong>, and an escaped *star*. Links: <a href="#tables">a heading on this page</a>, <a href="#a-repeated-heading-1">the second of two headings with one name</a>, <a href="https://example.com/help">an external page</a>, <a href="another.html#first-steps">another guide</a>, <a href="index.html">the guides' index</a> and a file in the repository, which shows as its text only. An address on its own links too: <a href="https://example.com/start">https://example.com/start</a>.</p>
+<p>Characters that need escaping: 5 &lt; 6 &amp; 7 &gt; 4, &quot;quotes&quot;, 'apostrophes', and an em dash — and é.</p>
+<h2 id="lists">Lists</h2>
+<ul><li>A bullet.</li><li>A bullet with a nested list:
+<ul><li>nested one;</li><li>nested two, with <strong>bold</strong>.</li></ul></li><li>A last bullet.</li></ul>
+<ol><li><p>A numbered step.</p>
+<p>A second paragraph inside the step.</p></li><li><p>A step with a picture:</p>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAADwCAIAAABXFyDtAAADd0lEQVR42u3UsQ1AYBSF0b+1gkahsYGZTGFFnURhDBGVTvQKz3OSM8FN7leqYQEgoGICAIEGQKABBBoAgQYQaAAEGgCBBhBoAAQaQKABEGgABBpAoAEQaACBBkCgAQQaAIEGQKABBBoAgQYQaAAEGgCBBhBoAAQaQKABEGgAgQZAoAEQaACBBkCgAQQaAIEGQKABBBoAgQZIGehpXi/bfgDwonuTBRpAoAEQaACBBkCgAQQaAIEGQKABBBoAgQYQaAAEGkCgBRpAoAEQaACBBkCgAQTaNAACDYBAAwg0AAININAACDQAAg0g0AAINIBAAyDQAAIt0AACDYBAAwg0AAININAACDQAAg0g0AAINIBAA/CPQDdtB0gSAg0CjUALNAg0Ag0CjUALNAg0Ag0CjUALNAg0Ai3QINAINAg0Ai3QINAINAg0Ai3QINAItECDQCPQINAItECDQCPQINAItECDQCPQINAItECDQCPQAAg0gEADINAAAi3QAAINgEADCDQAAg0g0AAINAACDSDQAAg0gEADINAAAi3QAAINgEADCDQAAg0g0AAINAACDSDQAAg0gEADINAAAi3QAAINgEADCPRj9diTlZuBQCPQINACjUCDQCPQINACjUCDQAu0QAMCjUCDQAs0Ag0CjUCDQAs0Ag0CLdACDQg0Ag0CLdAINAg0Ag0CLdAINAg0Ag0CLdAINAi0QAs0INAINAi0QCPQINAINAi0QCPQINACLdCAQCPQINACjUCDQCPQINACjUCDQCPQgEAj0CDQAi3QgEAj0CDQAo1Ag0Aj0CDQAo1Ag0ALtEADAo1Ag0ALNAINAo1Ag0ALNAINAo1AAwKNQINAC7RAexoINAINAi3QCDQINAINAi3QCDQItEALNCDQCDQItEAj0CDQCDQItEAj0CDQKibQgEAj0CDQAo1Ag0Aj0CDQAo1Ag0Aj0CDQAo1Ag0ALtEADAo1Ag0ALNAINAo1Ag0ALNAINAi3QAg0INAINAi3QCDQINAINAi3QCDQINAINxAk0AAININAACDSAQAMg0AACLdAAAg2AQAMINAACDSDQAg0g0AAINIBAAyDQAAINgEADINAAAg2AQAMINAACDSDQAg0g0AAINIBAAyDQAAINgEADINAAAg2AQAMINAACDSDQAg3wiUADEIdAAwg0AAINkMAJPiRxt5m9nWAAAAAASUVORK5CYII=" alt="Test page: the sample picture inside a step" width="240" /></p></li><li><p>A step with a nested bullet list:</p>
+<ul><li>one;</li><li>two.</li></ul></li><li><p>A step with code:</p>
+<pre><code>inside a step</code></pre></li></ol>
+<h2 id="pictures">Pictures</h2>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAADwCAIAAABXFyDtAAADd0lEQVR42u3UsQ1AYBSF0b+1gkahsYGZTGFFnURhDBGVTvQKz3OSM8FN7leqYQEgoGICAIEGQKABBBoAgQYQaAAEGgCBBhBoAAQaQKABEGgABBpAoAEQaACBBkCgAQQaAIEGQKABBBoAgQYQaAAEGgCBBhBoAAQaQKABEGgAgQZAoAEQaACBBkCgAQQaAIEGQKABBBoAgQZIGehpXi/bfgDwonuTBRpAoAEQaACBBkCgAQQaAIEGQKABBBoAgQYQaAAEGkCgBRpAoAEQaACBBkCgAQTaNAACDYBAAwg0AAININAACDQAAg0g0AAINIBAAyDQAAIt0AACDYBAAwg0AAININAACDQAAg0g0AAINIBAA/CPQDdtB0gSAg0CjUALNAg0Ag0CjUALNAg0Ag0CjUALNAg0Ai3QINAINAg0Ai3QINAINAg0Ai3QINAItECDQCPQINAItECDQCPQINAItECDQCPQINAItECDQCPQAAg0gEADINAAAi3QAAINgEADCDQAAg0g0AAINAACDSDQAAg0gEADINAAAi3QAAINgEADCDQAAg0g0AAINAACDSDQAAg0gEADINAAAi3QAAINgEADCPRj9diTlZuBQCPQINACjUCDQCPQINACjUCDQAu0QAMCjUCDQAs0Ag0CjUCDQAs0Ag0CLdACDQg0Ag0CLdAINAg0Ag0CLdAINAg0Ag0CLdAINAi0QAs0INAINAi0QCPQINAINAi0QCPQINACLdCAQCPQINACjUCDQCPQINACjUCDQCPQgEAj0CDQAi3QgEAj0CDQAo1Ag0Aj0CDQAo1Ag0ALtEADAo1Ag0ALNAINAo1Ag0ALNAINAo1AAwKNQINAC7RAexoINAINAi3QCDQINAINAi3QCDQItEALNCDQCDQItEAj0CDQCDQItEAj0CDQKibQgEAj0CDQAo1Ag0Aj0CDQAo1Ag0Aj0CDQAo1Ag0ALtEADAo1Ag0ALNAINAo1Ag0ALNAINAi3QAg0INAINAi3QCDQINAINAi3QCDQINAINxAk0AAININAACDSAQAMg0AACLdAAAg2AQAMINAACDSDQAg0g0AAINIBAAyDQAAINgEADINAAAg2AQAMINAACDSDQAg0g0AAINIBAAyDQAAINgEADINAAAg2AQAMINAACDSDQAg3wiUADEIdAAwg0AAINkMAJPiRxt5m9nWAAAAAASUVORK5CYII=" alt="Test page: the sample picture on its own line" width="240" /></p>
+<hr />
+<h2 id="tables">Tables</h2>
+<table><thead><tr><th style="text-align: left;">Left</th><th style="text-align: center;">Centre</th><th style="text-align: right;">Right</th></tr></thead><tbody><tr><td style="text-align: left;"><strong>Save</strong></td><td style="text-align: center;"><code>code</code></td><td style="text-align: right;"><a href="https://example.com/">external</a></td></tr><tr><td style="text-align: left;">a | pipe</td><td style="text-align: center;"><code>a|b</code> in code</td><td style="text-align: right;">3</td></tr><tr><td style="text-align: left;"><em>italic</em></td><td style="text-align: center;">é &amp; &lt; &gt;</td><td style="text-align: right;"></td></tr></tbody></table>
+<h2 id="code">Code</h2>
+<pre><code class="language-js">const ok = 1 &lt; 2 &amp;&amp; &quot;]]&gt;&quot; !== '&lt;b&gt;';</code></pre>
+<pre><code>Plain text, no language.</code></pre>
+<h2 id="quotes-and-alerts">Quotes and alerts</h2>
+<blockquote><p>A quote with <strong>bold</strong> over two lines.</p>
+<p>And a second paragraph.</p></blockquote>
+<div class="alert alert-note" role="note"><p class="alert-title">Note</p><p>A note.</p></div>
+<div class="alert alert-tip" role="note"><p class="alert-title">Tip</p><p>A tip, with <a href="#lists">a link</a>.</p></div>
+<div class="alert alert-important" role="note"><p class="alert-title">Important</p><p>Something important.</p></div>
+<div class="alert alert-warning" role="note"><p class="alert-title">Warning</p><p>A warning.</p></div>
+<div class="alert alert-caution" role="note"><p class="alert-title">Caution</p><p>A caution, with a list:</p>
+<ul><li>one;</li><li>two.</li></ul></div>
+<h2 id="a-repeated-heading">A repeated heading</h2>
+<p>The first of two headings with one name.</p>
+<h2 id="a-repeated-heading-1">A repeated heading</h2>
+<p>The second. Links back to <a href="#a-repeated-heading">the first</a> and <a href="#a-repeated-heading-1">the second</a>.</p>
+<h3 id="a-third-level-with-code-and-bold">A third level, with <code>code</code> and <strong>bold</strong></h3>
+<h4 id="a-fourth-level">A fourth level</h4>
+<h5 id="a-fifth-level">A fifth level</h5>
+<h6 id="a-sixth-level">A sixth level</h6>
+<p>The end of the test page.</p>
+</main>
+</body>
+</html>

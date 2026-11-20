@@ -161,7 +161,7 @@ plugins/user-guides/
     reference/  screenshots.md chrome-publishing.md confluence.md html.md recording.md guide-set.md
     templates/  shots.template.mjs (the project's shots) guides-kit.mjs (the helpers, kit-core
                 embedded, copied in with a version stamp) test-page.md (every construct, for the
-                test page)
+                test page) and its test-page.png (S7)
     scripts/    guide-set.mjs kit-core.mjs md.mjs to-confluence.mjs to-html.mjs swap-shots.mjs
                 shots-kit.mjs (S6, R29) bundle.mjs publish-core.js (page or Node)
                 publish-node.mjs (localhost only) check-page.js
@@ -353,6 +353,18 @@ No dependency and no app code. An adopted set may keep its files where they are,
   - **The fingerprint** is `regionFingerprint(page.content(), shot.target.locator)`, read before the page is touched (sticky elements, mouse). A crop passed in changes the picture, not the fingerprint. On the fixture, the fetch walk, the browser walk and the shot agree for every shot, signed-out ones included.
   - **swap-shots' rules.** It takes `placeholder`, `retake` and `blocked` shots that have a manifest entry. A retake needs an entry newer than the shot's `takenAt`. A failed entry sets `blocked` with the error as its `note`. A `taken` shot is never touched; a changed fingerprint on one is reported, so refresh can run first (D5). `--needs-text id=note` hands a shot back. The release comes from `--release`, else `publish.release`. Swapping a link leaves the guide's status alone.
   - **check-guides fix.** A `blocked` shot may still show its card: blocked from `placeholder` there is no PNG yet (R7). Before S6, check-guides flagged it.
+
+- **R30. The converters as built** (S7). Facts S8–S10 build on:
+  - **One parser.** `md.mjs` (both skills, byte for byte) turns a guide into a small block and inline tree: `parse(md, { file, escapeUnsupported })` → `{ title, blocks, errors, escaped }`. Anchors come from the rendered heading text (GitHub's slug, `-1` for repeats, the title counted). `check-guides` now takes `slug` and `anchors` from it, and its new `subset` rule reports each error by line; an `outlined` guide is not held to it yet.
+  - **The subset's edges.** Outside it, each with its line: raw HTML and comments, reference links and footnotes, indented code, underlined headings, an image inside text, strikethrough, task boxes, a heading inside a list or quote, a second title, a hard line break. `<https://…>` and bare `https://…` addresses are links, as on GitHub.
+  - **`to-confluence.mjs`** writes `top.xhtml`, `<guide id>.xhtml` and `pages.json` into `.user-guides/out/confluence/`. `pages.json` holds the release, the top page (`title`, `source`, `guide`, `images`), the pages (`id`, `title`, `file`, `source`, `parent`: null means under the top page, `order`, `images`), and every image to attach (`name`, `path`, `bytes`, `sha256:`, `px`, `width`, `placeholder`, `shot`). It holds no time, so a rerun is byte-identical.
+  - **`--top-title` matters to S8.** Guide pages reach the top page by title: its images are `<ri:attachment>` on `<ri:page ri:content-title>`, and a link to the README index points to it. The publisher must pass the top page's real title, read from the wiki; the default, the README's `#` title, is right only for the HTML index and the tests.
+  - **The top page.** With no `topGuide`, the intro is the README's opening paragraphs; the rest of the README is not published (a note says so), and its status block never is. With a `topGuide`, the intro is that guide up to its first heading and the rest follows the panel. The guide is not also written as a page of its own, and its children go straight under the top page. The list of guides nests by `parent`; each item takes its description from the README's own list. "On this page" (a `toc`, `maxLevel` 2) appears only when the top page has headings.
+  - **Macros.** Code goes in the `code` macro, its language mapped to a Data Center name (unknown: shown as text, with a note). A quote is `<blockquote>`. Alerts: NOTE and TIP → `info`, IMPORTANT and WARNING → `note`, CAUTION → `warning`, each titled with its kind. The banner is an `info` macro. Its words, "On this page" and the alert titles are fixed English in v1.
+  - **Images** are named by file name on the top page, so two images with one name are a problem. An `.svg` card that is published as it is (`--allow-placeholders`) is shown at its own width, capped.
+  - **`to-html.mjs`** writes `index.html` and `<guide id>.html` (out: `--out`, else `publish.html.outDir`, else `.user-guides/out/html/`). The pages are XHTML-clean, with data-URI images and inline CSS, and nothing loads from outside.
+  - **`bundle.mjs`** splits `pages.json`'s images into `batches.json`: in order, each batch under 9,000,000 raw bytes. A file over the limit, missing, or changed since the conversion (its `sha256:`) stops it. S8 decides whether base64 overhead needs a lower `--limit`.
+  - **Goldens.** `test/golden/src/` and the template test page make a synthetic two-folder set. Its outputs are `test/golden/expected/{confluence,html}/`, which `UPDATE_GOLDENS=1 npm test` regenerates. `test/xml.mjs` checks well-formedness without dependencies, and so does `xmllint` when it is installed.
 
 **Session shape**
 - **R18. Adopt mode** (write-guides, §2.2 step 7, amended into the approved plan for S12) had no session. S2 builds it: its round goes in `interview.md` and its steps in `refresh.md`. S3 evaluates it.

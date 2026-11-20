@@ -1,0 +1,57 @@
+{
+  "release": "1.0.0-test",
+  "setFile": "docs/guides/guides.json",
+  "top": {
+    "title": "Example user guides",
+    "file": "top.xhtml",
+    "source": "docs/guides/README.md",
+    "guide": null,
+    "images": []
+  },
+  "pages": [
+    {
+      "id": "test-page",
+      "title": "User guides: test page",
+      "file": "test-page.xhtml",
+      "source": "docs/guides/test-page.md",
+      "parent": null,
+      "order": 1,
+      "images": [
+        "test-page.png"
+      ]
+    },
+    {
+      "id": "another",
+      "title": "Another guide",
+      "file": "another.xhtml",
+      "source": "docs/more/another-guide.md",
+      "parent": "test-page",
+      "order": 2,
+      "images": [
+        "card.svg"
+      ]
+    }
+  ],
+  "images": [
+    {
+      "name": "card.svg",
+      "path": "docs/more/images/card.svg",
+      "bytes": 258,
+      "sha256": "sha256:3380bc78bb1fb526fff3979a028b1eb62995cfaed0112ce6dade008be0968a7e",
+      "px": 640,
+      "width": 640,
+      "placeholder": true,
+      "shot": "card"
+    },
+    {
+      "name": "test-page.png",
+      "path": "docs/guides/test-page.png",
+      "bytes": 944,
+      "sha256": "sha256:73c53b8c09686ef439516db79b952dc5e1ad707ffdc2399d9898a4ab1db43229",
+      "px": 480,
+      "width": 240,
+      "placeholder": false,
+      "shot": "test-page"
+    }
+  ]
+}

@@ -38,7 +38,9 @@ colleague who knows the app well and is showing a new starter how to get their w
   with anchors as GitHub makes them. No links to repo files that aren't guides.
 - Stay inside the converter's subset (wiki-guides publishes it): headings, paragraphs, bold,
   italic, code, links, nested lists, `---`, images alone on their line, GFM tables, fenced
-  code, blockquotes and GitHub alerts. No raw HTML, footnotes or task lists.
+  code, blockquotes and GitHub alerts. No raw HTML or comments, footnotes, reference-style
+  links, strikethrough, task lists, indented code or hard line breaks. `check-guides` reports
+  anything outside it by line (its `subset` rule, from the same `md.mjs` the converters use).
 
 ## Pictures
 

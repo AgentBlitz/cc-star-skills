@@ -13,6 +13,8 @@
 //   refs      no internal references: decision, ticket and session ids, file paths, code names,
 //             nor the project's own checks.patterns[]
 //   template  no template comments or {{slots}} left in a written guide
+//   subset    the guide keeps to the Markdown subset the converters read (md.mjs): anything
+//             else is reported with its line (an outlined guide is not checked yet)
 //   image     alt text present and in the form "Screen: what to notice"; each image alone on
 //             its line; the file exists
 //   shots     every image is a shot that lists the guide, and every shot of the guide is shown
@@ -27,6 +29,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as kit from './kit-core.mjs';
+import { anchors, parse } from './md.mjs';
 import { loadGuideSet, saveGuideSet, moveGuide, updateIndex } from './guide-set.mjs';
 
 export const DEFAULT_SET = 'docs/user-guides/guides.json';
@@ -43,36 +46,8 @@ export const INTERNAL_REFS = [
 /** A code span that names code: camelCase, snake_case, a call, a module path, a source file. */
 const CODE_NAME = /^(?:[a-z]+[A-Z]\w*|[A-Z][a-z0-9]+[A-Z]\w*|\w+_\w+|[\w.]+\(\)|\w+::\w+|[\w-]+\.(?:m?[jt]sx?|json|ya?ml|py|go|rb|sql|sh|css|html))$/;
 
-/** GitHub's heading slug. */
-export function slug(text) {
-  return text
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/<[^>]+>/g, '')
-    .replace(/[`*]/g, '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s_-]/gu, '')
-    .replace(/\s/g, '-');
-}
-
-/** Every heading's anchor in a markdown text, with -1, -2 for duplicates. */
-export function anchors(md) {
-  const out = new Set();
-  const count = new Map();
-  let fence = false;
-  for (const line of md.split('\n')) {
-    if (/^\s*(```|~~~)/.test(line)) fence = !fence;
-    if (fence) continue;
-    const m = line.match(/^#{1,6}\s+(.*?)\s*#*\s*$/);
-    if (!m) continue;
-    const s = slug(m[1]);
-    const n = count.get(s) || 0;
-    count.set(s, n + 1);
-    out.add(n ? `${s}-${n}` : s);
-  }
-  return out;
-}
+/** GitHub's heading slug and every heading's anchor, from the subset's parser (md.mjs). */
+export { slug, anchors } from './md.mjs';
 
 const IMAGE_RE = /!\[((?:\\.|[^\]\\])*)\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/g;
 const LINK_RE = /(?<!!)\[((?:\\.|[^\]\\])*)\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/g;
@@ -148,6 +123,7 @@ export function checkGuides({ root = '.', setFile = DEFAULT_SET, walkDir, record
     }
     const md = fs.readFileSync(abs(g.file), 'utf8');
     texts.set(g.id, md);
+    if (g.status !== 'outlined') for (const e of parse(md, { file: g.file }).errors) add(g.file, e.line, 'subset', e.message);
     const lines = md.split('\n');
     const shown = new Set();
     let fence = false;

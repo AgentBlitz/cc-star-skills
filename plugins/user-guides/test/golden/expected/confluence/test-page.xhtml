@@ -1,0 +1,37 @@
+<ac:structured-macro ac:name="info"><ac:rich-text-body><p>This page is made from <code>docs/guides/test-page.md</code> at release 1.0.0-test. Change it there and publish again: an edit made here is overwritten by the next publish.</p></ac:rich-text-body></ac:structured-macro>
+<p>This page holds every construct the guides may use, so one look shows that each one converts. It has <strong>bold</strong>, <em>italic</em>, <em>italic too</em>, <code>code</code>, <strong><em>bold and italic</em></strong>, <strong>bold with <code>code</code> inside</strong>, and an escaped *star*. Links: <ac:link ac:anchor="tables"><ac:link-body>a heading on this page</ac:link-body></ac:link>, <ac:link ac:anchor="a-repeated-heading-1"><ac:link-body>the second of two headings with one name</ac:link-body></ac:link>, <a href="https://example.com/help">an external page</a>, <ac:link ac:anchor="first-steps"><ri:page ri:content-title="Another guide" /><ac:link-body>another guide</ac:link-body></ac:link>, <ac:link><ri:page ri:content-title="Example user guides" /><ac:link-body>the guides' index</ac:link-body></ac:link> and a file in the repository, which shows as its text only. An address on its own links too: <a href="https://example.com/start">https://example.com/start</a>.</p>
+<p>Characters that need escaping: 5 &lt; 6 &amp; 7 &gt; 4, &quot;quotes&quot;, 'apostrophes', and an em dash — and é.</p>
+<h1><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">lists</ac:parameter></ac:structured-macro>Lists</h1>
+<ul><li>A bullet.</li><li>A bullet with a nested list:
+<ul><li>nested one;</li><li>nested two, with <strong>bold</strong>.</li></ul></li><li>A last bullet.</li></ul>
+<ol><li><p>A numbered step.</p>
+<p>A second paragraph inside the step.</p></li><li><p>A step with a picture:</p>
+<p><ac:image ac:width="240" ac:alt="Test page: the sample picture inside a step" ac:title="Test page: the sample picture inside a step"><ri:attachment ri:filename="test-page.png"><ri:page ri:content-title="Example user guides" /></ri:attachment></ac:image></p></li><li><p>A step with a nested bullet list:</p>
+<ul><li>one;</li><li>two.</li></ul></li><li><p>A step with code:</p>
+<ac:structured-macro ac:name="code"><ac:plain-text-body><![CDATA[inside a step]]></ac:plain-text-body></ac:structured-macro></li></ol>
+<h1><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">pictures</ac:parameter></ac:structured-macro>Pictures</h1>
+<p><ac:image ac:width="240" ac:alt="Test page: the sample picture on its own line" ac:title="Test page: the sample picture on its own line"><ri:attachment ri:filename="test-page.png"><ri:page ri:content-title="Example user guides" /></ri:attachment></ac:image></p>
+<hr />
+<h1><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">tables</ac:parameter></ac:structured-macro>Tables</h1>
+<table><tbody><tr><th style="text-align: left;">Left</th><th style="text-align: center;">Centre</th><th style="text-align: right;">Right</th></tr><tr><td style="text-align: left;"><strong>Save</strong></td><td style="text-align: center;"><code>code</code></td><td style="text-align: right;"><a href="https://example.com/">external</a></td></tr><tr><td style="text-align: left;">a | pipe</td><td style="text-align: center;"><code>a|b</code> in code</td><td style="text-align: right;">3</td></tr><tr><td style="text-align: left;"><em>italic</em></td><td style="text-align: center;">é &amp; &lt; &gt;</td><td style="text-align: right;"></td></tr></tbody></table>
+<h1><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">code</ac:parameter></ac:structured-macro>Code</h1>
+<ac:structured-macro ac:name="code"><ac:parameter ac:name="language">js</ac:parameter><ac:plain-text-body><![CDATA[const ok = 1 < 2 && "]]]]><![CDATA[>" !== '<b>';]]></ac:plain-text-body></ac:structured-macro>
+<ac:structured-macro ac:name="code"><ac:plain-text-body><![CDATA[Plain text, no language.]]></ac:plain-text-body></ac:structured-macro>
+<h1><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">quotes-and-alerts</ac:parameter></ac:structured-macro>Quotes and alerts</h1>
+<blockquote><p>A quote with <strong>bold</strong> over two lines.</p>
+<p>And a second paragraph.</p></blockquote>
+<ac:structured-macro ac:name="info"><ac:parameter ac:name="title">Note</ac:parameter><ac:rich-text-body><p>A note.</p></ac:rich-text-body></ac:structured-macro>
+<ac:structured-macro ac:name="info"><ac:parameter ac:name="title">Tip</ac:parameter><ac:rich-text-body><p>A tip, with <ac:link ac:anchor="lists"><ac:link-body>a link</ac:link-body></ac:link>.</p></ac:rich-text-body></ac:structured-macro>
+<ac:structured-macro ac:name="note"><ac:parameter ac:name="title">Important</ac:parameter><ac:rich-text-body><p>Something important.</p></ac:rich-text-body></ac:structured-macro>
+<ac:structured-macro ac:name="note"><ac:parameter ac:name="title">Warning</ac:parameter><ac:rich-text-body><p>A warning.</p></ac:rich-text-body></ac:structured-macro>
+<ac:structured-macro ac:name="warning"><ac:parameter ac:name="title">Caution</ac:parameter><ac:rich-text-body><p>A caution, with a list:</p>
+<ul><li>one;</li><li>two.</li></ul></ac:rich-text-body></ac:structured-macro>
+<h1><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">a-repeated-heading</ac:parameter></ac:structured-macro>A repeated heading</h1>
+<p>The first of two headings with one name.</p>
+<h1><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">a-repeated-heading-1</ac:parameter></ac:structured-macro>A repeated heading</h1>
+<p>The second. Links back to <ac:link ac:anchor="a-repeated-heading"><ac:link-body>the first</ac:link-body></ac:link> and <ac:link ac:anchor="a-repeated-heading-1"><ac:link-body>the second</ac:link-body></ac:link>.</p>
+<h2><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">a-third-level-with-code-and-bold</ac:parameter></ac:structured-macro>A third level, with <code>code</code> and <strong>bold</strong></h2>
+<h3><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">a-fourth-level</ac:parameter></ac:structured-macro>A fourth level</h3>
+<h4><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">a-fifth-level</ac:parameter></ac:structured-macro>A fifth level</h4>
+<h5><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">a-sixth-level</ac:parameter></ac:structured-macro>A sixth level</h5>
+<p>The end of the test page.</p>

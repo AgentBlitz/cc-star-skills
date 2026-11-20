@@ -230,3 +230,18 @@ test('set-edit: operations apply together through the contract, or not at all', 
   assert.equal(status.status, 1);
   assert.match(status.stderr, /changes only alt, as, target, state and guides, not status/);
 });
+
+test('subset: a construct outside the converters’ Markdown subset fails with its line (S7)', () => {
+  const st = stageFixture({});
+  cleanups.push(() => st.cleanup());
+  const extra = '\n<details>more</details>\n\nA footnote[^1] and ~~struck~~ text.\n';
+  writeGuides(st.dir, 'http://localhost:3000', { employeeText: GUIDE + extra });
+  const res = checkGuides({ root: st.dir });
+  const subset = res.problems.filter((p) => p.rule === 'subset');
+  const base = GUIDE.split('\n').length;
+  assert.deepEqual(subset.map((p) => [p.file, p.line]), [['docs/user-guides/employee.md', base + 1], ['docs/user-guides/employee.md', base + 3], ['docs/user-guides/employee.md', base + 3]]);
+  assert.match(subset[0].message, /raw HTML: not in the guides' Markdown subset/);
+  // an outlined guide is a skeleton still being written: not held to the subset yet
+  writeGuides(st.dir, 'http://localhost:3000', { employeeText: GUIDE + extra, guides: [{ id: 'employee', type: 'role-guide', file: 'docs/user-guides/employee.md', title: 'Leave Planner for employees', audience: ['employee'], parent: '', order: 1, status: 'outlined' }] });
+  assert.equal(checkGuides({ root: st.dir }).problems.filter((p) => p.rule === 'subset').length, 0);
+});

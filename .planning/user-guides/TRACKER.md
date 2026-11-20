@@ -20,7 +20,7 @@
 | 4 | Checkpoint 1 · interview and templates | ✅ | Kam's answers and notes (TRACKER › Review notes); `interview.md` wording v2; `style.md` lean-set rule; `guide-types.md` kind ids; `walking.md` preflight bullet; grader `lean-pictures` | npm test 68 pass; format 4/4 (Δ +0.47); scripted 2/2 + 2/2 | by hand; verdict: notes, 6 closed (language, folder, URL, Round 2a, ids, pictures) |
 | 5 | write-guides on Clarity | ✅ | Clarity: `docs/user-guides/` (6 guides, README index, `guides.json`, 12 placeholder cards; Clarity commit, by go-ahead) and its git-ignored `.user-guides/walk/states.mjs`. Plugin: `kit.screenNames`, `walk.open(role, { signedOut })`, a readable `outline.md`, `summary` with the answers and app, wording fixes in SKILL.md, `interview.md`, `walking.md`; 4 new tests | `check-guides`: 6 guides, 12 shots, walked; all checks pass, all 6 `checked`. Allowlist (R23): every person and quoted line in the guides and shot states is in the tracked seed sources; no address; no mention of `docs/feedback/`. `npm test` 72 (71 pass, 1 skip). Format 4/4 (every run 1.00, Δ +0.47); scripted 2/2 + 2/2 (1.00). `claude plugin validate` passes | by hand, from Clarity. Pictures 4/5/2/1/1/1, notChecked 23, leftOut 0. Friction: 13 items, 9 fixed (S5 log). Plan change: S6 takes signed-out shots |
 | 6 | wiki-guides: screenshots | ✅ | wiki-guides `templates/guides-kit.mjs` (kit-core embedded, sync-tested) and `templates/shots.template.mjs`; `scripts/shots-kit.mjs` (install / check / blocks, new, R29) and `scripts/swap-shots.mjs`; `reference/screenshots.md`; `test/shots.test.mjs` (6), `test/embed-kit.mjs`; check-guides lets a `blocked` shot keep its card | `npm test` 79 (78 pass, 1 skip: `md.mjs`); all 5 fixture shots taken, review copies half size; fetch walk = browser walk = shot for all 5 (and a signed-out shot); v2: fingerprints flag exactly `settings` (R28's oracle), swap-shots retakes only it, the other 4 PNGs and entries unchanged; no sign-in value printed or stored; `claude plugin validate` passes; genericity clean | Shots 5 (frozen set). v2 flagged: 1 (`settings`). Walk-and-shot agreement: 5/5. Plan change: `shots-kit.mjs` joins the layout (R29) |
-| 7 | wiki-guides: converter (Confluence and HTML) | ⬜ | — | — | |
+| 7 | wiki-guides: converter (Confluence and HTML) | ✅ | `md.mjs` (both skills, sync-tested); wiki-guides `scripts/to-confluence.mjs`, `to-html.mjs`, `bundle.mjs`; `templates/test-page.md` + `test-page.png`; `reference/confluence.md`, `reference/html.md`; check-guides' `subset` rule; `test/convert.test.mjs` (13), `test/xml.mjs`, `test/golden/` | Goldens pass: storage format (4 files) and HTML (3 pages) of a synthetic two-folder set; every page well-formed (own check and xmllint). `npm test` 93/93, the `md.mjs` sync test included (no skip). Clarity: 6 guides, 0 unsupported-construct errors; a strict run stops on the 14 placeholder references; with `--allow-placeholders`, 8 storage files and 7 HTML pages, all well-formed, 1 upload batch. `claude plugin validate` passes; genericity clean | Constructs: every one in §2.5, all six heading levels, the five alerts, a duplicate heading's `-1`, cross-folder guide links, the README as the top page, and a repo file shown as text. Plan change: R30; `test-page.png` joins the layout |
 | 8 | wiki-guides: mock Confluence and the publisher | ⬜ | — | — | |
 | 9 | wiki-guides: the skill, evals, tuning (0.9.0) | ⬜ | — | — | |
 | 10 | Checkpoint 2 · Clarity on the wiki | ⬜ | — | — | by hand, from Clarity |
@@ -280,3 +280,30 @@ Runtime: opus/high (interactive `/planning:session`)
   - `kit-core.mjs` is unchanged, and so is the fingerprint's definition.
 - **Not run.** The write-guides evals: the only write-guides change concerns `blocked` shots, which no write-guides eval produces.
 - **Searches.** In campaign-brief: `scripts/wiki/screenshots.mjs` was read for structure, and the archived session summary was grepped by its path. No search started at a repo root. Clarity was not touched.
+
+### Session 7: wiki-guides: converter (Confluence and HTML) (20 Nov 2026) ✅
+
+Runtime: opus/medium (autopilot attempt 1)
+
+- **Built.**
+  - `md.mjs` is the subset's parser, the same file in both skills. A construct outside the subset fails with `file:line`, or, with `--escape-unsupported` (only with the user's go-ahead), shows as escaped text.
+  - `to-confluence.mjs` writes storage format: the banner, the top page (R10), anchor macros, the code macro and the alert macros, images at `min(cap, px / scale)` attached to the top page, and cross-folder links. Its `pages.json` lists pages and images. A placeholder card stops it unless `--allow-placeholders`.
+  - `to-html.mjs` writes self-contained pages with data-URI images, plus `index.html`. `bundle.mjs` makes upload batches under 9 MB.
+  - check-guides gained a `subset` rule and now takes its slugs and anchors from `md.mjs`. `style.md` names what the subset leaves out.
+  - Facts for S8–S10 are in PLAN R30.
+- **Gate.**
+  - **Goldens:** `test/golden/expected/` (storage format: top, two guides, `pages.json`; HTML: index and two pages) match. Every page is well-formed under `test/xml.mjs` and `xmllint`.
+  - **Clarity:** read-only conversion into `plugins/user-guides/test/.out/clarity/`. 0 unsupported-construct errors in its 6 guides, so the converter needed no fix. A strict run lists the 14 placeholder references (12 cards) and writes nothing. With `--allow-placeholders` it writes 8 storage files and 7 HTML pages, all well-formed, and 1 upload batch. Clarity's `git status` for its guides folder is clean.
+  - **Also:** `npm test` 93/93, with the `md.mjs` sync test no longer skipped. The frozen fixture guides keep to the subset. `claude plugin validate` passes, and genericity is clean over 110 plugin files and this session's `.planning/` lines.
+- **Small choices.**
+  - The top page's title is an argument (`--top-title`), because guide pages reach the top page by title. Its default is the README's title. S8 passes the real title.
+  - The README intro is its opening paragraphs only. The README's own list supplies each guide's description in the generated list.
+  - "On this page" appears only when the top page has headings.
+  - The alert mapping: NOTE and TIP → `info`, IMPORTANT and WARNING → `note`, CAUTION → `warning`.
+  - Upload batches count raw bytes below 9,000,000.
+  - Bare `https://` addresses become links, as on GitHub.
+  - A hard line break is outside the subset.
+  - The fixed words (the banner, "On this page", the alert titles) are English in v1.
+- **Deviations.** `templates/test-page.png` (a 480×240 sample picture) joins the layout, so the test page has a picture of its own. The shared converter code lives in `to-confluence.mjs`'s exports (`prepare`, `pageParts`, `resolveLink`), and `to-html.mjs` imports them, so no new module joins the layout. `test/cli-symlink.test.mjs` now covers the three new CLIs.
+- **Not run.** The write-guides evals. The frozen fixture guides pass check-guides' new rule, but guides the evals write afresh were not run through it. S9 runs the evals with wiki-guides.
+- **Searches.** campaign-brief: `scripts/wiki/to-confluence.mjs` only, read by its path for structure. Clarity: only `docs/user-guides/` (listed, read and converted), plus `git status` on that folder. auto-conf: one `grep -rn` for the storage-format macros **started at auto-conf's root** (outside the campaign-brief/Clarity rule, but noted), then `src/auto_conf/converter.py` was read. No other search started at a repo root.

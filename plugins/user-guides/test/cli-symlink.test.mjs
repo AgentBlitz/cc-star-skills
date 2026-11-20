@@ -9,7 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { PLUGIN_DIR } from './helpers.mjs';
 
-const SCRIPTS = ['check-guides', 'guide-set', 'set-edit', 'walk-lib', 'placeholder'];
+const SCRIPTS = ['check-guides', 'guide-set', 'set-edit', 'walk-lib', 'placeholder', 'to-confluence', 'to-html', 'bundle'];
 
 test('each script CLI answers through a symlinked path', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ug-link-'));
