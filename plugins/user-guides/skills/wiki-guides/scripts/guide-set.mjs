@@ -619,9 +619,30 @@ export function updateIndex(readmeText, set, indexFile = null) {
 }
 
 /** Counts by status, for reports. */
+/**
+ * Where a set stands, for a run that resumes from it: the guides and shots by status, the
+ * interview answers already recorded (they are not asked again), and how the local app is reached.
+ */
 export function summary(set) {
   const count = (list, key) => list.reduce((acc, x) => ((acc[x[key]] = (acc[x[key]] || 0) + 1), acc), {});
-  return { guides: count(set.guides, 'status'), shots: count(set.shots, 'status'), notChecked: set.notChecked.length };
+  const app = set.app || {};
+  return {
+    guides: count(set.guides, 'status'),
+    shots: count(set.shots, 'status'),
+    notChecked: (set.notChecked || []).length,
+    leftOut: (set.leftOut || []).length,
+    interview: {
+      wordingVersion: set.interview?.wordingVersion ?? null,
+      answers: set.interview?.answers || {},
+    },
+    app: {
+      baseUrl: app.baseUrl ?? null,
+      signIn: app.signIn?.kind ?? null,
+      roles: Object.keys(app.accounts || {}),
+      start: app.start ? 'set' : null,
+      reset: app.reset ? 'set' : null,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------------------

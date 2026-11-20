@@ -242,7 +242,12 @@ test('the CLI validates and reports', async () => {
   gs.saveGuideSet(file, fullSet());
   const script = new URL('../skills/write-guides/scripts/guide-set.mjs', import.meta.url).pathname;
   assert.match(execFileSync('node', [script, 'validate', file], { encoding: 'utf8' }), /valid \(3 guides, 2 shots\)/);
-  assert.match(execFileSync('node', [script, 'summary', file], { encoding: 'utf8' }), /"placeholder": 1/);
+  const sum = JSON.parse(execFileSync('node', [script, 'summary', file], { encoding: 'utf8' }));
+  assert.equal(sum.shots.placeholder, 1);
+  assert.deepEqual(sum.interview.answers, fullSet().interview.answers, 'a resuming run sees the answers already given');
+  assert.equal(sum.app.baseUrl, fullSet().app.baseUrl);
+  assert.equal(sum.app.signIn, 'cookie-command');
+  assert.ok(!JSON.stringify(sum).includes('sign-in.mjs'), 'no sign-in setting beyond its kind');
   fs.writeFileSync(file, JSON.stringify({ ...fullSet(), schemaVersion: 9 }));
   const r = spawnSync('node', [script, 'validate', file], { encoding: 'utf8' });
   assert.equal(r.status, 1);

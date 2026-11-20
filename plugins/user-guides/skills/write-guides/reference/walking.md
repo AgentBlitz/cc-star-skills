@@ -75,6 +75,10 @@ await walk.save();
 await walk.close();
 ```
 
+- **The screens before sign-in** (sign-in, register, a sign-up link, signed out):
+  `walk.open('<role>', { signedOut: true })` gives that role a page that is not signed in, and
+  its dumps are recorded under the role. Getting started covers them. A shot of one says so in
+  its `state`: `On /sign-in: signed out`.
 - `walk.api(p, method, path, body)` calls the app's own API with the role's session (to
   create the data a screen needs). Prefer the screens; use the API only to set the scene.
 - Anything that changes data changes it for the synthetic account: say so in the report, and

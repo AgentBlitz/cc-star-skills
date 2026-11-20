@@ -11,8 +11,9 @@ Take the user from an interview to a checked set of guides for **their** app: on
 per guide, written in the screens' own words, a placeholder card for every picture, and
 `guides.json`, which records the set for refreshes and for `/user-guides:wiki-guides`.
 
-The scripts are in this skill's `scripts/` folder (the base directory you were given when the
-skill loaded; else `${CLAUDE_PLUGIN_ROOT}/skills/write-guides`). Call that folder `$S` below.
+The scripts are in the `scripts/` folder **inside** the base directory you were given when the
+skill loaded (else `${CLAUDE_PLUGIN_ROOT}/skills/write-guides`): `S=<base directory>/scripts`.
+Call that folder `$S` below.
 They are dependency-free Node ≥ 20; run them from the **target repo's root**. The method is in
 `reference/`, one file a step: read the step's file first and follow it, rather than working
 from memory.
@@ -45,7 +46,8 @@ from memory.
 
 **0. Resume.** If `guides.json` exists (default `docs/user-guides/guides.json`; search the
 repo's docs folders if it isn't there), read it with `node $S/guide-set.mjs summary <file>`:
-its answers are not asked again; guides at `outlined` are written next, `written` ones checked
+every answer under `interview.answers` is settled and not asked again (a question whose id is
+there is never "unsettled"); guides at `outlined` are written next, `written` ones checked
 next. A `.user-guides/walk/outline.json` from an earlier walk can be reused. Say in one line
 where you are picking up.
 

@@ -247,7 +247,7 @@ export function checkGuides({ root = '.', setFile = DEFAULT_SET, walkDir, record
       const hay = guides.map((g) => (texts.get(g.id) || '').toLowerCase()).join('\n');
       for (const s of list) {
         if (s.status !== 200) continue;
-        const names = [...new Set([s.title.split(/\s+[·|–—-]\s+/)[0], s.h1].filter(Boolean))];
+        const names = kit.screenNames(s);
         const paths = [s.path, ...(s.aliases || [])];
         const left = set.leftOut.some((e) => e.role === role && (paths.includes(e.screen) || names.some((x) => x.toLowerCase() === e.screen.toLowerCase())));
         if (left) continue;

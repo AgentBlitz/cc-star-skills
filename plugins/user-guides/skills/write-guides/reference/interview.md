@@ -38,7 +38,12 @@ The detected language is named in words (UK English, US English, German, …), f
 `lang` or locale files. When it is UK or US English, that option is the first one and
 Recommended, and is not repeated; the others follow in order. Every folder is in the app's own
 repo, from its root. When recon found neither a docs folder nor existing guides, the second
-option is "Another folder in this repo" (the user names it).
+option is "Another folder in this repo" (the user names it). The third option is only for
+guides recon found; with none (a docs folder that holds developer docs only), leave it out.
+
+Round 1's answers are recorded before the folder is asked, so they go in `guides.json` in the
+default folder. If Round 2 picks another folder, move the file there (with `git mv` if it is
+tracked) before recording Round 2.
 
 ### Round 2a: running the app (only what recon left open)
 
@@ -56,6 +61,11 @@ A running URL is Recommended only when recon found the synthetic accounts that a
 (its seed, or a test setup that signs them in). With no URL found, or a running app whose data may
 not hold them (one used for real work, or not seeded), "It isn't running: you may start it with
 \<start command\>" comes first and is Recommended, and a running URL follows it.
+
+When recon found several synthetic accounts for one role (a test user and a demo user with tidier
+data, say), the `appSignIn` Recommended option's description names the account proposed for each
+role (`user = demo.user, admin = test-admin`), so the answer settles `app.accounts` too. Prefer
+the account whose data reads best in a picture.
 
 ## Round 3: the guide set
 

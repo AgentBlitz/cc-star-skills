@@ -396,6 +396,9 @@ Checkpoint answers and approvals live in TRACKER › Review notes. A session tha
   - **A running URL is recommended only when its data holds the synthetic accounts.** Otherwise starting a local copy is. When a role can't sign in at a running app, the walk offers a seeded local copy or the code path. For S5: Clarity's running app has no synthetic data, so the walk uses a local, seeded copy.
   - **Kind ids** are the kind itself (`admin-operations`), so they never clash with a role guide's id (`admin`).
   - **A lean set:** each screen or region is pictured at most once across the set, and a guide has at most five pictures. The first-guides eval's `lean-pictures` grader checks this.
+- **The first real run (S5, 20 Nov 2026): Clarity's guides written, no plan change but one for S6.** Kam answered the interview live and approved the six-guide outline as proposed.
+  - **S6 takes signed-out shots.** A getting-started guide pictures the sign-in screen, so `as(role, { signedOut: true })` joins S6's `shots.template.mjs` (§5 Session 6). The walk side (`walk.open(role, { signedOut: true })`) landed in S5.
+  - **S10 crops People-like screens.** A local stack's account table carries test residue (accounts made by e2e runs), so S5's shots of it crop to the forms, never the table. S10 keeps that when it takes them.
 
 ## 4. How the sessions work
 
@@ -652,7 +655,7 @@ Checkpoint answers and approvals live in TRACKER › Review notes. A session tha
 
 **Do.**
 - **`templates/shots.template.mjs`:**
-  - `as(role)` with the five sign-in kinds (from `kit-core.mjs`);
+  - `as(role)` with the five sign-in kinds (from `kit-core.mjs`), and `as(role, { signedOut: true })` for a shot whose `state` says `signed out` (the screens before sign-in; S5 found a real set needs one, and `walk.open` already takes the option);
   - a preflight (`--check`): Playwright found, the base URL reachable, every role signed in;
   - `shot(name, target, {pad, maxHeight, clip})` and `step(label, work)`;
   - wait until the page settles, make sticky elements static, move the mouse away;

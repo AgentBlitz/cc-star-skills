@@ -648,6 +648,16 @@ export function normaliseText(s) {
 }
 
 /**
+ * A screen's names, as a guide would call it: the page title before its site suffix
+ * ("Requests · Leave Planner" → "Requests"), without a leading count that many apps put in the
+ * title ("(3) Inbox" → "Inbox"), and the screen's h1.
+ */
+export function screenNames({ title = '', h1 = '' } = {}) {
+  const fromTitle = title.split(/\s+[·|–—-]\s+/)[0].replace(/^\(\d+\+?\)\s*/, '');
+  return [...new Set([fromTitle, h1].filter(Boolean))];
+}
+
+/**
  * D3's fingerprint: a pure function of a region's headings and control names, with numbers and
  * dates normalised, then hashed. Returns `sha256:<64 hex>`.
  */

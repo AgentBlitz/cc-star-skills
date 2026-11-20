@@ -18,7 +18,7 @@
 | 2 | write-guides: the skill | ✅ | `SKILL.md` (85 lines, model-invocable); reference `interview.md` `recon.md` `walking.md` `guide-types.md` `style.md` `refresh.md`; 4 templates; `kit-core.mjs` (identical in both skills), `walk-lib.mjs`, `check-guides.mjs`, `set-edit.mjs` (new, R27); 4 test files | `npm test` 68 tests (67 pass, 1 skipped: `md.mjs` not built); sync test includes `kit-core.mjs`; two walks of the staged fixture byte-identical (40,498-byte outline); `check-guides` passes on the dry run; `claude plugin validate` passes; genericity clean | Dry run: 4 guides and 8 placeholders, all `checked`; v2 refresh and an adopt both passed. A browser walk equals a fetch walk. Known limit for S3: a label renamed in one place but kept in another passes the label check (R27) |
 | 3 | write-guides: evals, tuning, samples for review | ✅ | `evals/run.sh` (format / scripted / all), `evals/scripted.mjs`, `evals/lib/scaffold.mjs`, the `claude` shim and git wrapper; 4 eval-format cases (`write-guides-headless-round-1`, `-code-path`, `-non-local`, `-adopt`) and 2 scripted (`-first-guides`, `-refresh-v2`); `evals/triggers/write-guides.json` (20 queries); `fixtures/leave-app-guides/` (frozen set); `.planning/user-guides/samples/` for S4; `test/cli-symlink.test.mjs` | Final pass, every case 2/2 with the skill, score 1.00. Baseline (no plugin): headless 0.625, code-path 0.30, non-local 0.60, adopt 0.375, first-guides 0.29, refresh 0.25 (Δ +0.525 mean on the format cases, +0.71 and +0.75 scripted). Trigger: held-out 7/8 queries (21/24 runs, precision 100%, recall 75%), then 20/20 on the full set after adding "check" to the description. `npm test` 69 (68 pass, 1 skipped); validate passes; no `.claude/` left behind | Cost ≈ $15 of eval runs (format ≈ $6.7, scripted ≈ $8.2), plus the trigger loops (not metered). Skill changes the evals asked for: picture rules in `style.md`, portable walk scripts (`walking.md`, `refresh.md`), a symlink-safe main guard in every script, "check" in the description. Samples for S4: `.planning/user-guides/samples/` |
 | 4 | Checkpoint 1 · interview and templates | ✅ | Kam's answers and notes (TRACKER › Review notes); `interview.md` wording v2; `style.md` lean-set rule; `guide-types.md` kind ids; `walking.md` preflight bullet; grader `lean-pictures` | npm test 68 pass; format 4/4 (Δ +0.47); scripted 2/2 + 2/2 | by hand; verdict: notes, 6 closed (language, folder, URL, Round 2a, ids, pictures) |
-| 5 | write-guides on Clarity | ⬜ | — | — | by hand, from Clarity |
+| 5 | write-guides on Clarity | ✅ | Clarity: `docs/user-guides/` (6 guides, README index, `guides.json`, 12 placeholder cards; Clarity commit, by go-ahead) and its git-ignored `.user-guides/walk/states.mjs`. Plugin: `kit.screenNames`, `walk.open(role, { signedOut })`, a readable `outline.md`, `summary` with the answers and app, wording fixes in SKILL.md, `interview.md`, `walking.md`; 4 new tests | `check-guides`: 6 guides, 12 shots, walked; all checks pass, all 6 `checked`. Allowlist (R23): every person and quoted line in the guides and shot states is in the tracked seed sources; no address; no mention of `docs/feedback/`. `npm test` 72 (71 pass, 1 skip). Format 4/4 (every run 1.00, Δ +0.47); scripted 2/2 + 2/2 (1.00). `claude plugin validate` passes | by hand, from Clarity. Pictures 4/5/2/1/1/1, notChecked 23, leftOut 0. Friction: 13 items, 9 fixed (S5 log). Plan change: S6 takes signed-out shots |
 | 6 | wiki-guides: screenshots | ⬜ | — | — | |
 | 7 | wiki-guides: converter (Confluence and HTML) | ⬜ | — | — | |
 | 8 | wiki-guides: mock Confluence and the publisher | ⬜ | — | — | |
@@ -33,7 +33,7 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 
 - [x] **Run Session 1 before about 14 Dec 2026.** Done 20 Nov 2026: `sources/` holds the copies. Its first step copies session 45's Chrome publishing calls and session 42's walk library from campaign-brief transcripts. Both transcripts were last changed on 17 Nov 2026, and Claude Code deletes transcripts after about 30 days.
 - [ ] **Kam's availability** for the by-hand Sessions 4, 5, 10, 11 and 12.
-- [ ] **Clarity's local stack** on `localhost:3000` (compose project `action-tracker`), seeded with `pnpm seed:e2e` and `seed:film`, for Sessions 5 and 10. The sessions ask before any start, seed or reset, and never stop or reconfigure the stack.
+- [ ] **Clarity's local stack** on `localhost:3000` (compose project `action-tracker`), seeded with `pnpm seed:e2e` and `seed:film`, for Sessions 5 and 10. The sessions ask before any start, seed or reset, and never stop or reconfigure the stack. (S5 ✓ 20 Nov 2026: up and seeded; nothing was started, seeded or reset.)
 - [ ] **The wiki page to publish Clarity's guides under**: Kam names it in Session 10. It becomes the top page (PLAN R10).
 - [ ] **campaign-brief's local stack and its e2e seed**, for Session 12.
 - [ ] **The go to push** `main` and `user-guides--v1.0.0` (Session 11), and the patch tag if Session 12 makes one, to `origin` and `GITLAB`.
@@ -72,6 +72,9 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 Only decisions that change the plan, plus a pointer. The interview answers live word for word in Clarity's `guides.json`.
 
 - From S4 (Kam): Clarity has a running app, but it holds no synthetic data. Walk a local, seeded copy instead (walking.md › Preflight). Ask before any start or seed, as the standing rules say.
+- **S5 (20 Nov 2026):** the interview answers and the approval ("Approve as proposed", six guides) are word for word in Clarity's `docs/user-guides/guides.json`. No start, seed or reset was run: the local stack was up and seeded, and every role signed in.
+- **Changes the plan:** S6's `shots.template.mjs` takes signed-out shots, `as(role, { signedOut: true })`, because Getting started pictures the sign-in screen (PLAN §5 Session 6, §3 Review notes).
+- **For S10:** the local account table holds test residue (accounts made by e2e runs), so the People shots crop to its forms, never the table.
 
 ### Clarity on the wiki (read by Session 10)
 
@@ -218,3 +221,39 @@ Runtime: opus/high (interactive, by hand)
   - AskUserQuestion needs two options, so the v1 folder question got a filler second option. That is exactly gap 2, now fixed.
   - The baseline passes `lean-pictures` trivially (0 shots), so the grader adds no Δ. It is a guard, not a discriminator.
 - **Searches.** None touched campaign-brief or Clarity, and none started at a repo root.
+
+### Session 5: write-guides on Clarity (20 Nov 2026) ✅
+
+Runtime: opus/high (interactive, by hand, from Clarity)
+
+- **The run.** `/user-guides:write-guides` in Clarity, from no `guides.json`:
+  - **Recon:** three Explore agents in one message, each on named, git-tracked folders, never `docs/feedback/`. Roles user, admin (a user with People) and operator; en-GB; cookie-command sign-in; Playwright in `apps/web`; no end-user guides yet.
+  - **Interview:** Kam answered Rounds 1, 2 and 2a live (wording v2) and approved the outline as proposed. The answers are word for word in Clarity's `docs/user-guides/guides.json`.
+  - **Walk:** a browser walk of the local stack, which was already up and seeded. Nothing was started, seeded or reset. The crawl covered 19 screens for user, 2 for admin and 1 for operator in 20 s. Then `.user-guides/walk/states.mjs` added 17 named states: panels and dialogs, a forwarded email opened, a sign-up link's confirmation (asked, then cancelled), the not-found page, and 4 signed-out screens. It opens things only; nothing was submitted.
+  - **Write:** six guides: getting-started, user, admin, operator, features-and-value, admin-operations. 12 placeholder shots (4/5/2/1/1/1 a guide, each screen once), 23 `notChecked[]` claims (states the local data can't show: an open registration, a sign-up link, a locked account, a proposed rule), and no `leftOut[]`.
+  - **Check:** 72 problems at first (51 labels, 20 coverage, 1 index), then 40 after the coverage fix, then 0. Every guide is now `checked`.
+- **Friction log** (13 items, 9 fixed in the plugin, with tests where the code changed):
+  1. **Fixed.** `$S` read as the skill's base folder, so the first `set-edit` call failed. SKILL.md now says `S=<base directory>/scripts`.
+  2. **Fixed.** Round 1 is recorded before Round 2 asks the folder. `interview.md` now says: record at the default folder, and move the file if the answer differs.
+  3. **Fixed.** The third folder option has no value when recon found no guides. `interview.md` leaves it out.
+  4. **Fixed.** There was no place to choose between several synthetic accounts for one role. The `appSignIn` option's description now names the account for each role (`interview.md`).
+  5. **Fixed.** A page title carrying an unread count ("(1) Today") never matched guide text, so all 20 coverage failures came from this. `kit.screenNames` strips the count, and check-guides and walk-lib both use it (+ kit-core test).
+  6. **Not fixed.** The crawl records each id variant as its own screen (a task, an email or a focus position each), about half of one role's screens. Coverage passes by name, so it is harmless. A candidate for S9 tuning.
+  7. **Fixed.** `outline.md` was 55 KB, with lines up to 5.9 KB, and per-row buttons repeated dozens of times. Repeats are now listed once as `×N`, names are cut at 80 characters, and named states are labelled in the heading (+ walk-lib test). The longest line is now 2.9 KB.
+  8. **Fixed.** No way to walk the screens before sign-in. `walk.open(role, { signedOut: true })` and `walking.md` provide one (+ walk-lib test). S6 takes such shots (PLAN).
+  9. **Not fixed.** The text dumps leave out form field values, so a proposed action's Title reads empty.
+  10. **Not fixed, by design.** Claims about states the walk can't reach went into `notChecked[]` by hand (23). `--record` stays code-path only, so a walked set never excuses a label silently.
+  11. **Writer error.** Bold used for emphasis (pseudo-headings, bullet leads: 12 labels). The label check caught it, and `style.md` already forbids it.
+  12. **Fixed (eval).** `write-guides-code-path` failed 1 run in 2, twice. `summary` printed counts only, so a headless run read a fully answered set as unanswered and stopped at Round 1. `summary` now prints the answers, the wording version and the app (+ guide-set test), and SKILL.md step 0 says an answered id is settled. The case then passed 4/4 and 2/2.
+  13. **Environment.** This machine cut tool output at about 4–5 KB, well under 150 lines, so the dumps were read in pieces.
+- **Gate.**
+  - `check-guides` passes on Clarity's guides, and all 12 shots are in the ledger, one card each.
+  - Allowlist (R23): each person, quoted line, subject and task in the guides and shot states was found in the tracked seed sources (`git grep` over the seed fixtures and seed scripts). There are no addresses. The authenticator names come from the app's own wording. Nothing mentions `docs/feedback/`.
+  - `npm test`: 72 (71 pass, 1 skip).
+  - `bash evals/run.sh format`: 4/4, every run 1.00, mean Δ +0.47.
+  - `bash evals/run.sh scripted --baseline-runs 0`: first-guides 2/2, refresh-v2 2/2, 1.00. No baseline: this is a regression check.
+  - `claude plugin validate`: passes.
+  - Eval spend ≈ $10.64 (the first pass, two diagnosis re-runs with `--keep-temp`, the 4-run check and the final pass). The kept sandboxes were removed afterwards.
+- **Commits.** Clarity: the guides folder and the `.user-guides/` ignore line, one commit, with Kam's go-ahead. cc-star-skills: the plugin fixes, PLAN, the tracker and the summary. Nothing pushed.
+- **Deviations.** None from PLAN. PLAN §5 Session 6 gains `as(role, { signedOut: true })`, and §3 › Review notes records why.
+- **Searches.** In Clarity, every search named its folders: recon's agents and the seed allowlist. Recon's `git ls-files | cut -d/ -f1` at Clarity's root listed the top-level folders, as `recon.md` prescribes. It was a listing, not a search. No search started at a root. campaign-brief was not touched.

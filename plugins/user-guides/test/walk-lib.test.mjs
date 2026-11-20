@@ -90,6 +90,33 @@ test('a walk script adds to the crawl, and a crawl of one role keeps the others'
   assert.equal(o2.roles.employee.length, 5);
 });
 
+test('a signed-out page walks the screens before sign-in, recorded under its role', async () => {
+  const { dir, setFile } = await staged();
+  const walk = await createWalk({ root: dir, setFile: path.relative(dir, setFile), mode: 'fetch', env: { ...process.env, EVAL_LEAVE_APP: '1' } });
+  const out = await walk.open('employee', { signedOut: true });
+  const landed = await walk.go(out, '/');
+  assert.equal(landed.path, '/sign-in', 'a signed-out page is sent to sign in');
+  const s = await walk.dump(out, 'signed-out-sign-in');
+  assert.equal(s.dump, 'dumps/employee/signed-out-sign-in.txt');
+  const signedIn = await walk.open('employee');
+  assert.equal((await walk.go(signedIn, '/')).path, '/', 'the signed-in page of the same role is unaffected');
+  await walk.save();
+  await walk.close();
+});
+
+test('outline.md lists a repeated control once with its count, and cuts long names short', async () => {
+  const { outlineMarkdown } = await import('../skills/write-guides/scripts/walk-lib.mjs');
+  const long = `Approve ${'the request for leave '.repeat(6)}`;
+  const md = outlineMarkdown({ mode: 'fetch', roles: { manager: [{
+    path: '/people', title: 'People', status: 200, name: 'people-search', headings: [], regions: [], dump: 'dumps/manager/people.txt',
+    controls: [{ role: 'button', name: 'Switch off' }, { role: 'button', name: 'Switch off' }, { role: 'button', name: 'Switch off' }, { role: 'button', name: long }, { role: 'link', name: 'Home' }],
+  }] } });
+  assert.match(md, /button "Switch off" ×3/);
+  assert.equal((md.match(/Switch off/g) || []).length, 1);
+  assert.match(md, /button "Approve the request[^"]{0,70}…"/);
+  assert.match(md, /### \/people — People \(200\) · state `people-search`/);
+});
+
 test('form sign-in from environment variables, on a fetch walk', async () => {
   const { dir, app } = await staged('v1', { EVAL_LEAVE_APP_PASSWORD: 'synthetic-pass' });
   const set = fixtureSet(app.url, {});

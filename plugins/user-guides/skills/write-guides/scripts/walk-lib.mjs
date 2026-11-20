@@ -165,8 +165,22 @@ export async function createWalk({ root = '.', setFile = DEFAULT_SET, set: given
     outDir,
     set,
 
-    async open(role) {
+    /**
+     * A page for the role, signed in. `{ signedOut: true }` gives the same role a page that is
+     * not signed in, for the screens before sign-in (sign-in, register, a sign-up link); its
+     * dumps are recorded under that role.
+     */
+    async open(role, { signedOut = false } = {}) {
       kit.accountFor(set, role);
+      if (signedOut) {
+        if (browser) {
+          const context = await browser.newContext({ viewport });
+          const page = await context.newPage();
+          page.on('pageerror', (e) => log(`[pageerror ${role}, signed out] ${e.message}`));
+          return { role, kind: 'browser', context, page, url: null, status: null, html: null, signedOut };
+        }
+        return { role, kind: 'fetch', jar: new kit.CookieJar(), url: null, status: null, html: null, signedOut };
+      }
       if (browser) {
         const context = await browser.newContext({ viewport, ...kit.browserContextOptions({ set, role, root, headless }) });
         await kit.signInContext({ context, set, role, root, env });
@@ -318,18 +332,29 @@ export async function createWalk({ root = '.', setFile = DEFAULT_SET, set: given
   return walk;
 }
 
+// A control named after a whole row ("Before I go to the airportPhoebe (own) · …") is cut short,
+// and a control repeated on every row ("Switch off" × 40) is listed once with its count, so the
+// outline stays readable on a busy screen. outline.json keeps every control in full.
+const NAME_MAX = 80;
+const shortName = (n) => (n.length > NAME_MAX ? `${n.slice(0, NAME_MAX - 1)}…` : n);
+function counted(items) {
+  const n = new Map();
+  for (const x of items) n.set(x, (n.get(x) || 0) + 1);
+  return [...n].map(([x, k]) => (k > 1 ? `${x} ×${k}` : x));
+}
+
 /** The outline as a page a writer can read. */
 export function outlineMarkdown(o) {
   const lines = [`# Walk outline (${o.mode} walk)`, ''];
   for (const [role, list] of Object.entries(o.roles)) {
     lines.push(`## ${role}`, '');
     for (const s of list) {
-      lines.push(`### ${s.path} — ${s.title || s.h1 || '(untitled)'} (${s.status})`, '');
+      lines.push(`### ${s.path} — ${s.title || s.h1 || '(untitled)'} (${s.status})${s.name ? ` · state \`${s.name}\`` : ''}`, '');
       if (s.headings.length) lines.push(`- Headings: ${s.headings.map((h) => `${'#'.repeat(h.level)} ${h.text}`).join(' · ')}`);
       const links = s.controls.filter((c) => c.role === 'link');
       const controls = s.controls.filter((c) => c.role !== 'link');
-      if (links.length) lines.push(`- Links: ${links.map((c) => `"${c.name}"`).join(', ')}`);
-      if (controls.length) lines.push(`- Controls: ${controls.map((c) => `${c.role} "${c.name}"`).join(', ')}`);
+      if (links.length) lines.push(`- Links: ${counted(links.map((c) => `"${shortName(c.name)}"`)).join(', ')}`);
+      if (controls.length) lines.push(`- Controls: ${counted(controls.map((c) => `${c.role} "${shortName(c.name)}"`)).join(', ')}`);
       if (s.regions.length) lines.push(`- Regions: ${s.regions.map((r) => `\`${r.locator}\``).join(', ')}`);
       lines.push(`- Dump: \`${s.dump}\``, '');
     }
@@ -348,7 +373,7 @@ export function statePath(state) {
   return m ? m[1].replace(/[.,:;)]+$/, '') : null;
 }
 
-const screenName = (s) => [s.title.split(/\s+[·|–—-]\s+/)[0], s.h1].filter(Boolean).map((x) => x.toLowerCase());
+const screenName = (s) => kit.screenNames(s).map((x) => x.toLowerCase());
 
 /** The screens of the outline a shot may sit on: its state's path, else its alt's screen name. */
 export function shotScreens(outline, shot) {

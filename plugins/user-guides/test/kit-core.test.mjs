@@ -59,6 +59,12 @@ test('locators: role and name, css, text, chains, ids; unsupported ones give nul
   assert.equal(kit.queryLocatorAll(doc, 'xpath=//main'), null);
 });
 
+test('screenNames: the title before its suffix, without a leading count, and the h1', () => {
+  assert.deepEqual(kit.screenNames({ title: 'Requests · Leave Planner', h1: 'Your requests' }), ['Requests', 'Your requests']);
+  assert.deepEqual(kit.screenNames({ title: '(1) Today · Leave Planner', h1: 'Good afternoon' }), ['Today', 'Good afternoon']);
+  assert.deepEqual(kit.screenNames({ title: '(12+) Inbox | Mail' }), ['Inbox']);
+  assert.deepEqual(kit.screenNames({ title: 'Team', h1: 'Team' }), ['Team']);});
+
 test('normaliseText turns dates, times and numbers into placeholders', () => {
   for (const [a, b] of [
     ['On 3 March 2026 at 14:05', 'On 9 May 2027 at 9:30'],
