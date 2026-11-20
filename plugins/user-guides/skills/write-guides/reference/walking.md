@@ -16,6 +16,10 @@ role's line says where `/` lands; a role that lands on a sign-in page did not si
 - **Exit 3, the app is unreachable.** Interactive: ask before running `app.start` (run it in
   the background and poll the base URL until it answers), or take the code path. Headless:
   never start it; take the code path.
+- **A role that does not sign in at a running app** usually means its data does not hold the
+  synthetic accounts (an app used for real work, or one not seeded). Interactive: ask whether to
+  start a local copy with `app.start` and its seed (the seed only with the user's yes), or take the
+  code path for that role. Headless: the code path. Never sign in as a real person.
 - **`app.reset`** only with the user's yes (Round 2a): it wipes what the synthetic accounts have
   changed. Headless: never.
 - **Sign-in values** are never printed. A `cookie-command` helper often refuses to run without a

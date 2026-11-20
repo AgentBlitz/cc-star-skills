@@ -59,7 +59,7 @@ export function answersSet(preset, baseUrl) {
   if (preset === 'code') answers.facts = 'From the code only (every claim is listed as not checked)';
   // A walk goes task by task, so the set shows the two screens v2 changes (R14).
   if (preset === 'walk') answers.depth = 'Every task, step by step';
-  set.interview = { wordingVersion: '1', answers };
+  set.interview = { wordingVersion: '2', answers };
   return set;
 }
 

@@ -331,7 +331,7 @@ No dependency and no app code. An adopted set may keep its files where they are,
   - **One screen reader.** `kit-core.mjs` reads HTML without dependencies. A browser walk passes it the live DOM (`page.content()`) and a fetch walk the served HTML, so on the fixture both walks give the same outline (a test holds this). S6 should take each shot's fingerprint with `regionFingerprint(await page.content(), shot.target.locator)` (null means the whole screen), so a walk and a shot agree by construction.
   - **The walk outline** (`.user-guides/walk/outline.json`) has per role the screens sorted by path. Each has its title, h1, headings, controls, named regions (each with a locator and a fingerprint), its own fingerprint, aliases (`/` = `/home`) and its dump. It holds no host, port or time. A crawl starts a fresh walk and keeps the one before as `outline.previous.json` (`walk-lib.mjs diff`). A walk script adds to the outline, and its named dumps are entries of their own.
   - **A shot's screen.** A shot's `state` starts with its screen's path (`On /requests?new=1: …`). Refresh finds the screen from that path, and otherwise from the alt text's screen name.
-  - **Interview.** Rounds 1–3 as §2.2 says, plus Round 2a ("running the app": base URL, sign-in, reset), asked only for what recon left open. Answer ids and the wording version (`1`) are in `interview.md`.
+  - **Interview.** Rounds 1–3 as §2.2 says, plus Round 2a ("running the app": base URL, sign-in, reset), which confirms what recon found and settles what it couldn't (S4). Answer ids and the wording version (`2` since S4) are in `interview.md`.
   - **`check-guides`** also checks two things §5 doesn't list: no template comments or `{{slots}}` left in a written guide, and a current README status block.
   - **Known limit, for S3.** The label check only asks whether the words appear on a walked screen for the guide's roles. A label renamed in one place but kept in another (v2's **Request leave**: the button is renamed, the dialog keeps the name) still passes. Refresh relies on `walk-lib.mjs diff` and `refresh.md` for that, so S3's refresh eval should grade the text.
 
@@ -390,7 +390,12 @@ No dependency and no app code. An adopted set may keep its files where they are,
 
 Checkpoint answers and approvals live in TRACKER › Review notes. A session that gathers one which changes this plan summarises it here.
 
-(none yet)
+- **Checkpoint 1 (S4, 20 Nov 2026): notes, applied.** Kam approved the templates and samples. His
+  notes changed the skill's rules but not this plan's shape:
+  - **The interview wording is now version `2`.** The detected language is named in words, and is not repeated when it matches UK or US English. The folder question always has a second option. Round 2a confirms what recon found.
+  - **A running URL is recommended only when its data holds the synthetic accounts.** Otherwise starting a local copy is. When a role can't sign in at a running app, the walk offers a seeded local copy or the code path. For S5: Clarity's running app has no synthetic data, so the walk uses a local, seeded copy.
+  - **Kind ids** are the kind itself (`admin-operations`), so they never clash with a role guide's id (`admin`).
+  - **A lean set:** each screen or region is pictured at most once across the set, and a guide has at most five pictures. The first-guides eval's `lean-pictures` grader checks this.
 
 ## 4. How the sessions work
 

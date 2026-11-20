@@ -90,6 +90,7 @@ that will push the walk to the code path (no seed, no local sign-in). Then:
 
 - Draft Round 1's and Round 2's options from the reports (`interview.md`).
 - Prepare `app` for `guides.json`: `baseUrl`, `start`, `reset`, `playwrightFrom`, `signIn`
-  and `accounts` per role (`guide-set.md` › `app`). Ask Round 2a for whatever is still open.
+  and `accounts` per role (`guide-set.md` › `app`). Ask Round 2a to confirm what recon found and
+  settle what it could not, unless `guides.json` already holds it (`interview.md` › Round 2a).
 - Note existing guides: if the user wants them kept rather than rewritten, that is adopt
   (`refresh.md` › Adopt).

@@ -13,6 +13,7 @@
     { "type": "regex", "name": "edited-copy-ran", "target": "trace", "pattern": "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/write-guides", "arm": "with-only" },
     { "type": "tool_used", "name": "walked-the-app", "tool": "Bash", "input_match": "walk-lib\\.mjs crawl", "arm": "with-only" },
     { "type": "script", "name": "guide-set-complete", "module": "graders/set.mjs" },
+    { "type": "script", "name": "lean-pictures", "module": "graders/pictures.mjs" },
     { "type": "file_exists", "name": "readme-index", "path": "docs/user-guides/README.md" },
     { "type": "regex", "name": "index-status-block", "target": { "source": "file", "path": "docs/user-guides/README.md" }, "pattern": "<!-- user-guides:status:begin -->" },
     { "type": "regex", "name": "check-guides-passes-walked", "target": "trace", "pattern": "check-guides: \\d+ guides, \\d+ shots, walked; all checks pass" },

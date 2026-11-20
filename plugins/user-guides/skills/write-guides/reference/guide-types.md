@@ -20,7 +20,9 @@ When something is wrong.
 From the answers and the walk outline:
 
 - **One guide per chosen kind and role**, as the table says. Ids are kebab-case and short: the
-  role's name for a role guide (`manager`), else the kind (`getting-started`, `admin`).
+  role's name for a role guide (`manager`, `admin`), else the kind itself (`getting-started`,
+  `features-and-value`, `admin-operations`), so a role guide and a kind's guide never share an id
+  or a file.
 - **Files** in the chosen folder: `<folder>/<id>.md`. The `README.md` index sits beside them,
   with `guides.json` and `images/`.
 - **Titles** in the product's words: "Leave Planner for managers", "Getting started with

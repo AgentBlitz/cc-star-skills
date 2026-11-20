@@ -1,7 +1,8 @@
 # The interview
 
-What write-guides asks, in what order, and where each answer goes. Wording version **1**: keep
-the questions and options word for word, and record `"wordingVersion": "1"` with the answers.
+What write-guides asks, in what order, and where each answer goes. Wording version **2**: keep
+the questions and options word for word, and record `"wordingVersion": "2"` with the answers.
+(Version 2: no repeated language option, a second folder option, the URL and Round 2a rules.)
 
 Ask in AskUserQuestion rounds: **at most four questions a round, the recommended option
 first**. Options in angle brackets are filled from recon (`recon.md`); everything else is
@@ -33,15 +34,28 @@ some roles reach.
 | `facts` | How should the guides' facts be checked? | Walk the local app as each role (Recommended) · From the code only (every claim is listed as not checked) |
 | `folder` | Where should the guides go? | docs/user-guides/ (Recommended) · \<an existing docs folder recon found\> · Next to the existing guides in \<folder\> |
 
+The detected language is named in words (UK English, US English, German, …), from the app's
+`lang` or locale files. When it is UK or US English, that option is the first one and
+Recommended, and is not repeated; the others follow in order. Every folder is in the app's own
+repo, from its root. When recon found neither a docs folder nor existing guides, the second
+option is "Another folder in this repo" (the user names it).
+
 ### Round 2a: running the app (only what recon left open)
 
-Asked only when recon could not settle it; at most three questions.
+At most three questions. A value recon found is
+still asked once, as the Recommended option, so the user confirms it; a value recon could not
+find is asked with the options it can offer.
 
 | Id | Ask | Options |
 |---|---|---|
 | `appBaseUrl` | Where does the local app run? | \<URL recon found\> (Recommended) · It isn't running: you may start it with \<start command\> · Use the code only |
 | `appSignIn` | How should each role sign in? | \<the sign-in kind recon found, e.g. a helper that prints a session cookie\> (Recommended) · I sign in by hand once per role (saved, mode 600, git-ignored) · A sign-in form, with synthetic credentials from environment variables · No sign-in |
 | `appReset` | May the walk reset the seed data first? It wipes what the synthetic accounts have changed. | No, walk the data as it is (Recommended) · Yes, run \<reset command\> |
+
+A running URL is Recommended only when recon found the synthetic accounts that app's data holds
+(its seed, or a test setup that signs them in). With no URL found, or a running app whose data may
+not hold them (one used for real work, or not seeded), "It isn't running: you may start it with
+\<start command\>" comes first and is Recommended, and a running URL follows it.
 
 ## Round 3: the guide set
 
@@ -85,13 +99,14 @@ Then `refresh.md` › Adopt.
   features-and-value · admin-operations.
 - **Answers already in `guides.json`** are not asked again. A round whose questions are all
   settled is skipped, and you say which answers you used.
-- Round 2a is skipped when recon settled the app's base URL, sign-in and accounts.
+- Round 2a is skipped when `guides.json` or the arguments already hold the app's base URL,
+  sign-in and accounts, and the reset answer; recon finding them is not enough (they are confirmed).
 
 ## How answers map to files
 
 | Answer | Goes to |
 |---|---|
-| every answer | `interview.answers.<id>`, word for word; `interview.wordingVersion` "1" |
+| every answer | `interview.answers.<id>`, word for word; `interview.wordingVersion` "2" |
 | `readers` | the roles in `app.accounts`; each guide's `audience` |
 | `kinds`, `depth` | the proposed guide set (`guide-types.md`) |
 | `languageTone` | `product.language` (`en-GB`, `en-US`, …); the register (`style.md`) |

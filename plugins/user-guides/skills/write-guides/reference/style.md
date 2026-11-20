@@ -70,6 +70,15 @@ It prints the markdown line to put in the guide, **alone on its line**. Alt text
 One shot may be shown in several guides: list them all in `guides`, and use the same image.
 With `pictures` "No pictures", write no placeholders and no shots.
 
+**Keep the set lean.** A guide set is not a manual with a picture per step:
+
+- Each screen, or region of a screen, is pictured **at most once across the set**. Reuse that
+  shot in every guide that needs it (its `guides` list); never take a second shot of the same
+  screen and region for another role or guide.
+- A guide carries **at most five pictures**. Past that, words only: keep the pictures a reader
+  most needs (the first look at a screen they have not seen, a dialog with several fields) and
+  describe the rest. The `README.md` index carries none.
+
 ## Done
 
 A guide is `written` when every section is written from the walk, every picture is placed,
