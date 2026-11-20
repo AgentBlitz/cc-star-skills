@@ -659,6 +659,7 @@ function main(argv) {
   return 0;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// Compare real paths: called through a symlink (macOS's /var → /private/var), argv[1] differs.
+if (process.argv[1] && fs.realpathSync(path.resolve(process.argv[1])) === fileURLToPath(import.meta.url)) {
   process.exitCode = main(process.argv.slice(2));
 }

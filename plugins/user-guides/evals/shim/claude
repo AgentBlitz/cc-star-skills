@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# The claude shim (PLAN R16): runs the real claude with --plugin-dir "$USER_GUIDES_PLUGIN_DIR", so
+# skill-creator's scripts and the scripted runner test the edited, staged copy. Keep it OFF PATH
+# for trigger tuning, which runs with the plugin not loaded.
+set -euo pipefail
+self="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -vxF "$self" | paste -sd: -)"
+export PATH
+if [ -z "${USER_GUIDES_PLUGIN_DIR:-}" ]; then
+  echo "claude shim: USER_GUIDES_PLUGIN_DIR is not set" >&2
+  exit 2
+fi
+exec claude --plugin-dir "$USER_GUIDES_PLUGIN_DIR" "$@"

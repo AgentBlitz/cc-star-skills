@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "name": "Leave Planner",
+    "language": "en-GB"
+  },
+  "app": {
+    "baseUrl": "http://127.0.0.1:62771",
+    "signIn": {
+      "kind": "cookie-command",
+      "command": "node sign-in.mjs {id}",
+      "cookie": {
+        "name": "leave_session"
+      }
+    },
+    "accounts": {
+      "employee": {
+        "id": "rowan"
+      },
+      "manager": {
+        "id": "tamsin"
+      }
+    }
+  },
+  "interview": {
+    "wordingVersion": "1",
+    "answers": {
+      "readers": [
+        "employee",
+        "manager"
+      ],
+      "kinds": [
+        "Role guides, one per role, by task",
+        "Getting started"
+      ],
+      "depth": "Every task, step by step",
+      "whereRead": "In the repo and on a wiki",
+      "languageTone": "UK English, plain and direct",
+      "pictures": "Placeholders now, screenshots later",
+      "facts": "Walk the local app as each role",
+      "folder": "docs/user-guides/",
+      "appSignIn": "A helper that prints a session cookie (node sign-in.mjs <id>, with EVAL_LEAVE_APP=1)",
+      "appReset": "No, walk the data as it is",
+      "approval": "approve as proposed",
+      "appBaseUrl": "http://127.0.0.1:62771"
+    }
+  },
+  "notChecked": [
+    {
+      "guide": "employee",
+      "claim": "Submit request sends the request to the manager",
+      "reason": "Changes data, and the walk was told to leave the data as it is"
+    },
+    {
+      "guide": "getting-started",
+      "claim": "Submit request sends the request and it shows as Pending",
+      "reason": "Changes data, and the walk was told to leave the data as it is"
+    },
+    {
+      "guide": "employee",
+      "claim": "Cancel closes the dialog without sending anything",
+      "reason": "A fetch walk cannot click; the dialog was reached by its address"
+    },
+    {
+      "guide": "employee",
+      "claim": "Selecting Request leave opens the dialog",
+      "reason": "A fetch walk cannot click; the dialog was reached by its address"
+    },
+    {
+      "guide": "employee",
+      "claim": "Choosing a status in Show lists only requests with that status",
+      "reason": "A fetch walk cannot use the control; the filtered lists were reached by their address"
+    },
+    {
+      "guide": "employee",
+      "claim": "Typing in Search people shows only matching people",
+      "reason": "A fetch walk cannot type; the results were reached by their address"
+    },
+    {
+      "guide": "employee",
+      "claim": "Save settings saves the choices, and nobody else sees them",
+      "reason": "Changes data, and the walk was told to leave the data as it is"
+    },
+    {
+      "guide": "manager",
+      "claim": "The person sees the decision as Approved or Declined in their requests",
+      "reason": "Changes data, and the walk was told to leave the data as it is"
+    },
+    {
+      "guide": "manager",
+      "claim": "Approve and Decline decide the request",
+      "reason": "Changes data, and the walk was told to leave the data as it is"
+    },
+    {
+      "guide": "getting-started",
+      "claim": "Signing in with the account you were given lands on Home; Sign out is at the top of every page",
+      "reason": "The sign-in screen was not walked; the walk signed in with the local helper"
+    }
+  ],
+  "leftOut": [],
+  "checks": {
+    "patterns": []
+  },
+  "guides": [
+    {
+      "id": "getting-started",
+      "type": "getting-started",
+      "file": "docs/user-guides/getting-started.md",
+      "title": "Getting started with Leave Planner",
+      "audience": [],
+      "parent": "",
+      "order": 1,
+      "status": "checked"
+    },
+    {
+      "id": "employee",
+      "type": "role-guide",
+      "file": "docs/user-guides/employee.md",
+      "title": "Leave Planner for employees",
+      "audience": [
+        "employee"
+      ],
+      "parent": "",
+      "order": 2,
+      "status": "checked"
+    },
+    {
+      "id": "manager",
+      "type": "role-guide",
+      "file": "docs/user-guides/manager.md",
+      "title": "Leave Planner for managers",
+      "audience": [
+        "manager"
+      ],
+      "parent": "",
+      "order": 3,
+      "status": "checked"
+    }
+  ],
+  "shots": [
+    {
+      "id": "home-first-look",
+      "alt": "Home: your balance, your next time off and who is out today",
+      "as": "employee",
+      "path": "docs/user-guides/images/home-first-look.svg",
+      "target": {
+        "what": "the Home screen, whole",
+        "locator": null
+      },
+      "state": "On /: signed in as the employee",
+      "guides": [
+        "getting-started"
+      ],
+      "status": "placeholder"
+    },
+    {
+      "id": "request-dialog",
+      "alt": "Request leave: the dialog, with its type, dates and note",
+      "as": "employee",
+      "path": "docs/user-guides/images/request-dialog.svg",
+      "target": {
+        "what": "the Request leave dialog",
+        "locator": "role=dialog[name=\"Request leave\"]"
+      },
+      "state": "On /requests?new=1: the dialog open",
+      "guides": [
+        "employee"
+      ],
+      "status": "placeholder"
+    },
+    {
+      "id": "my-requests",
+      "alt": "My requests: the table of your requests, with their status",
+      "as": "employee",
+      "path": "docs/user-guides/images/my-requests.svg",
+      "target": {
+        "what": "the My requests table",
+        "locator": "role=table[name=\"My requests\"]"
+      },
+      "state": "On /requests: the employee has requests",
+      "guides": [
+        "employee"
+      ],
+      "status": "placeholder"
+    },
+    {
+      "id": "settings",
+      "alt": "Settings: the Notifications and Working week panels",
+      "as": "employee",
+      "path": "docs/user-guides/images/settings.svg",
+      "target": {
+        "what": "the Settings screen, whole",
+        "locator": null
+      },
+      "state": "On /settings",
+      "guides": [
+        "employee"
+      ],
+      "status": "placeholder"
+    },
+    {
+      "id": "inbox",
+      "alt": "Inbox: each waiting request with Approve and Decline",
+      "as": "manager",
+      "path": "docs/user-guides/images/inbox.svg",
+      "target": {
+        "what": "the Inbox screen, whole",
+        "locator": null
+      },
+      "state": "On /inbox: requests waiting",
+      "guides": [
+        "manager"
+      ],
+      "status": "placeholder"
+    }
+  ],
+  "publish": {}
+}

@@ -1,0 +1,22 @@
+[
+  {"query": "we've got a little leave-booking web app in this repo (express, runs on localhost:4000) and no end-user docs at all. can you write user guides for it - one for employees, one for managers - by actually clicking through the running app as each of them?", "should_trigger": true},
+  {"query": "Write the user guides for our app. There are three roles (agent, supervisor, admin) and each needs a guide that walks through their tasks screen by screen, with spaces for screenshots.", "should_trigger": true},
+  {"query": "we shipped release 2.3 last week and half the buttons got renamed. the help pages in docs/help/ are out of date now - can you go through the local app again and bring them up to date, and flag which screenshots need retaking?", "should_trigger": true},
+  {"query": "My team wrote some how-to-use-the-app pages by hand last year (docs/manual/*.md, with pngs in docs/manual/img). I want them managed properly from now on so we can refresh them after each release. Can you take them over?", "should_trigger": true},
+  {"query": "i need a getting started guide plus a 'features and value' page for our customer portal, written from what the screens actually say. the app's in apps/portal and `pnpm dev` runs it on 3000", "should_trigger": true},
+  {"query": "Produce end-user help documentation for this Rails app: what each role can do, step by step, in plain UK English. Placeholders for the pictures are fine, we'll take screenshots later.", "should_trigger": true},
+  {"query": "can you write an admin and operations guide for the back-office screens of our booking system? only admins see /admin and /settings/billing. walk it locally please, don't guess from the code", "should_trigger": true},
+  {"query": "we're onboarding 200 nurses onto the rota app next month and they need proper user guides they can read on our confluence. write them in the repo first from the running app", "should_trigger": true},
+  {"query": "Check our user guides against the app: docs/user-guides has guides.json and four role guides. Something in the manager guide says 'Approve all' but I don't think that button exists any more.", "should_trigger": true},
+  {"query": "user manual for the inventory tool please. it has a warehouse role and an office role. I'd like task-by-task instructions using the exact labels on screen", "should_trigger": true},
+  {"query": "Write a README for this repo: what the project does, how to install it, how to run the tests and how to contribute.", "should_trigger": false},
+  {"query": "generate API reference docs for the REST endpoints in src/routes - every endpoint, its params and response shape, as markdown", "should_trigger": false},
+  {"query": "Draft release notes for v2.4 from the commits since the v2.3 tag, grouped into features, fixes and breaking changes.", "should_trigger": false},
+  {"query": "make a 90 second narrated product film of our app for the website, with captions", "should_trigger": false},
+  {"query": "Write me a how-to doc for the team on setting up the local dev environment with docker compose and seeding the database.", "should_trigger": false},
+  {"query": "can you write a short guide on how we do code review here - what reviewers look for, how long to wait, when to approve. a doc I can share in slack", "should_trigger": false},
+  {"query": "Document the architecture of this service for new developers: the modules, how requests flow through them, and where state lives.", "should_trigger": false},
+  {"query": "take screenshots of every page of the app at localhost:3000 and publish them to our confluence space", "should_trigger": false},
+  {"query": "write an onboarding checklist for new hires joining the support team: accounts to request, people to meet, first-week tasks", "should_trigger": false},
+  {"query": "add JSDoc comments to the public functions in lib/ and generate a developer reference site from them", "should_trigger": false}
+]

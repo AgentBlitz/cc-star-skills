@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# git for eval runs (PLAN R26): inside a `claude plugin eval` run, /usr/bin/git (macOS's xcrun
+# shim) fails ("couldn't create cache file"), while the Command Line Tools' git works. run.sh puts
+# this folder first on PATH. Elsewhere it falls through to the next git on PATH.
+clt=/Library/Developer/CommandLineTools/usr/bin/git
+if [ -x "$clt" ]; then exec "$clt" "$@"; fi
+self="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -vxF "$self" | paste -sd: -)" exec git "$@"

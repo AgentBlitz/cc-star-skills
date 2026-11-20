@@ -1,0 +1,65 @@
+schema_version: "1.0"
+name: write-guides-adopt
+description: >-
+  Adopt (PLAN R18): two guides written by hand, with no guides.json, are registered as `written`
+  and their images as `taken` with no fingerprint; neither guide's text is rewritten before a
+  walk (the app is not reachable from this run).
+tags: [write-guides, headless, adopt]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: >-
+    /user-guides:write-guides adopt adoptFiles=docs/help/employee.md,docs/help/manager.md
+    adoptTypes=as-proposed adoptImages=docs/help/img adoptPages=no
+  model: sonnet
+  max_turns: 60
+  timeout_seconds: 1200
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Agent, Skill]
+runs: 2
+graders:
+  - type: regex
+    name: edited-copy-ran
+    target: trace
+    pattern: "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/write-guides"
+    arm: with-only
+  - type: file_exists
+    name: guides-json-beside-the-guides
+    path: docs/help/guides.json
+  - type: regex
+    name: both-guides-registered-written
+    target: { source: file, path: docs/help/guides.json }
+    pattern: '"file": "docs/help/employee\.md"[\s\S]*"status": "written"[\s\S]*"file": "docs/help/manager\.md"[\s\S]*"status": "written"|"file": "docs/help/manager\.md"[\s\S]*"status": "written"[\s\S]*"file": "docs/help/employee\.md"[\s\S]*"status": "written"'
+  - type: regex
+    name: two-images-taken
+    target: { source: file, path: docs/help/guides.json }
+    pattern: '"status": "taken"'
+    match: "count:2"
+  - type: regex
+    name: no-fingerprint
+    target: { source: file, path: docs/help/guides.json }
+    pattern: '"fingerprint"'
+    match: not_contains
+  - type: regex
+    name: images-kept-where-they-are
+    target: { source: file, path: docs/help/guides.json }
+    pattern: '"path": "docs/help/img/my-requests\.png"[\s\S]*"path": "docs/help/img/inbox\.png"|"path": "docs/help/img/inbox\.png"[\s\S]*"path": "docs/help/img/my-requests\.png"'
+  - type: tool_used
+    name: employee-guide-untouched-by-edit
+    tool: Edit
+    input_match: "docs/help/(employee|manager)\\.md"
+    min: 0
+    max: 0
+  - type: tool_used
+    name: guides-untouched-by-write
+    tool: Write
+    input_match: "docs/help/(employee|manager)\\.md"
+    min: 0
+    max: 0
+  - type: regex
+    name: canary-never-appears
+    target: trace
+    pattern: LEAVEAPP-CANARY-
+    match: not_contains
+expected_outcome: >-
+  docs/help/guides.json registers both guides as written and both images as taken with no
+  fingerprint; the two guide files are not edited.

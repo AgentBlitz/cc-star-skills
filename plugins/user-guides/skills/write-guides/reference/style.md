@@ -42,9 +42,15 @@ colleague who knows the app well and is showing a new starter how to get their w
 
 ## Pictures
 
-One picture where it saves words: a screen the reader has not seen yet, a dialog with several
-fields, a result to recognise. Not every step. While the shot is a placeholder, the picture is
-an SVG card naming the caption, the role and the screen:
+One picture where it saves words: each screen a task starts on that the reader has not seen
+yet, a dialog with several fields, a result to recognise. Not every step. When a step is about
+one part of a busy screen (a toolbar, a panel, a form), crop to that region: give
+`target.locator` the region's locator from the walk outline (its named regions), so a change
+elsewhere on the screen does not force a retake. The region must hold everything the alt text
+names: a filter and a button in the toolbar above a table are the toolbar's, not the table's;
+when the alt names parts of two regions, crop to the whole screen. A whole screen (`locator`
+null) is also the crop for a first look at it. While the shot is a placeholder, the picture is an SVG card naming the caption, the
+role and the screen:
 
 ```bash
 node $S/placeholder.mjs --dir docs/user-guides --id request-dialog --screen "Request leave" \

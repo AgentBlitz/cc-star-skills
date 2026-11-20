@@ -7,7 +7,8 @@ has changed. Walk again, bring the text up to date, and mark for retaking every 
 region changed.
 
 1. **Preflight and walk again**, exactly as the first time (`walking.md`):
-   `walk-lib.mjs crawl`, then every walk script kept in `.user-guides/walk/`. The crawl keeps
+   `walk-lib.mjs crawl`, then every walk script kept in `.user-guides/walk/`
+   (`USER_GUIDES_SCRIPTS=$S node .user-guides/walk/<name>.mjs`). The crawl keeps
    the walk before as `outline.previous.json`.
 2. **What changed:** `node $S/walk-lib.mjs diff` lists, per role, the screens added, removed
    and changed (controls and headings that came and went, and the regions that changed). With no

@@ -1,0 +1,10 @@
+const { createWalk } = await import(`${process.env.USER_GUIDES_SCRIPTS}/walk-lib.mjs`);
+const walk = await createWalk({ setFile: 'docs/user-guides/guides.json', fetch: true });
+const e = await walk.open('employee');
+await walk.go(e, '/people?q=zzz'); await walk.dump(e, 'people-no-match');
+await walk.go(e, '/people?q=design'); await walk.dump(e, 'people-search');
+await walk.go(e, '/requests?show=declined'); await walk.dump(e, 'requests-declined');
+await walk.go(e, '/inbox'); await walk.dump(e, 'inbox-no-access');
+const m = await walk.open('manager');
+await walk.go(m, '/requests?show=pending'); await walk.dump(m, 'requests-pending');
+await walk.save(); await walk.close();

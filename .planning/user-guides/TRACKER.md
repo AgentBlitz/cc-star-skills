@@ -16,7 +16,7 @@
 |---|---|---|---|---|---|
 | 1 | Foundations: scaffold, contract, placeholder, fixture app, eval-sandbox spike | ✅ | `plugins/user-guides/` at 0.1.0; the contract (`guide-set.mjs` and `reference/guide-set.md`, identical in both skills); `placeholder.mjs`; `fixtures/leave-app` (v1/v2, change table in its README); `test/stage.mjs`; `test/genericity.mjs`; `sources/` (git-ignored): 23 js + 9 uploads + 4 walk files + README + deny.txt (12 terms) | `npm test` 40 tests (38 pass, 2 skipped: kit-core/md.mjs not built); `claude plugin validate` passes (icon warning); genericity clean over the plugin and the added `.planning/` lines; `sources/` ignored, `git ls-files` empty | Spike: SP1 no (EPERM listen/connect), SP2 no (Chromium dies), SP3 yes (with git caveats), SP4 yes; the scripted `claude -p --plugin-dir` fallback works. S2: read R26 and the contract reference |
 | 2 | write-guides: the skill | ✅ | `SKILL.md` (85 lines, model-invocable); reference `interview.md` `recon.md` `walking.md` `guide-types.md` `style.md` `refresh.md`; 4 templates; `kit-core.mjs` (identical in both skills), `walk-lib.mjs`, `check-guides.mjs`, `set-edit.mjs` (new, R27); 4 test files | `npm test` 68 tests (67 pass, 1 skipped: `md.mjs` not built); sync test includes `kit-core.mjs`; two walks of the staged fixture byte-identical (40,498-byte outline); `check-guides` passes on the dry run; `claude plugin validate` passes; genericity clean | Dry run: 4 guides and 8 placeholders, all `checked`; v2 refresh and an adopt both passed. A browser walk equals a fetch walk. Known limit for S3: a label renamed in one place but kept in another passes the label check (R27) |
-| 3 | write-guides: evals, tuning, samples for review | ⬜ | — | — | |
+| 3 | write-guides: evals, tuning, samples for review | ✅ | `evals/run.sh` (format / scripted / all), `evals/scripted.mjs`, `evals/lib/scaffold.mjs`, the `claude` shim and git wrapper; 4 eval-format cases (`write-guides-headless-round-1`, `-code-path`, `-non-local`, `-adopt`) and 2 scripted (`-first-guides`, `-refresh-v2`); `evals/triggers/write-guides.json` (20 queries); `fixtures/leave-app-guides/` (frozen set); `.planning/user-guides/samples/` for S4; `test/cli-symlink.test.mjs` | Final pass, every case 2/2 with the skill, score 1.00. Baseline (no plugin): headless 0.625, code-path 0.30, non-local 0.60, adopt 0.375, first-guides 0.29, refresh 0.25 (Δ +0.525 mean on the format cases, +0.71 and +0.75 scripted). Trigger: held-out 7/8 queries (21/24 runs, precision 100%, recall 75%), then 20/20 on the full set after adding "check" to the description. `npm test` 69 (68 pass, 1 skipped); validate passes; no `.claude/` left behind | Cost ≈ $15 of eval runs (format ≈ $6.7, scripted ≈ $8.2), plus the trigger loops (not metered). Skill changes the evals asked for: picture rules in `style.md`, portable walk scripts (`walking.md`, `refresh.md`), a symlink-safe main guard in every script, "check" in the description. Samples for S4: `.planning/user-guides/samples/` |
 | 4 | Checkpoint 1 · interview and templates | ⬜ | — | — | by hand |
 | 5 | write-guides on Clarity | ⬜ | — | — | by hand, from Clarity |
 | 6 | wiki-guides: screenshots | ⬜ | — | — | |
@@ -43,7 +43,7 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 
 ### Interview and templates (read by Session 4)
 
-(none yet)
+- S3: the samples are `.planning/user-guides/samples/` (3 guides, 5 placeholders). Worth a look: the guides are lean (≈ 350–600 words each), and S3 added two picture rules to `style.md` (picture each task's first unseen screen; crop to the region the alt text names). Both come from eval runs, not from Kam.
 
 ### Clarity's guides (Session 5, gathered in the session)
 
@@ -141,3 +141,26 @@ Runtime: opus/high (autopilot attempt 1)
 - **Deviation from PLAN:** `set-edit.mjs` was added to §2.4's layout (R27). Nothing else changed shape.
 - **Searches.** None started at a repo root. In campaign-brief, the session read one session summary and listed the headings of three guides, all named files, and never touched `briefs/`. Sources were read from `.planning/user-guides/sources/`.
 - **Caution.** One `pkill -f "node server.mjs"`, used to stop the dry-run fixture, was broader than needed. Later servers were stopped by PID. No other stack is known to have been affected.
+
+### Session 3: write-guides: evals, tuning, samples for review (20 Nov 2026) ✅
+
+Runtime: opus/medium (autopilot attempt 1)
+
+- **Harness (R16, R26, R28).** `bash evals/run.sh [format|scripted|all]` stages the plugin without `node_modules`. `format` runs `claude plugin eval` with `--no-publish --scaffold --trust-plugin` and its own no-plugin baseline arm. `scripted` runs `evals/scripted.mjs`: a scaffold, then `claude -p` through the shim (`--plugin-dir`) and plain `claude` for the baseline, with the same grader kinds plus `script` graders. Walk and refresh cases are scripted (SP1/SP2: a format run can't reach 127.0.0.1).
+- **Cases.** Every one checks that the canary prefix never appears in the trace.
+  - Format: `write-guides-headless-round-1` (prints Round 1, stops, writes nothing); `-code-path` (answers given, facts from the code: 3 guides, cards and entries, `notChecked[]` non-empty, `check-guides` passes "no walk"); `-non-local` (`https://leave.example.com` is never walked, preflighted or fetched); `-adopt` (two hand-written guides `written`, two images `taken` with no fingerprint, guide files not edited).
+  - Scripted: `-first-guides` (walks v1, 3 guides `checked`, every picture a placeholder linked from its guides, the index, the ignore line) and `-refresh-v2` (from the frozen set with pictures taken at v1: exactly the R14 shots `retake`, the button now **New request**, the checkbox gone, the dialog's name kept).
+- **Results (final pass, 2 runs each with the skill, all passing).** Baselines: 0.625 / 0.30 / 0.60 / 0.375 (format, mean Δ +0.525), first-guides 0.29 (Δ +0.71), refresh 0.25 (Δ +0.75). Trigger tuning: `run_loop.py` kept S2's description (held-out 7/8 queries, 21/24 runs; train 12/12). The one miss was the `check` route, so "check" went into the description; the full 20 then scored 20/20 (no longer held out).
+- **Skill changes the evals asked for.**
+  - `style.md`: picture each task's first unseen screen. Crop to the region a step is about, and only to a region that holds everything the alt text names. The runs made no Requests or Settings shots, then cropped a table while naming the toolbar's filter.
+  - `walking.md`, `refresh.md`: kept walk scripts import from `USER_GUIDES_SCRIPTS`. The first run's script imported an absolute temp path.
+  - Every script's main guard compares real paths. Called through `/var/folders` (a symlink to `/private/var`), the CLIs exited 0 having done nothing. A run found and worked around this; the refresh scaffold failed on it. `guide-set.mjs` changed byte-identically in both skills; the contract is unchanged. Regression test: `test/cli-symlink.test.mjs`.
+  - `SKILL.md` description: "write, update, refresh or check … from or against the app itself".
+- **Frozen set.** `fixtures/leave-app-guides/` is run 0 of the third first-guides pass (3 guides, 5 placeholders). Its walk script's import was rewritten to the new convention. Against v2 exactly **one** shot retakes (`settings`), not the two R14's one-shot-per-screen assumption gives (R28). It is copied to `.planning/user-guides/samples/` for S4.
+- **Deviations from PLAN.**
+  - C8's "prove it by the `Base directory` line" can't be done from either trace, so the indicator matches the staged path in the run's tool calls (R28).
+  - The git wrapper goes in the stage's `.eval-bin/`, not `evals/bin/`, because runs can't read `evals/` (R28).
+  - Trigger tuning ran with one worker (R28).
+  - The walk preset answers depth "Every task, step by step", so the set covers both changed screens. The code preset keeps "The main tasks only".
+- **Small choices.** Eval models are sonnet. Scripted runs use `--setting-sources project,local --strict-mcp-config`. One baseline run per scripted case. The trigger loop ran on sonnet: 3 runs a query, at most 3 iterations, a 45 s timeout.
+- **Searches.** None touched campaign-brief or Clarity, and none started at a repo root.

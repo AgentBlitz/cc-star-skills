@@ -53,10 +53,13 @@ outline for the same markup, and two walks of the same data give identical outli
 ## 3. What a crawl can't reach
 
 Dialogs opened by a click, the state after an action (a request sent, a setting saved), a
-second step of a form: write a short walk script in `.user-guides/walk/` and run it with node.
+second step of a form: write a short walk script in `.user-guides/walk/` and run it with
+`USER_GUIDES_SCRIPTS=$S node .user-guides/walk/<name>.mjs`. It is kept for refreshes, which run
+it again from wherever the plugin is then installed, so it imports the scripts folder from that
+variable, never from a written-out path:
 
 ```js
-import { createWalk } from '<$S>/walk-lib.mjs';
+const { createWalk } = await import(`${process.env.USER_GUIDES_SCRIPTS}/walk-lib.mjs`);
 const walk = await createWalk({ setFile: 'docs/user-guides/guides.json' });
 const p = await walk.open('employee');
 await walk.go(p, '/requests');

@@ -1,6 +1,6 @@
 ---
 name: write-guides
-description: Write a web app's end-user guides as markdown in its repo, from a walk of the running local app as each role (role guides, features and value, getting started, admin and operations), with picture placeholders and a guides.json that /user-guides:wiki-guides illustrates and publishes. Interviews first; resumable; refreshes the guides after a release, or adopts guides written by hand. Use when asked to write, update or refresh a product's user guides or help pages from the app itself. Not for READMEs, API or developer references, release notes, a product film, or a single shared doc or how-to.
+description: Write a web app's end-user guides as markdown in its repo, from a walk of the running local app as each role (role guides, features and value, getting started, admin and operations), with picture placeholders and a guides.json that /user-guides:wiki-guides illustrates and publishes. Interviews first; resumable; refreshes the guides after a release, or adopts guides written by hand. Use when asked to write, update, refresh or check a product's user guides or help pages, from or against the app itself. Not for READMEs, API or developer references, release notes, a product film, or a single shared doc or how-to.
 argument-hint: "[refresh | adopt | check | answers, e.g. readers=employee,manager kinds=role-guide]"
 allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion]
 ---

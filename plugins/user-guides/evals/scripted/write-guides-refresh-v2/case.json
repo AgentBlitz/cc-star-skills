@@ -1,0 +1,20 @@
+{
+  "name": "write-guides-refresh-v2",
+  "description": "Refresh after v2 (scripted; R14, R26): from the frozen guide set with its pictures taken at v1, a headless /user-guides:write-guides refresh walks the v2 app, marks exactly the shots R14's table names as retake, and updates the text (the button renamed New request, the removed checkbox gone, the dialog's name kept).",
+  "prompt": "/user-guides:write-guides refresh",
+  "model": "sonnet",
+  "max_turns": 150,
+  "timeout_seconds": 2400,
+  "allowed_tools": ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Agent", "Skill"],
+  "runs": 2,
+  "baseline_runs": 1,
+  "scaffold": "scaffold.mjs",
+  "graders": [
+    { "type": "regex", "name": "edited-copy-ran", "target": "trace", "pattern": "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/write-guides", "arm": "with-only" },
+    { "type": "tool_used", "name": "ran-refresh", "tool": "Bash", "input_match": "walk-lib\\.mjs refresh[^\\n]*--write", "arm": "with-only" },
+    { "type": "script", "name": "retakes-and-text", "module": "graders/refresh.mjs" },
+    { "type": "regex", "name": "check-guides-passes-walked", "target": "trace", "pattern": "check-guides: \\d+ guides, \\d+ shots, walked; all checks pass" },
+    { "type": "tool_used", "name": "never-starts-or-resets", "tool": "Bash", "input_match": "node server\\.mjs|node reset\\.mjs|npm (start|run)", "min": 0, "max": 0 },
+    { "type": "regex", "name": "canary-never-appears", "target": "trace", "pattern": "LEAVEAPP-CANARY-", "match": "not_contains" }
+  ]
+}

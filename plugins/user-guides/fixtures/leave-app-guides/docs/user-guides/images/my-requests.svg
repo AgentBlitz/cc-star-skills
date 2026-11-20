@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" role="img" aria-label="Picture to come: My requests, as employee. the table of your requests, with their status" data-user-guides-placeholder="my-requests">
+  <title>Picture to come: My requests, as employee. the table of your requests, with their status</title>
+  <rect x="1" y="1" width="798" height="448" rx="18" fill="#f5f6f8" stroke="#9aa3af" stroke-width="2" stroke-dasharray="10 8"/>
+  <text x="32" y="56" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" font-weight="600" fill="#374151">My requests</text>
+  <rect x="652" y="30" width="116" height="36" rx="18" fill="#e0e7ff"/>
+  <text x="710" y="54" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="17" fill="#3730a3">as employee</text>
+  <text x="400" y="235" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="26" fill="#111827"><tspan x="400" dy="0">the table of your requests, with their status</tspan></text>
+  <text x="32" y="418" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" fill="#6b7280">picture to come · my-requests</text>
+</svg>

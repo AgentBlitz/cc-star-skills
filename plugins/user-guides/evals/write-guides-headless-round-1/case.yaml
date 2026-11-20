@@ -1,0 +1,59 @@
+schema_version: "1.0"
+name: write-guides-headless-round-1
+description: >-
+  A headless `/user-guides:write-guides` in a fresh app repo with no answers prints Round 1
+  (readers and kinds) and stops: no recon agents, no walk, nothing written (PLAN R9, D12).
+tags: [write-guides, headless, interview]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: /user-guides:write-guides
+  model: sonnet
+  max_turns: 10
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Agent, Skill]
+runs: 2
+graders:
+  - type: regex
+    name: edited-copy-ran
+    target: trace
+    pattern: "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/write-guides"
+    arm: with-only
+  - type: regex
+    name: says-it-needs-answers
+    target: last_message
+    pattern: needs your answers[\s\S]*Round 1 of 3
+  - type: regex
+    name: asks-round-1
+    target: last_message
+    pattern: Who will read these guides\?[\s\S]*Which kinds of guide\?[\s\S]*How deep[\s\S]*Where will they be read\?
+  - type: regex
+    name: offers-arguments
+    target: last_message
+    pattern: "/user-guides:write-guides readers="
+  - type: tool_used
+    name: no-recon-agents
+    tool: Agent
+    min: 0
+    max: 0
+  - type: tool_used
+    name: no-walk
+    tool: Bash
+    input_match: "walk-lib\\.mjs (preflight|crawl)|node server\\.mjs|npm (start|run)"
+    min: 0
+    max: 0
+  - type: tool_used
+    name: writes-nothing
+    tool: Write
+    min: 0
+    max: 0
+  - type: file_exists
+    name: no-guides-json
+    path: docs/user-guides/guides.json
+    exists: false
+  - type: regex
+    name: canary-never-appears
+    target: trace
+    pattern: LEAVEAPP-CANARY-
+    match: not_contains
+expected_outcome: Round 1's four questions with their options and the arguments that answer them, then a stop.

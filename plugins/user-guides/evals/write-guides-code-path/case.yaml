@@ -1,0 +1,72 @@
+schema_version: "1.0"
+name: write-guides-code-path
+description: >-
+  Every answer is in guides.json and facts are to come from the code: a headless run skips the
+  walk, writes every guide with a placeholder card and a shot entry per picture, and lists what
+  it could not check in notChecked[] (PLAN §2.2, R9, R11).
+tags: [write-guides, headless, code-path]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: /user-guides:write-guides
+  model: sonnet
+  max_turns: 90
+  timeout_seconds: 1500
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Agent, Skill]
+runs: 2
+graders:
+  - type: regex
+    name: edited-copy-ran
+    target: trace
+    pattern: "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/write-guides"
+    arm: with-only
+  - type: regex
+    name: getting-started-registered
+    target: { source: file, path: docs/user-guides/guides.json }
+    pattern: '"type": "getting-started"[\s\S]*"status": "(written|checked)"'
+  - type: regex
+    name: no-guide-left-outlined
+    target: { source: file, path: docs/user-guides/guides.json }
+    pattern: '"status": "outlined"'
+    match: not_contains
+  - type: regex
+    name: guides-for-both-roles
+    target: { source: file, path: docs/user-guides/guides.json }
+    pattern: '"audience": \[\s*"employee"\s*\][\s\S]*"audience": \[\s*"manager"\s*\]|"audience": \[\s*"manager"\s*\][\s\S]*"audience": \[\s*"employee"\s*\]'
+  - type: regex
+    name: shots-are-placeholders
+    target: { source: file, path: docs/user-guides/guides.json }
+    pattern: '"path": "docs/user-guides/images/[a-z0-9-]+\.svg"[\s\S]*"status": "placeholder"'
+  - type: regex
+    name: not-checked-non-empty
+    target: { source: file, path: docs/user-guides/guides.json }
+    pattern: '"notChecked": \[\s*\{'
+  - type: file_exists
+    name: placeholder-cards
+    path: docs/user-guides/images/*.svg
+  - type: file_exists
+    name: readme-index
+    path: docs/user-guides/README.md
+  - type: tool_used
+    name: ran-check-guides
+    tool: Bash
+    input_match: "check-guides\\.mjs"
+    arm: with-only
+  - type: regex
+    name: check-guides-passes
+    target: trace
+    pattern: "check-guides: \\d+ guides, \\d+ shots, no walk; all checks pass"
+  - type: tool_used
+    name: no-walk
+    tool: Bash
+    input_match: "walk-lib\\.mjs crawl|node server\\.mjs|npm (start|run)"
+    min: 0
+    max: 0
+  - type: regex
+    name: canary-never-appears
+    target: trace
+    pattern: LEAVEAPP-CANARY-
+    match: not_contains
+expected_outcome: >-
+  Three guides (employee and manager role guides, getting started) written from the code, every
+  picture a placeholder card with a shot entry, notChecked[] non-empty, check-guides passing.

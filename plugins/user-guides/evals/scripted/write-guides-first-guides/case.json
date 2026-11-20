@@ -1,0 +1,23 @@
+{
+  "name": "write-guides-first-guides",
+  "description": "First guides for the fixture (scripted; R26): every answer is in guides.json and Round 3 is recorded as 'approve as proposed', so a headless run walks the local app as each role and writes the three guides, each picture a placeholder card with a shot entry, and check-guides passes against the walk.",
+  "prompt": "/user-guides:write-guides",
+  "model": "sonnet",
+  "max_turns": 200,
+  "timeout_seconds": 2700,
+  "allowed_tools": ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Agent", "Skill"],
+  "runs": 2,
+  "baseline_runs": 1,
+  "scaffold": "scaffold.mjs",
+  "graders": [
+    { "type": "regex", "name": "edited-copy-ran", "target": "trace", "pattern": "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/write-guides", "arm": "with-only" },
+    { "type": "tool_used", "name": "walked-the-app", "tool": "Bash", "input_match": "walk-lib\\.mjs crawl", "arm": "with-only" },
+    { "type": "script", "name": "guide-set-complete", "module": "graders/set.mjs" },
+    { "type": "file_exists", "name": "readme-index", "path": "docs/user-guides/README.md" },
+    { "type": "regex", "name": "index-status-block", "target": { "source": "file", "path": "docs/user-guides/README.md" }, "pattern": "<!-- user-guides:status:begin -->" },
+    { "type": "regex", "name": "check-guides-passes-walked", "target": "trace", "pattern": "check-guides: \\d+ guides, \\d+ shots, walked; all checks pass" },
+    { "type": "tool_used", "name": "never-starts-or-resets", "tool": "Bash", "input_match": "node server\\.mjs|node reset\\.mjs|npm (start|run)", "min": 0, "max": 0 },
+    { "type": "regex", "name": "work-folder-ignored", "target": { "source": "file", "path": ".gitignore" }, "pattern": "^\\.user-guides/?$", "flags": "m" },
+    { "type": "regex", "name": "canary-never-appears", "target": "trace", "pattern": "LEAVEAPP-CANARY-", "match": "not_contains" }
+  ]
+}
