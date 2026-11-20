@@ -28,7 +28,7 @@ Build a screenshot script that a project keeps, made from a template. It takes e
 
 ## Do
 - **`skills/wiki-guides/templates/shots.template.mjs`:**
-  - `as(role)` with the five sign-in kinds, from `kit-core.mjs`;
+  - `as(role)` with the five sign-in kinds, from `kit-core.mjs`, and `as(role, { signedOut: true })` for a shot whose `state` says `signed out` (a screen before sign-in; S5 found Clarity's Getting started needs one, and `walk.open` already takes the option);
   - a preflight (`--check`): Playwright found, the base URL reachable, every role signed in;
   - `shot(name, target, {pad, maxHeight, clip})` and `step(label, work)`, reading `shots[].target`'s locator syntax (R8);
   - wait until the page settles, make sticky elements static, and move the mouse away;
