@@ -38,8 +38,21 @@ export async function setup({ cwd, plugin }) {
   const readme = path.join(path.dirname(setFile), 'README.md');
   fs.writeFileSync(readme, gs.updateIndex(fs.readFileSync(readme, 'utf8'), set, 'docs/user-guides/README.md'));
   sc.commit(cwd, 'Refresh the guides for 1.1');
+  // The pages 1.1 must send: those whose storage format differs from what 1.0 left on the wiki.
+  // A release alone changes no page (R34), and pictures are attached by name, so only text counts.
+  const { prepare, pageXhtml } = await import(path.join(plugin, 'skills', 'wiki-guides', 'scripts', 'to-confluence.mjs'));
+  const prep = prepare({ root: cwd, setFile: w.SET_FILE, release: '1.1', topTitle: w.TOP_TITLE });
+  if (prep.problems.length) throw new Error(`the 1.1 set does not convert: ${prep.problems[0].message || prep.problems[0]}`);
+  const live = (match) => (before.pages.find(match)?.body || '').trim();
+  const expectChanged = [];
+  if (pageXhtml(prep, 'top').trim() !== live((p) => p.id === w.TOP_ID)) expectChanged.push(w.TOP_ID);
+  for (const pg of prep.pages) {
+    const was = before.pages.find((p) => p.title === pg.title && p.status === 'current');
+    if (was && pageXhtml(prep, pg).trim() !== (was.body || '').trim()) expectChanged.push(was.id);
+  }
+  if (!expectChanged.length) throw new Error('the 1.1 refresh changes no page: the case would test nothing');
   const v2 = await w.serve(cwd, v1.port);
-  const vars = { before, setBefore: JSON.parse(fs.readFileSync(setFile, 'utf8')) };
+  const vars = { before, expectChanged, setBefore: JSON.parse(fs.readFileSync(setFile, 'utf8')) };
   return {
     env: { EVAL_LEAVE_APP: '1' },
     vars,

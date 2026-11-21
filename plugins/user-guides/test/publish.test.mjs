@@ -245,7 +245,8 @@ test('scenario: first publish. Nothing is written before the confirmation; then 
     assert.equal(snap.attachments.length, 5);
     for (const a of snap.attachments) assert.deepEqual([a.page, a.comment, a.version], [TOP_ID, `sha256:${a.sha256}`, 1], `${a.title} carries its sha256 in the comment`);
     for (const id of [TOP_ID, ...done.json.pages.map((x) => x.pageId)]) assert.deepEqual(wellFormed(`<r xmlns:ac="a" xmlns:ri="r">${mock.body(id)}</r>`), []);
-    assert.match(mock.body(TOP_ID), /at release 1\.0\./);
+    assert.doesNotMatch(mock.body(TOP_ID), /This page is made from/, 'no banner (R34)');
+    assert.match(pages[TOP_TITLE].message, /^user-guides 1\.0 sha256:/, 'the release is in the version message');
 
     const pub = recordIt(dir);
     assert.deepEqual([pub.release, pub.confluence.space, pub.confluence.topPageId, Object.keys(pub.confluence.pages)], ['1.0', 'DOCS', TOP_ID, GUIDES]);
@@ -275,7 +276,7 @@ test('scenario: first publish. Nothing is written before the confirmation; then 
   }
 });
 
-test('scenario: republish after v2. Only the changed image is replaced; every page reaches its next version with the new banner', async () => {
+test('scenario: republish after v2. Only the changed image is replaced, and only the page whose text changed is sent (R34)', async () => {
   const mock = await startMock();
   const dir = stageProject();
   try {
@@ -289,10 +290,10 @@ test('scenario: republish after v2. Only the changed image is replaced; every pa
     prepare(dir, { release: '1.1' });
 
     const p = await plan(dir, mock);
-    assert.deepEqual([p.json.images.replace, p.json.images.attach, p.json.images.unchanged, p.json.counts.update, p.json.needs], [['settings.png'], [], 4, 4, { adopted: [], foreignImages: [], edited: {} }]);
+    assert.deepEqual([p.json.images.replace, p.json.images.attach, p.json.images.unchanged, p.json.counts.update, p.json.needs], [['settings.png'], [], 4, 1, { adopted: [], foreignImages: [], edited: {} }]);
     const done = await publish(dir, mock);
     assert.equal(done.status, 0, done.stdout + done.stderr);
-    assert.deepEqual([done.json.counts, done.json.images.replaced, done.json.images.attached, done.json.images.unchanged], [{ created: 0, updated: 4, unchanged: 0 }, 1, 0, 4]);
+    assert.deepEqual([done.json.counts, done.json.images.replaced, done.json.images.attached, done.json.images.unchanged], [{ created: 0, updated: 1, unchanged: 3 }, 1, 0, 4]);
 
     const v2 = mock.snapshot();
     for (const a of v2.attachments) {
@@ -301,10 +302,15 @@ test('scenario: republish after v2. Only the changed image is replaced; every pa
       else assert.deepEqual([a.version, a.sha256], [1, was.sha256], `${a.title} was not sent again`);
     }
     assert.equal(v2.pages.length, v1.pages.length, 'no page was made a second time');
+    // a new release alone changes no page: only the guide whose text changed is sent, and its
+    // version message names the release; the pictures are attached by name, so a retaken
+    // picture changes no page either
     for (const pg of v2.pages.filter((x) => x.id === TOP_ID || x.parent === TOP_ID)) {
-      assert.equal(pg.version, v1.pages.find((x) => x.id === pg.id).version + 1, `${pg.title} reached its next version`);
-      assert.match(pg.message, /^user-guides 1\.1 sha256:/);
-      assert.match(mock.body(pg.id), /at release 1\.1\./, `${pg.title} carries the new banner`);
+      const was = v1.pages.find((x) => x.id === pg.id);
+      if (pg.title === 'Leave Planner for employees') {
+        assert.equal(pg.version, was.version + 1, `${pg.title} reached its next version`);
+        assert.match(pg.message, /^user-guides 1\.1 sha256:/);
+      } else assert.deepEqual([pg.version, pg.bodySha256], [was.version, was.bodySha256], `${pg.title} was not sent again`);
     }
     const pub = recordIt(dir);
     assert.deepEqual([pub.release, pub.confluence.pages.employee.version], ['1.1', 2]);
@@ -335,24 +341,30 @@ test('scenario: an edit made on the wiki since. The page is not overwritten unti
 
     const done = await publish(dir, mock, '--confirm-edited', `${employee}=2`);
     assert.equal(done.status, 0, done.stdout + done.stderr);
-    assert.deepEqual([done.json.pages.find((x) => x.id === 'employee').version, done.json.counts], [3, { created: 0, updated: 4, unchanged: 0 }]);
-    assert.match(mock.body(employee), /at release 1\.1\./);
+    // only the edited page differs from what was sent: a new release alone changes no page (R34)
+    assert.deepEqual([done.json.pages.find((x) => x.id === 'employee').version, done.json.counts], [3, { created: 0, updated: 1, unchanged: 3 }]);
+    assert.doesNotMatch(mock.body(employee), /A colleague rewrote/);
+    assert.match(pagesNamed(mock)['Leave Planner for employees'].message, /^user-guides 1\.1 sha256:/);
     recordIt(dir);
 
     // someone saves between the publisher's read and its write: the wiki refuses the stale
     // version, the publisher stops there and says which pages went out
     const manager = first.pages.find((x) => x.id === 'manager').pageId;
+    for (const id of GUIDES) { // a release alone changes no page (R34): each guide's text changes
+      const file = path.join(dir, `docs/user-guides/${id}.md`);
+      fs.writeFileSync(file, fs.readFileSync(file, 'utf8') + '\nA sentence added for release 1.2.\n');
+    }
     prepare(dir, { release: '1.2' });
     mock.raceOnPut(manager);
     const raced = await publish(dir, mock);
     assert.equal(raced.status, 1);
     assert.deepEqual([raced.json.ok, raced.json.failed.id, raced.json.failed.status, raced.json.pages.map((x) => x.id)], [false, 'manager', 409, ['getting-started', 'employee']]);
-    assert.doesNotMatch(mock.body(manager), /at release 1\.2\./, 'the colleague’s save stands');
+    assert.doesNotMatch(mock.body(manager), /A sentence added for release 1\.2/, 'the colleague’s save stands');
     const part = kit.record({ root: dir, reportFile: path.join(OUT, 'report.json'), setFile: SET });
     assert.deepEqual([part.problems, part.partial], [[], true]);
     prepare(dir, { release: '1.2' });
     const after = await plan(dir, mock);
-    assert.deepEqual([after.json.needs.edited, after.json.counts], [{ [manager]: 3 }, { create: 0, update: 0, unchanged: 3, adopted: 0, edited: 1 }], 'next time, only that page asks');
+    assert.deepEqual([after.json.needs.edited, after.json.counts], [{ [manager]: 2 }, { create: 0, update: 0, unchanged: 3, adopted: 0, edited: 1 }], 'next time, only that page asks (its version 2 is the colleague’s: 1.1 left it alone)');
   } finally {
     await mock.close();
     fs.rmSync(dir, { recursive: true, force: true });
@@ -497,7 +509,7 @@ test('the test page: written under the top page with its own picture, then remov
     assert.deepEqual(made.attachments.map((a) => [a.page, a.title]), [[id, 'test-page.png']], 'its picture is attached to the test page, not to the top page');
     assert.equal(made.pages.find((p) => p.id === TOP_ID).version, 1, 'the top page was not written');
     const view = await (await fetch(`${mock.url}/pages/viewpage.action?pageId=${id}`)).text();
-    assert.match(view, new RegExp(`<img class="confluence-embedded-image" width="\\d+"[^>]*src="/download/attachments/${id}/test-page\\.png`));
+    assert.match(view, new RegExp(`<img class="confluence-embedded-image" alt="[^"]*" src="/download/attachments/${id}/test-page\\.png`), 'its own picture, with no fixed width (R33)');
     assert.doesNotMatch(view, /ac:|ri:/, 'the mock renders every construct of the test page');
 
     const twice = await run('publish-node.mjs', ['test', '--base', mock.url], dir);
@@ -658,7 +670,7 @@ test('in a page: inject the script, fill the input, publish; reload and inject a
     const employee = done.pages.find((x) => x.id === 'employee');
     const wide = await check(employee.pageId, employee.version);
     assert.deepEqual([wide.ok, wide.images, wide.loaded, wide.column, wide.widest, wide.tooWide.sort()], [false, 3, 3, 656, 900, ['my-requests.png', 'request-dialog.png', 'settings.png']], JSON.stringify(wide));
-    assert.match(wide.message, /lower publish\.confluence\.imageCap/);
+    assert.match(wide.message, /remove publish\.confluence\.imageCap/);
 
     // lower the cap to 640, convert and publish again from the page: it passes
     target(dir, mock, { imageCap: 640 });
@@ -676,8 +688,54 @@ test('in a page: inject the script, fill the input, publish; reload and inject a
     const top = await check(TOP_ID, 2);
     if (keep) await page.screenshot({ path: path.join(keep, 'mock-top-page.png'), fullPage: true });
     assert.deepEqual([top.ok, top.unresolvedPageLinks, top.page], [true, 0, { id: TOP_ID, version: 2 }], JSON.stringify(top));
+
+    // the default, no cap: no fixed width, so even a 470 px column (a wide page tree) fits every
+    // image, as on Data Center, where a fixed width turns off the fit to the column (R33)
+    mock.state.width = 470;
+    assert.equal((await check(employee.pageId, 2)).ok, false, 'at 470 px the 640 px cap runs past the column');
+    target(dir, mock, { imageCap: 'fit' });
+    assert.equal(gs.loadGuideSet(path.join(dir, SET)).publish.confluence.imageCap, undefined);
+    prepare(dir);
+    assert.doesNotMatch(fs.readFileSync(out('employee.xhtml'), 'utf8'), /ac:width=/);
+    await page.goto(view(TOP_ID));
+    await inject();
+    await page.setInputFiles('#user-guides-upload', [out('publish.json')]);
+    await page.evaluate('userGuides.load()');
+    assert.deepEqual((await page.evaluate('userGuides.publish()')).counts, { created: 0, updated: 3, unchanged: 1 });
+    const fitted = await check(employee.pageId, 3);
+    assert.deepEqual([fitted.ok, fitted.column, fitted.tooWide], [true, 470, []], JSON.stringify(fitted));
+    assert.ok(fitted.widest <= 470 && fitted.widest > 400, `the images fill the column: ${fitted.widest}`);
   } finally {
     await browser.close();
+    await mock.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('record: a report copied from the browser may leave its hashes out; a hash it gives must be the one sent', async () => {
+  const mock = await startMock();
+  const dir = stageProject();
+  try {
+    const first = await firstPublish(dir, mock);
+    const lastFile = path.join(dir, OUT, 'last-publish.json');
+    const last = JSON.parse(fs.readFileSync(lastFile, 'utf8'));
+    const setBefore = fs.readFileSync(path.join(dir, SET), 'utf8');
+
+    // a mistyped hash: nothing is recorded
+    const typo = structuredClone(first);
+    typo.pages[1].hash = typo.pages[1].hash.replace(/^./, (c) => (c === '0' ? '1' : '0'));
+    fs.writeFileSync(path.join(dir, OUT, 'typo.json'), JSON.stringify(typo));
+    const bad = kit.record({ root: dir, reportFile: path.join(OUT, 'typo.json'), setFile: SET });
+    assert.match(bad.problems[0] || '', /the hash of employee is not the one publish\.json sent/);
+    assert.equal(fs.readFileSync(path.join(dir, SET), 'utf8'), setBefore, 'guides.json untouched');
+
+    // no hashes at all: they come from publish.json, exactly as the full report gave them
+    const bare = JSON.parse(JSON.stringify(first, (k, v) => (k === 'hash' ? undefined : v)));
+    fs.writeFileSync(path.join(dir, OUT, 'bare.json'), JSON.stringify(bare));
+    fs.rmSync(lastFile);
+    assert.deepEqual(kit.record({ root: dir, reportFile: path.join(OUT, 'bare.json'), setFile: SET }).problems, []);
+    assert.deepEqual(JSON.parse(fs.readFileSync(lastFile, 'utf8')), last);
+  } finally {
     await mock.close();
     fs.rmSync(dir, { recursive: true, force: true });
   }

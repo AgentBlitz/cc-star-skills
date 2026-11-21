@@ -462,8 +462,11 @@ function validatePublish(pub, guideIds, errors) {
   }
 }
 
-/** Defaults the publisher applies when a key is absent (PLAN §2.5). */
-export const CONFLUENCE_DEFAULTS = { imageCap: 640, deviceScale: 2 };
+/**
+ * Defaults the publisher applies when a key is absent (PLAN §2.5). No `imageCap`: an image has no
+ * fixed width, so Data Center fits it to the page column (a fixed width turns that off).
+ */
+export const CONFLUENCE_DEFAULTS = { imageCap: null, deviceScale: 2 };
 
 // ---------------------------------------------------------------------------------------
 // Status transitions

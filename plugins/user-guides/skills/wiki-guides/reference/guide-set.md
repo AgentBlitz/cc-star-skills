@@ -106,15 +106,15 @@ css=[data-region="requests-toolbar"]
 
 | Key | Holds |
 |---|---|
-| `release` | the release named in the page banner |
+| `release` | the release the guides were last published at: in each page's version message on the wiki, and in the HTML banner |
 | `html.outDir` | the repo-relative folder for the self-contained HTML files |
 | `confluence.baseUrl` | the wiki's base URL |
 | `confluence.space` | the space key |
 | `confluence.topPageId` | the page the user named to publish under (digits, as a string); it becomes the top page |
 | `confluence.topGuide` | optional: the guide whose text opens the top page (else the README index's intro) |
 | `confluence.pages` | guide id → `{ pageId, version }`: `version` is the version last published, or `null` for a page adopted by id |
-| `confluence.imageCap` | the widest an image is shown, in pixels (default 640) |
-| `confluence.deviceScale` | the screenshots' device scale (default 2): an image shows at `min(imageCap, px / deviceScale)` |
+| `confluence.imageCap` | optional: a fixed width for every image, at most this many pixels. Absent (the default), an image has no fixed width and the wiki fits it to the page column; Data Center never shrinks an image that has a width |
+| `confluence.deviceScale` | the screenshots' device scale (default 2): with an `imageCap`, an image shows at `min(imageCap, px / deviceScale)` |
 
 ## Status transitions
 

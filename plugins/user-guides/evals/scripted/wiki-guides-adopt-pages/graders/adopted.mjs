@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadSet } from '../../lib/set-grader.mjs';
-import { TOP_ID, bannerRelease, ok } from '../../lib/wiki.mjs';
+import { TOP_ID, ok } from '../../lib/wiki.mjs';
 
 const MARK = /^user-guides \S+ sha256:[0-9a-f]{64}$/;
 
@@ -38,7 +38,7 @@ export default async function ({ cwd, vars }) {
     else {
       if (p1.version !== p0.version + 1) problems.push(`page ${id}: version ${p0.version} → ${p1.version}`);
       if (!MARK.test(p1.message || '')) problems.push(`page ${id} has no publisher message`);
-      if (!bannerRelease(p1.body, '1.0')) problems.push(`page ${id} has no 1.0 banner`);
+      if (!/^user-guides 1\.0 sha256:/.test(p1.message || '')) problems.push(`page ${id} has no 1.0 version message`);
     }
   }
   const made = final.pages.filter((p) => !before.pages.some((q) => q.id === p.id) && p.status === 'current');

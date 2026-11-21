@@ -60,7 +60,7 @@ One AskUserQuestion round, the recommended option first, skipping what arguments
 | `destination` | Where should the guides go? | Confluence pages (Recommended) · HTML files · Both |
 | `guides` | Which guides? | All \<n\> guides (Recommended) · Name them |
 | `under` | Which wiki page should they go under? Its text is replaced by the guides' intro and list (Confluence only) | \<the page recorded\> · Paste its address |
-| `release` | Which release do the guides show? It goes in every page's banner | \<the release found: a release or version file, the latest tag\> (Recommended) · Name it |
+| `release` | Which release do the guides show? It is recorded with every page sent | \<the release found: a release or version file, the latest tag\> (Recommended) · Name it |
 
 **Headless** (no AskUserQuestion, as in `claude -p`): print every unsettled question in this
 form, list the settled ones with their answers, and **stop** before taking or writing anything:
@@ -119,7 +119,7 @@ placeholder still in place stops it: publish the cards as they are only if the u
 step 8's `record`: `publish-kit.mjs input`, then `publish-node.mjs plan`: every page `skip`.
 
 **8. Record** (`reference/recording.md`): `publish-kit.mjs record`, the README's published
-section, and the report: pages and images sent, guides not `checked`, shots handed back
+section (asked first when interactive; never re-added once declined), and the report: pages and images sent, guides not `checked`, shots handed back
 (`needs-text`, `blocked`), and the files that belong in git.
 
 ## The stops, word for word

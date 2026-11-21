@@ -426,6 +426,50 @@ No dependency and no app code. An adopted set may keep its files where they are,
     before `removeTest`; the test page checked at `test.version`; the report saved as
     `JSON.stringify` text; the final `plan` check.
 
+- **R33. Images fit the column** (S10, Kam's choice). Confluence Data Center 9.2 gives an image
+  with a width or height `max-width: none` (its own stylesheet), and one without
+  `max-width: calc(100% - 4px)`. The S8 mock copied neither, so a fixed 640 px cap ran past a
+  470 px column (a wide page tree) on the real wiki. Now an image has **no fixed width** by
+  default: `CONFLUENCE_DEFAULTS.imageCap` is `null` (both `guide-set.mjs` copies), the converter
+  writes `ac:width` only when `publish.confluence.imageCap` is set (`publish-kit.mjs target
+  --image-cap <px>`, and `--image-cap fit` removes it), the HTML pages keep each image's own
+  width, and the mock now renders sizes as Data Center does. The wiki drops `ac:style`, so an
+  image cannot have both a width and the fit. The contract is unchanged (the field was already
+  optional); its meaning moved from "the widest" to "a fixed width".
+- **R34. No banner on wiki pages** (S10, Kam's choice). The pages are edited only through the
+  markdown and this loop, so the "made from … overwritten by the next publish" notice was noise.
+  The release now lives in each update's version message and in `guides.json`; the HTML pages
+  keep their banner. Consequence: **a new release alone changes no page**, so a republish sends
+  only the pages whose text changed (before, every banner changed). The tests, the
+  `-first-publish` and `-adopt-pages` graders (the version message instead of the banner) and
+  `-republish-v2` (its scaffold works out the pages the refresh changed, `expectChanged`, and
+  only those must reach their next version) follow it.
+- **R35. Claude in Chrome as found** (S10, on Confluence DC 9.2.13):
+  - **Scripts load by upload.** A one-line snippet prepends the publisher's own upload input;
+    `file_upload` sends `publish-core.js` (or `check-page.js`) with `publish.json` and the next
+    files; `(0, eval)(await file.text())` runs it. The wiki allowed `eval`. Pasting the whole
+    text stays the fallback for a page whose policy forbids it. Prepended, the input is `ref_1`
+    on a page just loaded, so navigate, snippet, `find`, upload and calls fit in one
+    `browser_batch`.
+  - **`javascript_tool` cuts answers off after about a thousand characters.** Long values stay in
+    a page variable and are read in slices; the report is saved without its hashes, and
+    `record` takes them from `publish.json` and refuses a report whose given hash differs (a
+    mistyped copy records nothing).
+  - **Sizes.** One batch of 12 PNGs (3.3 MB) went through `file_upload` (its limit is 10 MB a
+    call), so `bundle.mjs`'s 9,000,000-byte default holds.
+  - **The version message is reliable:** pages made by the first publish were recognised from
+    `last-publish.json`, then skipped from their own message. No `topVersion` field is needed
+    (R31's open question).
+  - **The page tree** lists a page's children alphabetically; the top page's list keeps the
+    guides' order. The publisher does not reorder pages (a known limit, noted in
+    `chrome-publishing.md`).
+  - **The kit in a real project.** Clarity's lint flagged the copied `guides-kit.mjs`: browser
+    globals in `page.evaluate` callbacks, and a `node:crypto` import in a repo that allows
+    cryptography in one module only. `kit-core.mjs` now hashes with a plain SHA-256 (tested
+    equal to `node:crypto`, so fingerprints are unchanged) and the kit declares the browser
+    globals. The kit is a stamped copy, so a project's formatter must ignore it (Clarity added
+    it to `.prettierignore`).
+
 **Session shape**
 - **R18. Adopt mode** (write-guides, §2.2 step 7, amended into the approved plan for S12) had no session. S2 builds it: its round goes in `interview.md` and its steps in `refresh.md`. S3 evaluates it.
 - **R19. `templates/test-page.md`** had no session. S7 builds it, with every construct of the subset; it doubles as a golden. S7 also resolves links across folders (R8).
@@ -480,6 +524,10 @@ Checkpoint answers and approvals live in TRACKER › Review notes. A session tha
 - **The first real run (S5, 20 Nov 2026): Clarity's guides written, no plan change but one for S6.** Kam answered the interview live and approved the six-guide outline as proposed.
   - **S6 takes signed-out shots.** A getting-started guide pictures the sign-in screen, so `as(role, { signedOut: true })` joins S6's `shots.template.mjs` (§5 Session 6). The walk side (`walk.open(role, { signedOut: true })`) landed in S5.
   - **S10 crops People-like screens.** A local stack's account table carries test residue (accounts made by e2e runs), so S5's shots of it crop to the forms, never the table. S10 keeps that when it takes them.
+- **Checkpoint 2 (S10, 21 Nov 2026): approved, with three choices made along the way.**
+  Pictures fit the page column (R33); wiki pages carry no banner (R34); Clarity's README gets no
+  published-section (the skill now adds it only with the user's yes). The plan's shape is
+  unchanged.
 
 ## 4. How the sessions work
 

@@ -198,7 +198,8 @@ export async function startMock({ mode = 'data-center', context, seed = 'empty',
       const w = / ac:width="(\d+)"/.exec(attrs)?.[1];
       const alt = / ac:alt="([^"]*)"/.exec(attrs)?.[1] || '';
       if (!att) return `<img class="confluence-embedded-image unresolved" title="Unknown Attachment" alt="${alt}" src="${ctx}/images/unknown-attachment.png" />`;
-      return `<img class="confluence-embedded-image"${w ? ` width="${w}"` : ''} alt="${alt}" src="${ctx}/download/attachments/${holder.id}/${encodeURIComponent(att.title)}?version=${att.version}" />`;
+      // As Data Center: a width makes a manual size, which turns off the fit to the column.
+      return `<span class="confluence-embedded-file-wrapper${w ? ' confluence-embedded-manual-size' : ''}"><img class="confluence-embedded-image"${w ? ` width="${w}"` : ''} alt="${alt}" src="${ctx}/download/attachments/${holder.id}/${encodeURIComponent(att.title)}?version=${att.version}" /></span>`;
     });
     h = h.replace(/<ac:link(?: ac:anchor="([^"]*)")?>(?:<ri:page ri:content-title="([^"]*)"\s*\/>)?<ac:link-body>([\s\S]*?)<\/ac:link-body><\/ac:link>/g, (m, anchor, title, body) => {
       const to = title ? byTitle(p.space, unesc(title)) : p;
@@ -228,7 +229,7 @@ export async function startMock({ mode = 'data-center', context, seed = 'empty',
     return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8" /><title>${esc(p.title)} - ${esc(p.space)} - Mock wiki</title>
 ${meta.map(([n, c]) => `<meta name="${n}" content="${esc(c)}" />`).join('\n')}
-<style>body{margin:0;font:14px/1.5 sans-serif}#main{padding:20px 40px}#main-content{width:${state.width}px}table{border-collapse:collapse}td,th{border:1px solid #c1c7d0;padding:4px 8px}.confluence-information-macro{border:1px solid #c1c7d0;padding:8px;margin:8px 0}pre{background:#f4f5f7;padding:8px;overflow:auto}</style>
+<style>body{margin:0;font:14px/1.5 sans-serif}#main{padding:20px 40px}#main-content{width:${state.width}px}table{border-collapse:collapse}td,th{border:1px solid #c1c7d0;padding:4px 8px}.confluence-information-macro{border:1px solid #c1c7d0;padding:8px;margin:8px 0}pre{background:#f4f5f7;padding:8px;overflow:auto}.confluence-embedded-file-wrapper{max-width:100%}.confluence-embedded-image{display:block;max-width:calc(100% - 4px)}.confluence-embedded-image[width],.confluence-embedded-image[height]{max-width:none}</style>
 </head><body><div id="main"><h1 id="title-text">${esc(p.title)}</h1>
 <div id="main-content" class="wiki-content">
 ${renderView(p)}

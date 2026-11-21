@@ -164,3 +164,20 @@ test('CookieJar keeps, replaces and expires cookies', () => {
   jar.absorb(res(['a=; Path=/; Max-Age=0']));
   assert.equal(jar.header(), 'b=2');
 });
+
+test('sha256Hex: the same answer as node:crypto, so fingerprints made before it stay valid', async () => {
+  const { createHash } = await import('node:crypto');
+  const want = (s) => createHash('sha256').update(s).digest('hex');
+  const inputs = ['', 'abc', 'é — “quotes” ✓ 漢字 🙂', 'x'.repeat(1000)];
+  for (let n = 50; n <= 130; n++) inputs.push('a'.repeat(n)); // every padding boundary: 55, 56, 63, 64, 119, 120, 128
+  for (const s of inputs) assert.equal(kit.sha256Hex(s), want(s), `length ${s.length}`);
+  const region = { headings: ['Inbox', 'Waiting 3'], controls: [{ role: 'button', name: 'Approve' }] };
+  const body = JSON.stringify({ h: ['Inbox', 'Waiting #'], c: ['button:Approve'] });
+  assert.equal(kit.fingerprint(region), `sha256:${want(body)}`);
+});
+
+test('the kit copied into projects imports no crypto module and declares the browser globals it uses', () => {
+  const text = fs.readFileSync(path.join(import.meta.dirname, '..', 'skills', 'wiki-guides', 'templates', 'guides-kit.mjs'), 'utf8');
+  assert.doesNotMatch(text, /from ['"](node:)?crypto['"]|import\(['"](node:)?crypto['"]\)|\bglobalThis\.crypto\b|\bcrypto\.(subtle|createHash|randomUUID)/);
+  assert.match(text, /\/\* global document, window, getComputedStyle, requestAnimationFrame \*\//);
+});

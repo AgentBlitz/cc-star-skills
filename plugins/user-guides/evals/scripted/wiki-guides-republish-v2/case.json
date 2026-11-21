@@ -1,6 +1,6 @@
 {
   "name": "wiki-guides-republish-v2",
-  "description": "Republish after v2 (scripted; R14): a set published at 1.0 and refreshed for 1.1 (settings marked retake). A headless /user-guides:wiki-guides release=1.1 go-ahead=yes retakes only settings, reads it back, swaps it in, and republishes: exactly settings.png is replaced, and the top page and every guide page reach their next version with the 1.1 banner.",
+  "description": "Republish after v2 (scripted; R14): a set published at 1.0 and refreshed for 1.1 (settings marked retake). A headless /user-guides:wiki-guides release=1.1 go-ahead=yes retakes only settings, reads it back, swaps it in, and republishes: exactly settings.png is replaced, and exactly the pages whose text the refresh changed reach their next version, with a 1.1 version message (a release alone changes no page).",
   "prompt": "/user-guides:wiki-guides release=1.1 go-ahead=yes",
   "model": "sonnet",
   "max_turns": 120,

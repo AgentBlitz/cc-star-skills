@@ -1,10 +1,11 @@
-// R14: exactly the images the change table names are replaced (here `settings.png`), and every
-// page (the top page and the three guides) reaches its next version with the 1.1 banner.
+// R14: exactly the images the change table names are replaced (here `settings.png`). A release
+// alone changes no page (R34): exactly the pages whose text the refresh changed (the scaffold
+// works them out, `expectChanged`) reach their next version with a 1.1 message; the rest stay.
 import { loadSet } from '../../lib/set-grader.mjs';
-import { TOP_ID, bannerRelease, ok } from '../../lib/wiki.mjs';
+import { TOP_ID, ok } from '../../lib/wiki.mjs';
 
 export default async function ({ cwd, vars }) {
-  const { before, final, setBefore } = vars;
+  const { before, final, setBefore, expectChanged } = vars;
   const problems = [];
   const att = (cap) => Object.fromEntries(cap.attachments.filter((a) => a.page === TOP_ID).map((a) => [a.title, a]));
   const a0 = att(before);
@@ -18,8 +19,10 @@ export default async function ({ cwd, vars }) {
     const p1 = final.pages.find((p) => p.id === id);
     if (!p1 || p1.status !== 'current') problems.push(`page ${id} is gone`);
     else {
-      if (p1.version !== p0.version + 1) problems.push(`page ${id}: version ${p0.version} → ${p1.version} (expected ${p0.version + 1})`);
-      if (!bannerRelease(p1.body, '1.1')) problems.push(`page ${id} has no 1.1 banner`);
+      const want = expectChanged.includes(id) ? p0.version + 1 : p0.version;
+      if (p1.version !== want) problems.push(`page ${id}: version ${p0.version} → ${p1.version} (expected ${want})`);
+      if (expectChanged.includes(id) && !/^user-guides 1\.1 sha256:/.test(p1.message || '')) problems.push(`page ${id} has no 1.1 version message`);
+      if (/This page is made from/.test(p1.body || '')) problems.push(`page ${id} carries a banner`);
     }
   }
   const created = final.pages.filter((p) => !before.pages.some((q) => q.id === p.id) && p.status === 'current');
@@ -41,5 +44,5 @@ export default async function ({ cwd, vars }) {
     if (live && p.version !== live.version) problems.push(`publish.confluence.pages.${id}: version ${p.version}, the wiki has ${live.version}`);
   }
   if (set.publish.release !== '1.1') problems.push(`publish.release is ${set.publish.release}`);
-  return ok(problems, 'settings.png alone replaced; every page at its next version with the 1.1 banner; recorded');
+  return ok(problems, 'settings.png alone replaced; exactly the changed pages at their next version with a 1.1 message; recorded');
 }

@@ -18,8 +18,9 @@ the project root. Converting writes only into `.user-guides/out/`; it never touc
 node $W/to-confluence.mjs --release 2.4.0 --set docs/user-guides/guides.json
 ```
 
-- `--release` is the release named in every page's banner; without it, `publish.release` is used,
-  and with neither the conversion stops.
+- `--release` is the release the pages show: it goes in the version message of each page sent
+  (and in the HTML pages' banner); without it, `publish.release` is used, and with neither the
+  conversion stops.
 - `--top-title` is the top page's **title as it is on the wiki**. Guide pages link to it and
   their images are attached to it by title, so pass the real one. Without it, the README
   index's title is used.
@@ -55,7 +56,7 @@ size could not be read.
 | `[text](https://…)`, `<https://…>`, a bare `https://…` | `<a href>` |
 | `[text](some/file.ts)`, a repo file that is not a guide | the text only |
 | lists, nested, with paragraphs inside items; `---` | `<ul>`/`<ol>`, `<li>`; `<hr />` |
-| an image alone on its line | `<ac:image ac:width>` + `<ri:attachment>` on the top page |
+| an image alone on its line | `<ac:image>` (no width unless capped) + `<ri:attachment>` on the top page |
 | GFM tables, with alignment | `<table><tbody>`, `<th>`/`<td>` with `text-align` |
 | fenced code | the `code` macro, its language mapped to one Confluence knows |
 | `>` quote | `<blockquote>` |
@@ -70,11 +71,13 @@ published first to a real wiki, and the plugin's tests convert it against a gold
 
 ## 3. What each page holds
 
-- **The banner** (an `info` macro) opens every page: it names the source file and the release,
-  and says that an edit made on the wiki is overwritten by the next publish.
-- **Guide pages** follow it with the guide's text, title left out. A guide's `parent` in
+- **No banner.** A wiki page carries no notice about where it is made: the pages are edited only
+  through the markdown and this loop, so a notice would be noise. The release goes in each
+  update's version message (`user-guides <release> sha256:<hash>`, the page history), and in
+  `guides.json`. (The HTML pages keep their banner.)
+- **Guide pages** hold the guide's text, title left out. A guide's `parent` in
   `guides.json` is its parent page; an empty `parent` puts it straight under the top page.
-- **The top page** (the page the user named) holds, after the banner:
+- **The top page** (the page the user named) holds:
   1. the intro: the guide named in `publish.confluence.topGuide` up to its first heading, or
      else the README index's opening paragraphs (the rest of the README is not published, and
      the status block never is);
@@ -82,9 +85,12 @@ published first to a real wiki, and the plugin's tests convert it against a gold
      from the README's own list when it has one;
   3. an **On this page** panel (a `toc`), when the top page has headings of its own;
   4. the rest of the `topGuide`, when there is one.
-- **Images** are attached once, to the top page, and shown at width `min(cap, px / scale)`:
-  `publish.confluence.imageCap` (default 640) and `deviceScale` (default 2, as the shots are
-  taken). A placeholder card, if the user chose to publish it, is shown at its own width.
+- **Images** are attached once, to the top page, with **no fixed width**: Data Center then fits
+  each one to the page column, however wide the reader's window or page tree. (It never shrinks
+  an image that has a width or height.) A fixed width is opt-in: `publish-kit.mjs target
+  --image-cap <px>` gives every image `min(cap, px / deviceScale)` (`deviceScale` defaults to 2,
+  as the shots are taken), and `--image-cap fit` removes it again. The HTML pages always use each
+  image's own size, which their CSS fits to the page.
 
 ## 4. Upload batches
 

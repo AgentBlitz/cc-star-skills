@@ -102,9 +102,6 @@ export function readBeforeSwap(toolCalls, ids) {
   return ids.filter((id) => !before.some((f) => new RegExp(`\\.user-guides/out/(review|shots)/${id}\\.png$`).test(f))).map((id) => `${id}.png was not read before the swap`);
 }
 
-/** A page body's banner names the release. */
-export const bannerRelease = (body, release) => new RegExp(`<ac:structured-macro ac:name="info"[\\s\\S]*?${release.replace(/\./g, '\\.')}[\\s\\S]*?</ac:structured-macro>`).test(body || '');
-
 export const current = (cap) => cap.pages.filter((p) => p.status === 'current');
 export const byTitle = (cap, title) => current(cap).find((p) => p.title === title);
 

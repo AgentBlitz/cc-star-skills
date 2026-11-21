@@ -90,7 +90,7 @@ function blocksHtml(blocks, rc, tight = false) {
           const img = rc.prep.images.get(b.ref);
           const ext = img.name.split('.').pop().toLowerCase();
           const data = fs.readFileSync(path.resolve(rc.root, img.path)).toString('base64');
-          return `<p><img src="data:${MIME[ext] || 'application/octet-stream'};base64,${data}" alt="${esc(b.alt)}" width="${img.width}" /></p>`;
+          return `<p><img src="data:${MIME[ext] || 'application/octet-stream'};base64,${data}" alt="${esc(b.alt)}"${img.width ? ` width="${img.width}"` : ''} /></p>`;
         }
         case 'list': {
           const tag = b.ordered ? 'ol' : 'ul';

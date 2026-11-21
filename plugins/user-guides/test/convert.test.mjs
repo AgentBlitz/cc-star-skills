@@ -23,7 +23,7 @@ const SET = 'docs/guides/guides.json';
 const RELEASE = '1.0.0-test';
 
 /** The synthetic set: golden/src plus the template test page and its picture. */
-function stageSet({ topGuide } = {}) {
+function stageSet({ topGuide, imageCap } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ug-convert-'));
   fs.cpSync(path.join(GOLDEN, 'src'), dir, { recursive: true });
   fs.copyFileSync(path.join(WIKI, 'templates', 'test-page.md'), path.join(dir, 'docs/guides/test-page.md'));
@@ -40,6 +40,7 @@ function stageSet({ topGuide } = {}) {
   gs.addShot(set, { id: 'test-page', alt: 'Test page: the sample picture', as: 'reader', path: 'docs/guides/test-page.png', target: { what: 'the page', locator: null }, state: 'On /: signed in', guides: ['test-page'] }, { by: 'write-guides', adopt: true });
   gs.addShot(set, { id: 'card', alt: 'Another guide: a placeholder card', as: 'reader', path: 'docs/more/images/card.svg', target: { what: 'the page', locator: null }, state: 'On /: signed in', guides: ['another'] }, { by: 'write-guides' });
   if (topGuide) set.publish.confluence = { topGuide };
+  if (imageCap) set.publish.confluence = { ...(set.publish.confluence || {}), imageCap };
   gs.saveGuideSet(path.join(dir, SET), set);
   return dir;
 }
@@ -166,8 +167,9 @@ test('storage format: the synthetic set matches its golden and is well-formed XH
     compareDir(out, path.join(GOLDEN, 'expected', 'confluence'));
 
     const page = fs.readFileSync(path.join(out, 'test-page.xhtml'), 'utf8');
-    // the banner names the source file and the release
-    assert.match(page.split('\n')[0], /<ac:structured-macro ac:name="info">.*<code>docs\/guides\/test-page\.md<\/code> at release 1\.0\.0-test\. .*overwritten by the next publish/);
+    // no banner: a wiki page carries no notice about where it is made (R34); the page opens with its text
+    assert.doesNotMatch(page, /This page is made from/);
+    assert.match(page.split('\n')[0], /^<p>This page holds every construct/);
     // headings shift up one, each with its GitHub anchor
     assert.match(page, /<h1><ac:structured-macro ac:name="anchor"><ac:parameter ac:name="">a-repeated-heading-1<\/ac:parameter><\/ac:structured-macro>A repeated heading<\/h1>/);
     assert.match(page, /<h5>.*A sixth level<\/h5>/);
@@ -178,8 +180,8 @@ test('storage format: the synthetic set matches its golden and is well-formed XH
     assert.match(page, /<ac:link><ri:page ri:content-title="Example user guides" \/><ac:link-body>the guides' index<\/ac:link-body><\/ac:link>/);
     assert.match(page, /and a file in the repository, which shows/);
     assert.match(page, /<a href="https:\/\/example\.com\/start">https:\/\/example\.com\/start<\/a>/);
-    // images: attached to the top page, at min(cap, px / scale)
-    assert.match(page, /<ac:image ac:width="240" ac:alt="Test page: the sample picture on its own line" [^>]*><ri:attachment ri:filename="test-page\.png"><ri:page ri:content-title="Example user guides" \/><\/ri:attachment><\/ac:image>/);
+    // images: attached to the top page, with no fixed width by default, so the wiki fits them to the column
+    assert.match(page, /<ac:image ac:alt="Test page: the sample picture on its own line" [^>]*><ri:attachment ri:filename="test-page\.png"><ri:page ri:content-title="Example user guides" \/><\/ri:attachment><\/ac:image>/);
     // code, alerts, tables
     assert.match(page, /<ac:structured-macro ac:name="code"><ac:parameter ac:name="language">js<\/ac:parameter><ac:plain-text-body><!\[CDATA\[const ok = 1 < 2 && "]]]]><!\[CDATA\[>"/);
     for (const [kind, name] of [['info', 'Note'], ['info', 'Tip'], ['note', 'Important'], ['note', 'Warning'], ['warning', 'Caution']]) assert.match(page, new RegExp(`<ac:structured-macro ac:name="${kind}"><ac:parameter ac:name="title">${name}</ac:parameter>`));
@@ -187,7 +189,7 @@ test('storage format: the synthetic set matches its golden and is well-formed XH
     assert.match(page, /<td style="text-align: left;">a \| pipe<\/td><td style="text-align: center;"><code>a\|b<\/code> in code<\/td>/);
 
     const top = fs.readFileSync(path.join(out, 'top.xhtml'), 'utf8');
-    assert.match(top, /<code>docs\/guides\/README\.md<\/code>/);
+    assert.doesNotMatch(top, /This page is made from/, 'no banner (R34)');
     assert.match(top, /These guides show how to use Example/);
     assert.doesNotMatch(top, /Not on the top page/);
     // the list of guides, nested by parent, with the README's descriptions
@@ -199,6 +201,25 @@ test('storage format: the synthetic set matches its golden and is well-formed XH
     assert.deepEqual(manifest.images.map((i) => [i.name, i.width, i.placeholder]), [['card.svg', 640, true], ['test-page.png', 240, false]]);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('an imageCap gives each image a fixed width, min(cap, px / scale); without one there is none (R33)', () => {
+  for (const [imageCap, want] of [[undefined, null], [640, '240'], [200, '200']]) {
+    const dir = stageSet({ imageCap });
+    try {
+      const out = path.join(dir, '.user-guides/out/confluence');
+      assert.deepEqual(convert({ root: dir, setFile: SET, release: RELEASE, allowPlaceholders: true, out }).problems, []);
+      const widths = [...fs.readFileSync(path.join(out, 'test-page.xhtml'), 'utf8').matchAll(/<ac:image([^>]*)>/g)].map((m) => / ac:width="(\d+)"/.exec(m[1])?.[1] ?? null);
+      assert.ok(widths.length >= 2);
+      assert.deepEqual([...new Set(widths)], [want], `imageCap ${imageCap}`);
+      // HTML keeps the image's own size either way: its CSS fits it to the page
+      const html = path.join(dir, '.user-guides/out/html');
+      convertHtml({ root: dir, setFile: SET, release: RELEASE, allowPlaceholders: true, out: html });
+      assert.match(fs.readFileSync(path.join(html, 'test-page.html'), 'utf8'), new RegExp(`alt="Test page: the sample picture on its own line" width="${want ?? 240}"`));
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   }
 });
 
@@ -275,7 +296,8 @@ test('topGuide opens the top page: its intro, the guides, "On this page", then t
     const top = fs.readFileSync(path.join(out, 'top.xhtml'), 'utf8');
     assertWellFormed(wrapStorage(top), 'top.xhtml', dir);
     const at = (re) => top.search(re);
-    assert.ok(at(/<code>docs\/guides\/test-page\.md<\/code>/) > 0);
+    assert.equal(at(/This page is made from/), -1, 'no banner (R34)');
+    assert.ok(at(/This page holds every construct/) === top.indexOf('<p>') + 3, 'the top page opens with the guide');
     assert.ok(at(/This page holds every construct/) < at(/<ri:page ri:content-title="Another guide" \/><ac:link-body>Another guide/));
     assert.ok(at(/<ac:link-body>Another guide<\/ac:link-body>/) < at(/ac:name="panel"><ac:parameter ac:name="title">On this page/));
     assert.ok(at(/On this page/) < at(/<h1>.*Lists<\/h1>/));

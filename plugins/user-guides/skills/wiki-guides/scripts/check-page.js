@@ -61,7 +61,7 @@
       brokenAnchors: broken,
       unresolvedPageLinks: unresolved,
     };
-    if (tooWide.length) out.message = 'An image is wider than the page column (' + out.column + 'px): lower publish.confluence.imageCap below it, convert, and publish again.';
+    if (tooWide.length) out.message = 'An image with a fixed width is wider than the page column (' + out.column + 'px): remove publish.confluence.imageCap, so the wiki fits each image to the column (the default), or lower it below the column; then convert and publish again.';
     else if (notLoaded.length) out.message = 'An image did not load: is it attached to the top page under that name?';
     else if (broken.length || unresolved) out.message = 'A link has no target on the wiki.';
     return out;

@@ -1,20 +1,20 @@
-// Every guide is a page under the top page with the release in its banner, every picture is
+// Every guide is a page under the top page and the release is recorded (no banner: R34), every picture is
 // attached once to the top page, the test page was made and removed, and guides.json records it.
 import path from 'node:path';
 import { loadSet } from '../../lib/set-grader.mjs';
-import { GUIDE_TITLES, TOP_ID, bannerRelease, byTitle, ok } from '../../lib/wiki.mjs';
+import { GUIDE_TITLES, TOP_ID, byTitle, ok } from '../../lib/wiki.mjs';
 
 export default async function ({ cwd, vars }) {
   const cap = vars.final;
   const problems = [];
   const top = cap.pages.find((p) => p.id === TOP_ID);
-  if (!bannerRelease(top?.body, '1.0')) problems.push('the top page has no 1.0 banner');
+  if (!/^user-guides 1\.0 sha256:/.test(top?.message || '')) problems.push('the top page has no 1.0 version message');
+  if (cap.pages.some((p) => p.status === 'current' && /This page is made from/.test(p.body || ''))) problems.push('a page carries a banner');
   for (const [id, title] of Object.entries(GUIDE_TITLES)) {
     const p = byTitle(cap, title);
     if (!p) problems.push(`no page "${title}"`);
     else {
       if (p.parent !== TOP_ID) problems.push(`"${title}" is not under the top page`);
-      if (!bannerRelease(p.body, '1.0')) problems.push(`"${title}" has no 1.0 banner`);
     }
   }
   const atts = cap.attachments.filter((a) => a.page === TOP_ID);
@@ -35,6 +35,7 @@ export default async function ({ cwd, vars }) {
   const pages = set.publish?.confluence?.pages || {};
   for (const id of Object.keys(GUIDE_TITLES)) if (!pages[id]?.pageId) problems.push(`publish.confluence.pages has no ${id}`);
   if (String(set.publish?.confluence?.topPageId) !== TOP_ID) problems.push('topPageId is not recorded');
+  if (set.publish?.release !== '1.0') problems.push(`publish.release is ${set.publish?.release}`);
   void path;
   return ok(problems, 'three pages under the top page, five pictures, test page removed, recorded');
 }

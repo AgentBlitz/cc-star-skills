@@ -2,7 +2,7 @@
 // publish-kit.mjs: the publisher's paperwork. It never talks to a wiki.
 //
 //   node publish-kit.mjs target --top-page <page id> [--base-url <url>] [--space <KEY>]
-//                               [--top-guide <guide id>] [--image-cap <px>] [--set <guides.json>]
+//                               [--top-guide <guide id>] [--image-cap <px>|fit] [--set <guides.json>]
 //       record where the guides are published: the page the user named (it becomes the top page)
 //   node publish-kit.mjs input  [--pages .user-guides/out/confluence/pages.json] [--set …]
 //       make publish.json, the one file the publisher reads: every page's storage format and
@@ -42,7 +42,7 @@ export function testPage({ release, topTitle, imageCap, deviceScale }) {
   };
   mark(doc.blocks);
   const page = { id: 'test-page', title: `${topTitle}: publishing test`, file: 'test-page.md', parent: null, order: 0, doc };
-  const images = new Map([['test-page.png', { name: 'test-page.png', width: Math.min(imageCap, Math.round(size.px / deviceScale)) }]]);
+  const images = new Map([['test-page.png', { name: 'test-page.png', width: Math.min(imageCap || Infinity, Math.round(size.px / deviceScale)), fixed: Boolean(imageCap) }]]);
   const prep = { pages: [page], top: { guide: null }, images, release, topTitle, setFile: 'guides.json' };
   const body = pageXhtml(prep, page, [], { ownImages: true });
   return { title: page.title, body, hash: pageHash(page.title, body), png };
@@ -116,6 +116,19 @@ export function record({ root = '.', reportFile, setFile = DEFAULT_SET, baseUrl,
   const abs = (p) => path.resolve(root, p);
   const report = readJson(abs(reportFile));
   if (!report.release || !report.space || !Array.isArray(report.pages)) return { problems: [`${reportFile}: not a publish report (a refusal, a plan or a test-page report records nothing)`] };
+  // The report is copied out of the browser by hand. Each page's hash is the one publish.json
+  // holds (the publisher sends nothing else), so a report may leave them out (shorter to copy),
+  // and a hash it does give must match: a mismatch means a mistyped copy, and nothing is recorded.
+  const inputFile = abs(path.join(outDir, 'publish.json'));
+  const input = fs.existsSync(inputFile) ? readJson(inputFile) : null;
+  const sent = new Map(input && input.release === report.release ? [['top', input.top?.hash], ...(input.pages || []).map((x) => [x.id, x.hash])] : []);
+  const wrong = [];
+  for (const [key, row] of [['top', report.top], ...report.pages.map((x) => [x.id, x])]) {
+    if (!row) continue;
+    if (!row.hash && sent.get(key)) row.hash = sent.get(key);
+    else if (row.hash && sent.get(key) && row.hash !== sent.get(key)) wrong.push(key);
+  }
+  if (wrong.length) return { problems: [`${reportFile}: the hash of ${wrong.join(', ')} is not the one publish.json sent. Copy the report again exactly, or leave the hashes out`] };
   const set = loadGuideSet(abs(setFile));
   const conf = (set.publish.confluence ??= {});
   conf.space = report.space;
@@ -154,7 +167,12 @@ export function target({ root = '.', setFile = DEFAULT_SET, topPage, baseUrl, sp
   if (baseUrl) conf.baseUrl = baseUrl;
   if (space) conf.space = space;
   if (topGuide) conf.topGuide = topGuide;
-  if (imageCap) conf.imageCap = Number(imageCap);
+  // A cap gives every image a fixed width; `fit` removes it, so the wiki fits images to the column.
+  if (imageCap === 'fit') delete conf.imageCap;
+  else if (imageCap) {
+    if (!(Number.isInteger(Number(imageCap)) && Number(imageCap) > 0)) return { problems: [`--image-cap must be a width in pixels, or fit (got ${imageCap})`] };
+    conf.imageCap = Number(imageCap);
+  }
   saveGuideSet(file, set);
   return { problems: [], conf };
 }

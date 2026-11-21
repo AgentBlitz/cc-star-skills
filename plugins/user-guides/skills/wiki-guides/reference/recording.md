@@ -28,10 +28,16 @@ EOF
 
 ## 2. The README's published section
 
-The guides' `README.md` (the index) ends with a section saying where the guides are and how
-they are made, so the next person can publish again without this conversation. Write it after
-the list of guides (only the README's opening paragraphs are published, so this section stays in
-the repo), and replace it on every publish:
+The guides' `README.md` (the index) can end with a section saying where the guides are and how
+they are made, so the next person can publish again without this conversation. Some projects keep
+where things are published out of the repo's text, and `guides.json` records it either way, so:
+
+- **A first publish, interactive:** ask with the go-ahead for the real pages (Add the section
+  (Recommended) · Leave the README alone).
+- **A first publish, headless:** write it.
+- **A republish:** a README that has the section keeps it, replaced. One without it after an
+  earlier publish was declined: leave it out. Write it after the list of guides (only the README's opening
+paragraphs are published, so this section stays in the repo):
 
 ```markdown
 ## Where these guides are published

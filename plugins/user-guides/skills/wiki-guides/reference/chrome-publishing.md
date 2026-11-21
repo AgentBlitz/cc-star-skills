@@ -17,11 +17,14 @@ project root.
 - Reports hold ids and counts, never addresses: Chrome blocks tool output that carries a query
   string. Do not print `location.href` or a link from the page.
 - A wiki edit is never overwritten silently. When the plan says a page was edited, ask.
+- **Keep each `javascript_tool` answer short.** Its answer is cut off after about a thousand
+  characters. Return counts and actions, not whole objects; keep a long value in a page
+  variable (`window.ugReport = …`) and read it back in slices (`window.ugReport.slice(0, 600)`).
 
 | File | What it is |
 |---|---|
-| `$W/publish-core.js` | the publisher: its whole text is passed to `javascript_tool` |
-| `$W/check-page.js` | the page check: its whole text is passed to `javascript_tool` on a published page |
+| `$W/publish-core.js` | the publisher: uploaded into the page and run there (section 1) |
+| `$W/check-page.js` | the page check: uploaded and run the same way on a published page |
 | `.user-guides/out/confluence/publish.json` | the one file the publisher reads (`publish-kit.mjs input`) |
 | `.user-guides/out/confluence/test-page.png` | the test page's picture |
 | `.user-guides/out/confluence/batches.json` | the images in upload batches (`bundle.mjs`) |
@@ -31,9 +34,27 @@ project root.
 ## 1. Open the page and identify the wiki
 
 1. Open the page the user named in a tab (`navigate`). It becomes the top page.
-2. Read `$W/publish-core.js` and pass **its whole text** as the `text` of `javascript_tool`.
-   It answers `user-guides publisher 1 ready`. (A browser tool that takes a function rather
-   than a script returns nothing unless you wrap the text and `return` that line yourself.)
+2. **Load the publisher by upload**, not by pasting its 25 KB into a tool call. Run this with
+   `javascript_tool`. It adds the upload input the publisher uses, at the top of the page, so
+   that `find` lists it first (on a page just loaded, usually as `ref_1`):
+
+   ```js
+   (() => { let i = document.getElementById('user-guides-upload'); if (!i) { i = document.createElement('input'); i.type = 'file'; i.multiple = true; i.id = 'user-guides-upload'; i.setAttribute('aria-label', 'user-guides upload'); document.body.prepend(i); } return 'ready'; })()
+   ```
+
+   `find` "user-guides upload file input" gives its `ref`. Then `file_upload` the **absolute**
+   path of `$W/publish-core.js` to it, together with whatever this step needs next
+   (`publish.json`, `test-page.png`, an image batch: one upload can carry them all, under
+   10 MB), and run the script from the upload:
+
+   ```js
+   (0, eval)(await [...document.getElementById('user-guides-upload').files].find((f) => f.name === 'publish-core.js').text())
+   ```
+
+   It answers `user-guides publisher 1 ready`. If the page refuses `eval` (a Content Security
+   Policy without `unsafe-eval`), pass the file's whole text as the `text` of `javascript_tool`
+   instead. (A browser tool that takes a function rather than a script returns nothing unless
+   you wrap the text and `return` that line yourself.)
 3. Run `await userGuides.detect()`.
 
    | `flavour` | Do |
@@ -57,7 +78,8 @@ node $W/publish-kit.mjs input
 ```
 
 - `target` records the page in `guides.json` (`publish.confluence`). `--top-guide <guide id>`
-  makes that guide's text open the top page; `--image-cap <px>` changes the widest image.
+  makes that guide's text open the top page. Images have no fixed width, so the wiki fits them
+  to the column; `--image-cap <px>` fixes their width instead, and `--image-cap fit` undoes it.
 - `--top-title` must be the title **as the wiki has it**: guide pages find their images and
   the top page by that title. The publisher stops if the two differ.
 - `input` writes `publish.json`: each page's storage format and hash, the versions last
@@ -65,9 +87,10 @@ node $W/publish-kit.mjs input
 
 ## 3. The upload input
 
-Chrome's `file_upload` fills a file input, so the publisher adds one to the page:
+Chrome's `file_upload` fills a file input: the one section 1 added. (`userGuides.input()` adds
+the same input when it is missing, and keeps it when it is there.)
 
-1. `userGuides.input()` adds `<input type="file" multiple id="user-guides-upload">` (labelled
+1. The input is `<input type="file" multiple id="user-guides-upload">` (labelled
    `user-guides upload`; the page's accessibility tree may show it as a button of that name).
    Find its `ref` with `find` or `read_page`.
 2. `file_upload` with that `ref` and **absolute** paths: the paths in `publish.json` and
@@ -79,7 +102,9 @@ Chrome's `file_upload` fills a file input, so the publisher adds one to the page
    unload it: there is no need to send `publish.json` again with each batch.
 
 **A reload or a navigation removes the script, the input and the loaded input.** After either
-one: pass `publish-core.js` again, `userGuides.input()`, upload `publish.json`, `load()`.
+one, do section 1's step 2 again, uploading `publish-core.js` with `publish.json` (and the next
+files), then `load()`. The four steps fit in one `browser_batch`: the snippet, `find`,
+`file_upload`, then `eval` and the calls that follow.
 
 ## 4. The test page first
 
@@ -134,9 +159,18 @@ await userGuides.publish(yes);
 3. **If it stops part-way** (`ok: false` with `failed`), the wiki refused one page, usually
    because someone saved it at that moment. The pages before it were published. Record the
    report as below, plan again, and ask about that page.
-4. **Record.** Take the report as JSON text, `JSON.stringify(await userGuides.publish(yes))`
-   (or stringify the object it returned), and save that text unchanged to
-   `.user-guides/out/confluence/report.json`, then:
+4. **Record.** Keep the report in the page, without its hashes, and read it back (in slices
+   when it is long):
+
+   ```js
+   window.ugReport = JSON.stringify(await userGuides.publish(yes), (k, v) => (k === 'hash' ? undefined : v));
+   window.ugReport.length
+   ```
+
+   Save that text unchanged to `.user-guides/out/confluence/report.json`, then run `record`
+   (before making the input again). It takes each page's hash from `publish.json`, which is
+   what the publisher sent, and refuses a report whose hash for a page differs from it: a
+   report copied with a mistake records nothing.
 
    ```bash
    node $W/publish-kit.mjs record --report .user-guides/out/confluence/report.json
@@ -150,13 +184,15 @@ await userGuides.publish(yes);
 For the top page and each guide page in the report:
 
 1. Open it by id (`<base>/pages/viewpage.action?pageId=<id>`), or reload it if it is open.
-2. Pass the whole text of `$W/check-page.js` to `javascript_tool`, then run
-   `await userGuidesCheck({ version: <the version in the report> })`.
+2. Load `$W/check-page.js` as section 1 loads the publisher (the snippet, `find`,
+   `file_upload`, then `(0, eval)(…)` with `check-page.js`), then run
+   `await userGuidesCheck({ version: <the version in the report> })`. One `browser_batch` per
+   page does it: `navigate`, the snippet, `find`, `file_upload`, the check.
 
 | Answer | Do |
 |---|---|
 | `stale: true` | the tab still shows the old version: reload, pass the script again, check again. Never judge a stale page |
-| `tooWide` not empty | an image runs past the content column (`column`, in px). Lower the cap below it (`publish-kit.mjs target --image-cap <px>`), convert, make the input and publish again: only the pages change |
+| `tooWide` not empty | an image with a fixed width runs past the content column (`column`, in px). Remove the cap (`publish-kit.mjs target --image-cap fit`, the default) or lower it below the column, convert, make the input and publish again: only the pages change |
 | `notLoaded` not empty | an image did not load: is it attached to the top page under that name? |
 | `brokenAnchors`, `unresolvedPageLinks` | a link has no target: fix the guide, convert and publish again |
 | `ok: true` | go on to the next page. At the end, take a screenshot of the top page and of one guide page, and show the user |
@@ -164,6 +200,10 @@ For the top page and each guide page in the report:
 **Then the final check.** Run `node $W/publish-kit.mjs input` again (it now carries the versions
 just recorded), reload the top page, do section 3 again and `await userGuides.plan()`: every
 page `skip` and no image to attach shows that the wiki holds exactly what was sent.
+
+**The page tree** lists a page's children alphabetically unless someone orders them by hand
+(Space tools › Reorder pages); the top page's list of guides keeps the guides' own order. The
+publisher never moves a page.
 
 ## 8. Publishing again
 
@@ -174,7 +214,8 @@ what changed:
 - an image whose `sha256:` the wiki already holds is skipped;
 - a page whose title and storage format are what was last sent is skipped. Each update records
   `user-guides <release> sha256:<hash>` as its version message, and that is how the next
-  publish knows. A new release changes every banner, so every page is sent;
+  publish knows. A new release alone changes no page: only the pages whose text changed are
+  sent, each with the new release in its message;
 - a page made by the last publish and not yet updated has no message of its own. The publisher
   knows it from `last-publish.json`. Without that file (a fresh clone), such a page is sent once
   more, which is harmless.

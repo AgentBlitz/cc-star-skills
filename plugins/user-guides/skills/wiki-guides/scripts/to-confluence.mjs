@@ -8,7 +8,7 @@
 // Run from the repo root. Writes top.xhtml (the page the user names), <guide id>.xhtml and
 // pages.json (the page tree, each page's images, and every image to attach to the top page,
 // with its size and sha256). Exit 0 when it converted, 1 with the problems (file:line).
-//   --release             the release named in each page's banner (else publish.release)
+//   --release             the release recorded with each page sent (else publish.release)
 //   --top-title           the top page's title, for image and page links (else the README's
 //                         title, else "<product> user guides")
 //   --allow-placeholders  convert even though a placeholder card (an .svg shot) is in place:
@@ -153,11 +153,16 @@ export function prepare({ root = '.', setFile = DEFAULT_SET, release, topTitle, 
       const size = imageSize(buf, name);
       const shot = set.shots.find((s) => s.path === rel) || null;
       const placeholder = /\.svg$/i.test(rel);
-      const width = size ? Math.min(conf.imageCap, Math.round(size.px / (placeholder ? 1 : conf.deviceScale))) : conf.imageCap;
-      if (!size) notes.push(`${rel}: size unknown, shown at ${conf.imageCap}px`);
+      // `width`: the image's size in CSS pixels (capped by imageCap when one is set), for HTML.
+      // `fixed`: Confluence gets ac:width only with an imageCap; without one the wiki fits the
+      // image to the page column, which it never does for an image with a width (R33).
+      const cap = conf.imageCap || Infinity;
+      const width = size ? Math.min(cap, Math.round(size.px / (placeholder ? 1 : conf.deviceScale))) : (conf.imageCap || null);
+      const fixed = Boolean(conf.imageCap);
+      if (!size && fixed) notes.push(`${rel}: size unknown, shown at ${conf.imageCap}px`);
       if (byName.has(name) && byName.get(name) !== rel) add(from, b.line, 'image', `two images share the name ${name} (${byName.get(name)} and ${rel}): every image is attached to the top page, so names must be unique`);
       byName.set(name, rel);
-      images.set(rel, { name, path: rel, bytes: buf.length, sha256: crypto.createHash('sha256').update(buf).digest('hex'), px: size?.px ?? null, py: size?.py ?? null, width, placeholder, shot: shot?.id ?? null });
+      images.set(rel, { name, path: rel, bytes: buf.length, sha256: crypto.createHash('sha256').update(buf).digest('hex'), px: size?.px ?? null, py: size?.py ?? null, width, fixed, placeholder, shot: shot?.id ?? null });
     }
     const img = images.get(rel);
     if (img.placeholder && !allowPlaceholders) add(from, b.line, 'placeholder', `a placeholder card is still in place: ${rel}${img.shot ? ` (shot ${img.shot})` : ''}. Take the shot, or pass --allow-placeholders if the user chose to publish the cards as they are`);
@@ -201,7 +206,11 @@ export function guideTree(prep) {
   return listed.filter((p) => !p.parent || p.parent === prep.top.guide).map(node);
 }
 
-/** The parts each page is made of: { banner, intro, list, toc, body } (top) or { banner, body }. */
+/**
+ * The parts each page is made of: { banner, intro, list, toc, body } (top) or { banner, body }.
+ * Only the HTML pages show the banner: a wiki page has none (R34), and its release is recorded in
+ * the version message of each update instead.
+ */
 export function pageParts(prep, page) {
   if (page === 'top') {
     const toc = headings(prep.top.rest).length > 0;
@@ -266,7 +275,7 @@ function blocksXhtml(blocks, rc, tight = false) {
         case 'image': {
           const img = rc.prep.images.get(b.ref);
           const onTop = rc.isTop || rc.ownImages ? '' : `<ri:page ri:content-title="${esc(rc.prep.topTitle)}" />`;
-          return `<p><ac:image ac:width="${img.width}" ac:alt="${esc(b.alt)}" ac:title="${esc(b.alt)}"><ri:attachment ri:filename="${esc(img.name)}">${onTop}</ri:attachment></ac:image></p>`;
+          return `<p><ac:image${img.fixed && img.width ? ` ac:width="${img.width}"` : ''} ac:alt="${esc(b.alt)}" ac:title="${esc(b.alt)}"><ri:attachment ri:filename="${esc(img.name)}">${onTop}</ri:attachment></ac:image></p>`;
         }
         case 'list': {
           const tag = b.ordered ? 'ol' : 'ul';
@@ -299,8 +308,6 @@ function blocksXhtml(blocks, rc, tight = false) {
     .join('\n');
 }
 
-const bannerXhtml = (parts) => macro('info', {}, `<ac:rich-text-body><p>${inlineXhtml(parts, null)}</p></ac:rich-text-body>`);
-
 function listXhtml(tree, rc) {
   if (!tree.length) return '';
   return `<ul>${tree
@@ -315,7 +322,7 @@ function listXhtml(tree, rc) {
 export function pageXhtml(prep, page, notes = [], { ownImages = false } = {}) {
   const parts = pageParts(prep, page);
   const rc = { prep, from: parts.from, isTop: page === 'top', ownImages, notes };
-  const out = [bannerXhtml(parts.banner)];
+  const out = [];
   if (page === 'top') {
     if (parts.intro.length) out.push(blocksXhtml(parts.intro, rc));
     const list = listXhtml(parts.list, rc);
