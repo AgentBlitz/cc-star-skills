@@ -1,6 +1,6 @@
 {
   "name": "user-guides",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "license": "MIT",
   "description": "Write a product's user guides from a walk of the running app, then illustrate and publish them. /user-guides:write-guides interviews you about the kind of guide, walks the local app as each role and writes the guides with picture placeholders; /user-guides:wiki-guides takes the screenshots and publishes to Confluence Data Center or self-contained HTML. Each works without the other.",
   "author": { "name": "Kam Star", "email": "kam@kamstar.net" },

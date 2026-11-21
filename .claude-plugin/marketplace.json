@@ -1,6 +1,6 @@
 {
   "name": "cc-star-skills",
-  "description": "Kam Star's Claude Code plugins: multi-session build planning (roadmap/calibrate-roadmap/session/wrapup/handoff/autopilot/archive-roadmap), an embedded-AI-copilot build wizard, and narrated product films and tours for any web app (showcase).",
+  "description": "Kam Star's Claude Code plugins: multi-session build planning (roadmap/calibrate-roadmap/session/wrapup/handoff/autopilot/archive-roadmap), an embedded-AI-copilot build wizard, narrated product films and tours for any web app (showcase), and user guides written from a walk of the app, then illustrated and published to Confluence or HTML (user-guides).",
   "owner": { "name": "Kam Star", "email": "kam@kamstar.net" },
   "plugins": [
     {
@@ -25,6 +25,14 @@
       "version": "1.1.2",
       "license": "MIT",
       "description": "Interview-led wizard that makes a narrated, captioned, verified product film of any web app from one tour file, plus a self-playing live demo and an in-app guided tour (showcase).",
+      "author": { "name": "Kam Star" }
+    },
+    {
+      "name": "user-guides",
+      "source": "./plugins/user-guides",
+      "version": "1.0.0",
+      "license": "MIT",
+      "description": "Write a web app's end-user guides from a walk of the running app as each role, then screenshot them and publish them to Confluence Data Center or self-contained HTML; after a release, refresh and republish only what changed (write-guides, wiki-guides).",
       "author": { "name": "Kam Star" }
     }
   ]

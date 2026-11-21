@@ -8,6 +8,7 @@ marketplace only registers the catalogue; you enable the plugins you want.
 | `planning` | Multi-session build-planning skills (`/roadmap`, `/calibrate-roadmap`, `/session`, `/wrapup`, `/handoff`, `/autopilot`, `/archive-roadmap`). |
 | `copilot` | A wizard (`/build-copilot`) that embeds a tool-calling AI copilot into a web app. |
 | `showcase` | A wizard (`/showcase`) that makes a narrated, captioned, verified product film of any web app from one tour file, plus a self-playing live demo and an in-app guided tour. |
+| `user-guides` | Writes a web app's user guides from a walk of the running app as each role (`/user-guides:write-guides`), then screenshots them and publishes them to Confluence Data Center or HTML (`/user-guides:wiki-guides`). |
 
 ## The `planning` plugin
 
@@ -385,6 +386,61 @@ transcription (about a cent a minute or less); a take that misreads a sentence i
 whole, at most twice, inside `--max-chars`. Paid calls need `--yes`, honour `--max-chars`, and the skill shows you the
 count first. Raw audio is cached, so re-renders never pay twice.
 
+## The `user-guides` plugin
+
+| Skill | What it does |
+|-------|--------------|
+| `/user-guides:write-guides` | Writes a web app's end-user guides as markdown in its repo — role guides, features and value, getting started, admin and operations — from a walk of the **running local app** as each role, so every screen, label and step is the real one. It interviews you first (who reads them, which kinds, how deep, where they'll be read), proposes an outline for your approval, and leaves picture placeholders plus a `guides.json` that records the answers. After a release, `refresh` walks the app again and rewrites only what changed; `adopt` takes over guides written by hand; `check` checks the set against the app. |
+| `/user-guides:wiki-guides` | Illustrates and publishes the guides. It takes the screenshots with a small script the project keeps (the local app, as each role) and swaps them in for the placeholders, then publishes to **Confluence Data Center** through your own signed-in Chrome, or as self-contained HTML files. After a release it retakes only the screenshots whose screens changed and republishes only the pages that differ. |
+
+Run both **inside the web app's repo** (not this marketplace). Each works without the other:
+wiki-guides also adopts guides written by hand, and write-guides' markdown is complete without
+pictures.
+
+**Which one?** write-guides = the words (new guides, a refresh after a release, a check) ·
+wiki-guides = the pictures and the publishing (screenshots, Confluence, HTML).
+
+Both are model-invocable: ask for "user guides for this app" or "publish the guides to the
+wiki" and Claude picks the right one. Their descriptions turn away READMEs, API references,
+release notes, a product film and a single shared doc.
+
+On Confluence it shows you the plan first (which pages it will create, update or leave
+alone), then publishes a test page with every construct, checks it, and removes it. It asks
+for your go-ahead three times: for the test page, for the real pages, and before removing the
+test page. It never asks for, reads or
+stores a token, password or cookie: Chrome's own session does the work. Confluence Cloud is
+refused (the publisher speaks the Data Center REST API).
+
+### Requirements
+
+- **Node 20 or later.** The skills' scripts use Node built-ins only; installed plugins carry
+  no `node_modules`.
+- **Playwright** (`playwright-core`), for walks that need a browser and for screenshots. It is
+  found in this order: the project's own dependency (from the package folder named in
+  `guides.json`'s `app.playwrightFrom`, e.g. `apps/web` in a workspace), then the path in
+  `USER_GUIDES_PLAYWRIGHT_CORE`, then a user-level cache in
+  `~/.cache/user-guides/pw-<version>/`. The skill installs into that cache only after asking,
+  and never adds Playwright to your project. Server-rendered apps can be walked without it.
+- **The app running locally**, with test data you're happy to see in the guides and a way
+  to sign in as each role (a command that prints a session cookie, a saved storage-state
+  file, the app's sign-in form, or a small module of your own). The skill asks before it starts, seeds or resets anything.
+- **For Confluence:** Confluence **Data Center**, and the Claude in Chrome extension in a
+  Chrome that is signed in to the wiki. HTML export
+  needs neither.
+
+### What it adds to your repo
+
+| Path | In git? | Holds |
+|------|---------|-------|
+| `<guides>/*.md` | yes | The guides (the folder is your choice; `docs/user-guides/` by default) |
+| `<guides>/README.md` | yes | The index of the guides |
+| `<guides>/guides.json` | yes | Your answers, the app's facts, each picture's state, and the publish record |
+| `<guides>/images/` | yes | The screenshots, once taken |
+| `scripts/user-guides/shots.mjs`, `guides-kit.mjs` | yes | The screenshot script and its helpers, once pictures are taken |
+| `.user-guides/` | no | The work folder: walk outlines, states, sign-ins (mode 600) |
+
+No dependency and no app code. An adopted set keeps its files where they already are.
+
 ## Install
 
 ```text
@@ -392,6 +448,7 @@ count first. Raw audio is cached, so re-renders never pay twice.
 /plugin install planning@cc-star-skills
 /plugin install copilot@cc-star-skills
 /plugin install showcase@cc-star-skills
+/plugin install user-guides@cc-star-skills
 ```
 
 Each plugin installs independently — take any of them, or none (`showcase` brings
@@ -404,8 +461,9 @@ or `ssh-agent`.)
 
 After installing `planning`, `/roadmap`, `/calibrate-roadmap`, `/session`,
 `/wrapup`, `/handoff`, `/autopilot`, and `/archive-roadmap` are available in every project; installing
-`copilot` adds `/build-copilot`, and installing `showcase` adds `/showcase` (run
-`showcase doctor --install --yes` once for Chromium).
+`copilot` adds `/build-copilot`, installing `showcase` adds `/showcase` (run
+`showcase doctor --install --yes` once for Chromium), and installing `user-guides` adds
+`/user-guides:write-guides` and `/user-guides:wiki-guides`.
 
 `showcase` installs **switched off**, so it stays out of the projects that don't use it. Turn
 it on where you want it, from that project's root:
@@ -441,6 +499,7 @@ its entry in `.claude-plugin/marketplace.json` and its own
 /plugin update planning@cc-star-skills
 /plugin update copilot@cc-star-skills
 /plugin update showcase@cc-star-skills
+/plugin update user-guides@cc-star-skills
 ```
 
 ## Layout
@@ -459,17 +518,25 @@ cc-star-skills/
     │   └── skills/build-copilot/
     │       ├── SKILL.md
     │       └── reference/design-guide.md
-    └── showcase/
+    ├── showcase/
+    │   ├── .claude-plugin/plugin.json
+    │   ├── bin/showcase           # the CLI, on the Bash tool's PATH
+    │   ├── hooks/                 # PreToolUse guard: no tool call may name the key file
+    │   ├── skills/showcase/
+    │   │   ├── SKILL.md
+    │   │   ├── reference/         # tour-format, narrative, determinism, voice, film, in-app, interview, roadmap-brief
+    │   │   └── templates/         # config, tour.<kind>.json, BRIEF.md, env.template
+    │   ├── toolkit/               # cli.ts, commands, lib, voice, host, film, runtime (src → dist), schema, fonts, fixtures, test
+    │   ├── evals/                 # claude plugin eval cases + run.sh
+    │   └── package.json
+    └── user-guides/
         ├── .claude-plugin/plugin.json
-        ├── bin/showcase           # the CLI, on the Bash tool's PATH
-        ├── hooks/                 # PreToolUse guard: no tool call may name the key file
-        ├── skills/showcase/
-        │   ├── SKILL.md
-        │   ├── reference/         # tour-format, narrative, determinism, voice, film, in-app, interview, roadmap-brief
-        │   └── templates/         # config, tour.<kind>.json, BRIEF.md, env.template
-        ├── toolkit/               # cli.ts, commands, lib, voice, host, film, runtime (src → dist), schema, fonts, fixtures, test
-        ├── evals/                 # claude plugin eval cases + run.sh
-        └── package.json
+        ├── skills/write-guides/   # SKILL.md, reference/, templates/, scripts/ (walk, check, contract)
+        ├── skills/wiki-guides/    # SKILL.md, reference/, templates/, scripts/ (shots, converters, publisher)
+        ├── fixtures/              # leave-app (v1/v2), its frozen guide set, mock Confluence DC
+        ├── test/                  # node --test for every script
+        ├── evals/                 # claude plugin eval cases, scripted cases, run.sh
+        └── package.json           # dev only: playwright-core for the tests
 ```
 
 ### Developing the `showcase` plugin
