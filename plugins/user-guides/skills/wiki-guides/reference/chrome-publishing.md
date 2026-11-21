@@ -32,7 +32,8 @@ project root.
 
 1. Open the page the user named in a tab (`navigate`). It becomes the top page.
 2. Read `$W/publish-core.js` and pass **its whole text** as the `text` of `javascript_tool`.
-   It answers `user-guides publisher 1 ready`.
+   It answers `user-guides publisher 1 ready`. (A browser tool that takes a function rather
+   than a script returns nothing unless you wrap the text and `return` that line yourself.)
 3. Run `await userGuides.detect()`.
 
    | `flavour` | Do |
@@ -42,6 +43,7 @@ project root.
    | `unknown` | stop. Tell the user the wiki could not be identified, and offer HTML files |
 
    Every other call refuses in the same way, so a skipped `detect()` cannot publish to Cloud.
+   On Data Center the console shows a 404 for the Cloud check (`/_edge/tenant_info`): normal.
 
 ## 2. Make the input
 
@@ -66,10 +68,15 @@ node $W/publish-kit.mjs input
 Chrome's `file_upload` fills a file input, so the publisher adds one to the page:
 
 1. `userGuides.input()` adds `<input type="file" multiple id="user-guides-upload">` (labelled
-   `user-guides upload`). Find its `ref` with `find` or `read_page`.
-2. `file_upload` with that `ref` and absolute paths. Each call **replaces** the input's files.
+   `user-guides upload`; the page's accessibility tree may show it as a button of that name).
+   Find its `ref` with `find` or `read_page`.
+2. `file_upload` with that `ref` and **absolute** paths: the paths in `publish.json` and
+   `batches.json` are relative to the project root, so put the root in front. Each call
+   **replaces** the input's files. If the tool refuses a path as outside the folders it may
+   read, copy the files into a folder it allows and upload them from there.
 3. `await userGuides.load()` reads `publish.json` from the input into the page's memory, where
-   it stays until the page reloads.
+   it stays until the page reloads. Uploading other files later (an image batch) does not
+   unload it: there is no need to send `publish.json` again with each batch.
 
 **A reload or a navigation removes the script, the input and the loaded input.** After either
 one: pass `publish-core.js` again, `userGuides.input()`, upload `publish.json`, `load()`.
@@ -78,14 +85,17 @@ one: pass `publish-core.js` again, `userGuides.input()`, upload `publish.json`, 
 
 Before a first publish (and whenever the user wants to see it):
 
-1. `file_upload`: `publish.json` and `test-page.png`. Then `await userGuides.load()`.
+1. Upload `publish.json` **and** `test-page.png` together in section 3 when the test page comes
+   next (one upload, then `await userGuides.load()`).
 2. With the user's go-ahead, `await userGuides.test()`. It writes one child page under the top
    page, titled `<top page's title>: publishing test`, with every construct the guides may use
    and its picture attached to itself. The top page is not written.
-3. Open the test page by its id (`<base>/pages/viewpage.action?pageId=<id>`), check it (step 7),
-   take a screenshot and show the user.
-4. When the user has seen it, ask before removing it. Back on the top page (script and input
-   again), `await userGuides.removeTest('<its page id>')` moves it to the space's trash.
+3. Open the test page by its id (`<base>/pages/viewpage.action?pageId=<id>`), check it (step 7,
+   with `version` set to the `test.version` that `test()` returned), take a screenshot and show
+   the user.
+4. When the user has seen it, ask before removing it. Back on the top page, do section 3 again
+   (script, `input()`, upload `publish.json`, `load()`), then
+   `await userGuides.removeTest('<its page id>')` moves it to the space's trash.
 
 ## 5. Plan, and ask
 
@@ -111,7 +121,8 @@ await userGuides.attach(yes);    // once per upload batch
 await userGuides.publish(yes);
 ```
 
-1. **Images, a batch at a time.** For each batch in `batches.json`: `file_upload` its paths,
+1. **Images, a batch at a time.** For each batch in `batches.json`: `file_upload` its paths
+   (made absolute),
    then `await userGuides.attach(…)`. It attaches each image to the top page with its
    `sha256:` in the attachment comment, skips one the wiki already holds, and lists under
    `waiting` the ones still to come. On a republish, `node $W/bundle.mjs --only a.png,b.png`
@@ -123,7 +134,8 @@ await userGuides.publish(yes);
 3. **If it stops part-way** (`ok: false` with `failed`), the wiki refused one page, usually
    because someone saved it at that moment. The pages before it were published. Record the
    report as below, plan again, and ask about that page.
-4. **Record.** Save the report exactly as returned to
+4. **Record.** Take the report as JSON text, `JSON.stringify(await userGuides.publish(yes))`
+   (or stringify the object it returned), and save that text unchanged to
    `.user-guides/out/confluence/report.json`, then:
 
    ```bash
@@ -147,7 +159,11 @@ For the top page and each guide page in the report:
 | `tooWide` not empty | an image runs past the content column (`column`, in px). Lower the cap below it (`publish-kit.mjs target --image-cap <px>`), convert, make the input and publish again: only the pages change |
 | `notLoaded` not empty | an image did not load: is it attached to the top page under that name? |
 | `brokenAnchors`, `unresolvedPageLinks` | a link has no target: fix the guide, convert and publish again |
-| `ok: true` | take a screenshot of the first page and show the user |
+| `ok: true` | go on to the next page. At the end, take a screenshot of the top page and of one guide page, and show the user |
+
+**Then the final check.** Run `node $W/publish-kit.mjs input` again (it now carries the versions
+just recorded), reload the top page, do section 3 again and `await userGuides.plan()`: every
+page `skip` and no image to attach shows that the wiki holds exactly what was sent.
 
 ## 8. Publishing again
 
@@ -167,18 +183,34 @@ A page counts as untouched when its current version is the one recorded in `guid
 when its latest version carries the publisher's own message. Anything else is `edited` or
 `adopted`, and needs the user's yes.
 
-## Rehearsing without a wiki
+## Rehearsing without a wiki (the Node host)
 
-`publish-node.mjs` runs the same `publish-core.js` in Node against the bundled mock
-(`fixtures/mock-confluence`), and refuses any address that is not on this machine:
+`publish-node.mjs` runs the same `publish-core.js` in Node against a wiki **on this machine**,
+such as the bundled mock (`fixtures/mock-confluence`), and refuses any other address. It is for
+tests and rehearsals only: it never publishes to a real wiki. The go-aheads are the same as in
+Chrome. `--base` is the wiki's address with its context path, taken from the page's address
+(`http://127.0.0.1:<port>/pages/viewpage.action?pageId=<id>` → base `http://127.0.0.1:<port>`,
+page `<id>`).
 
 ```bash
-node <plugin>/fixtures/mock-confluence/server.mjs            # prints its address
-node $W/publish-node.mjs plan    --base http://127.0.0.1:<port>
-node $W/publish-node.mjs test    --base http://127.0.0.1:<port>
-node $W/publish-node.mjs publish --base http://127.0.0.1:<port> --confirm-adopted
+node <plugin>/fixtures/mock-confluence/server.mjs                    # prints its address
+node $W/publish-node.mjs detect --base <base>                        # Data Center, or stop
+node $W/publish-kit.mjs target --top-page <id> --base-url <base>
+node $W/to-confluence.mjs --release <release> --top-title "<title>"
+node $W/bundle.mjs && node $W/publish-kit.mjs input
+node $W/publish-node.mjs plan        --base <base>                   # writes nothing
+node $W/publish-node.mjs test        --base <base>                   # go-ahead 1: the test page
+node $W/publish-node.mjs remove-test --base <base> --page-id <id>    # go-ahead 3, once it is seen
+node $W/publish-node.mjs publish     --base <base> --confirm-adopted # go-ahead 2: the real pages
+node $W/publish-kit.mjs record --report .user-guides/out/confluence/report.json
+node $W/publish-kit.mjs input && node $W/publish-node.mjs plan --base <base>   # the check
 ```
 
-`--confirm-adopted` and `--confirm-edited <page id>=<version>` stand for the user's answers.
-`publish` attaches the images, writes the pages and saves `report.json` beside the input.
-It is for tests and rehearsals only: it never publishes to a real wiki.
+- `plan` answers as in section 5. A `top-title` stop gives the page's title on the wiki:
+  convert again with `--top-title` set to it, and make the input again.
+- `--confirm-adopted` and `--confirm-edited <page id>=<version>` stand for the user's answers:
+  pass them only when the user gave them. `publish` attaches the images, writes the pages and
+  saves `report.json` beside the input.
+- The check: after `record`, make the input again (it carries the versions just recorded),
+  then `plan`. Every page `skip` and no image to attach shows that the wiki holds exactly what
+  was sent. Planned from the old input, the new pages read as `adopted`: that is not a problem.

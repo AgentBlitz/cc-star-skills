@@ -1,0 +1,20 @@
+{
+  "name": "wiki-guides-first-publish",
+  "description": "First publish to an empty page (scripted; SP1's fallback): from the frozen set's placeholders and the served v1 fixture, a headless /user-guides:wiki-guides with every answer and the go-ahead takes the five shots, reads each back before the swap, converts, publishes the test page and removes it, then publishes the three guides under the mock's top page through the Node host, and records it.",
+  "prompt": "/user-guides:wiki-guides destination=confluence guides=all under={{under}} release=1.0 go-ahead=yes",
+  "model": "sonnet",
+  "max_turns": 150,
+  "timeout_seconds": 2400,
+  "allowed_tools": ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill"],
+  "runs": 2,
+  "baseline_runs": 1,
+  "scaffold": "scaffold.mjs",
+  "graders": [
+    { "type": "regex", "name": "edited-copy-ran", "target": "trace", "pattern": "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/wiki-guides", "arm": "with-only" },
+    { "type": "tool_used", "name": "used-the-node-host", "tool": "Bash", "input_match": "publish-node\\.mjs publish", "arm": "with-only" },
+    { "type": "script", "name": "reads-every-png-before-swap", "module": "graders/read-before-swap.mjs" },
+    { "type": "script", "name": "published-and-recorded", "module": "graders/published.mjs" },
+    { "type": "tool_used", "name": "never-starts-or-resets", "tool": "Bash", "input_match": "node server\\.mjs|node reset\\.mjs|npm (start|run)", "min": 0, "max": 0 },
+    { "type": "regex", "name": "canary-never-appears", "target": "trace", "pattern": "LEAVEAPP-CANARY-", "match": "not_contains" }
+  ]
+}

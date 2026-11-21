@@ -1,0 +1,68 @@
+schema_version: "1.0"
+name: wiki-guides-html
+description: >-
+  HTML output (D6): with the destination HTML files, a headless `/user-guides:wiki-guides` turns
+  the frozen set (pictures taken) into self-contained pages: an index and one page per guide,
+  each with the 1.0 banner and its pictures as data URIs, nothing loaded from outside; it records
+  the folder and the release, and writes the README's published section. No wiki is touched.
+tags: [wiki-guides, headless, html]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: /user-guides:wiki-guides destination=html guides=all release=1.0
+  model: sonnet
+  max_turns: 50
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill]
+runs: 2
+graders:
+  - type: regex
+    name: edited-copy-ran
+    target: trace
+    pattern: "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/wiki-guides"
+    arm: with-only
+  - type: tool_used
+    name: used-to-html
+    tool: Bash
+    input_match: "to-html\\.mjs"
+    arm: with-only
+  - type: regex
+    name: index-lists-the-guides
+    target: { source: file, path: .user-guides/out/html/index.html }
+    pattern: 'href="getting-started\.html"[\s\S]*href="employee\.html"[\s\S]*href="manager\.html"'
+  - type: regex
+    name: employee-page-has-banner
+    target: { source: file, path: .user-guides/out/html/employee.html }
+    pattern: 'docs/user-guides/employee\.md[\s\S]{0,80}1\.0'
+  - type: regex
+    name: employee-page-has-data-uri-pictures
+    target: { source: file, path: .user-guides/out/html/employee.html }
+    pattern: 'src="data:image/png;base64,'
+    match: "count:3"
+  - type: regex
+    name: nothing-loads-from-outside
+    target: { source: file, path: .user-guides/out/html/employee.html }
+    pattern: '(src|href)="https?://'
+    match: not_contains
+  - type: regex
+    name: records-the-folder
+    target: { source: file, path: docs/user-guides/guides.json }
+    pattern: '"outDir": "[^"]+"'
+  - type: regex
+    name: readme-says-where
+    target: { source: file, path: docs/user-guides/README.md }
+    pattern: "## Where these guides are published[\\s\\S]*HTML"
+  - type: tool_used
+    name: publishes-to-no-wiki
+    tool: Bash
+    input_match: "publish-node\\.mjs|to-confluence\\.mjs|curl "
+    min: 0
+    max: 0
+  - type: regex
+    name: canary-never-appears
+    target: trace
+    pattern: LEAVEAPP-CANARY-
+    match: not_contains
+expected_outcome: >-
+  .user-guides/out/html/ holds index.html and the three guide pages, self-contained, with the
+  1.0 banner; guides.json records publish.html.outDir; the README says where the guides are.

@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-// set-edit.mjs: write-guides' changes to guides.json, made through guide-set.mjs so that every
+// set-edit.mjs: a skill's changes to guides.json, made through guide-set.mjs so that every
 // move belongs to its owner and nothing invalid is saved. All operations apply, or none do.
+// Both skills carry identical copies; each acts as the skill whose scripts/ folder it is in.
 //
 //   node set-edit.mjs <guides.json> [--index <README.md>] <<'EOF'
 //   [ { "op": "addGuide", "guide": { "id": "employee", "type": "role-guide", … } }, … ]
 //   EOF
 //
-// Operations (always as write-guides):
+// Operations (as write-guides or wiki-guides, by the copy's folder):
 //   init            { product?, app? }: create the file when it is missing (else a no-op)
 //   set             { path: "interview.answers.r1-readers", value }: set a value by dotted path
 //   addGuide        { guide, adopt? }       moveGuide { id, to }      edited { id }
@@ -22,7 +23,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as gs from './guide-set.mjs';
 
-const BY = 'write-guides';
+// The skill this copy belongs to: <skill>/scripts/set-edit.mjs.
+const BY = path.basename(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
+if (!gs.ACTORS.includes(BY)) throw new Error(`set-edit.mjs must sit in a skill's scripts/ folder (write-guides or wiki-guides), not under "${BY}"`);
 
 function setPath(obj, dotted, value) {
   const keys = dotted.split('.');

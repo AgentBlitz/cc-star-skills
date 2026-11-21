@@ -1,0 +1,22 @@
+[
+  {"query": "the user guides in docs/user-guides are written but every picture is still a grey placeholder card. can you take the real screenshots from the app running on localhost and put them in?", "should_trigger": true},
+  {"query": "Publish our user guides (docs/user-guides, there's a guides.json) to Confluence under the 'Product guides' page in our DOCS space. We're on Confluence Data Center and I'm signed in in Chrome.", "should_trigger": true},
+  {"query": "we released 2.4 yesterday and I've already refreshed the help guides text. now retake whichever screenshots changed and republish the guides to the wiki so it matches", "should_trigger": true},
+  {"query": "Can you turn our end-user guides into standalone HTML pages with the screenshots embedded, so support can attach them to tickets and open them offline?", "should_trigger": true},
+  {"query": "our help pages for the app were written by hand in docs/help/*.md, with their own screenshots, and some are already on confluence as pages someone made manually. can we get them published properly from the repo from now on?", "should_trigger": true},
+  {"query": "Illustrate the employee and manager guides with screenshots of each screen, signed in as each role, and swap the svg placeholders for the PNGs", "should_trigger": true},
+  {"query": "push the product user guides up to our on-prem confluence please, the page to put them under is https://wiki.internal.example/pages/viewpage.action?pageId=88123", "should_trigger": true},
+  {"query": "The screenshots in our user guides are stale after the redesign. Re-take them from the local app (only the ones whose screens changed) and update the guide pages on the wiki.", "should_trigger": true},
+  {"query": "export the user guides in this repo to both confluence pages and a folder of html files, release 3.1 in the banner", "should_trigger": true},
+  {"query": "/user-guides:write-guides finished and said to run wiki-guides next. do that: pictures, then publish to Confluence", "should_trigger": true},
+  {"query": "Write user guides for our app's three roles by walking the running app as each of them, with placeholders where screenshots will go.", "should_trigger": false},
+  {"query": "can you write a README for this repo covering install, configuration and how to run the tests?", "should_trigger": false},
+  {"query": "Generate API reference docs for our REST endpoints from the OpenAPI spec and publish them as HTML.", "should_trigger": false},
+  {"query": "Draft the release notes for v2.4 from the merged PRs since the last tag, grouped by feature.", "should_trigger": false},
+  {"query": "make a short product film of the app for the launch: record the main flows and add captions", "should_trigger": false},
+  {"query": "Write me a how-to doc on setting up the VPN for new starters that I can share with the team.", "should_trigger": false},
+  {"query": "take a screenshot of the login page on localhost:3000 so I can see what the CSS change did", "should_trigger": false},
+  {"query": "We're moving from Confluence Cloud to Notion. Write a script to export all our Confluence spaces via the API.", "should_trigger": false},
+  {"query": "Convert docs/architecture.md to a PDF with the diagrams embedded for the design review.", "should_trigger": false},
+  {"query": "set up storybook screenshots for visual regression testing of our react components in CI", "should_trigger": false}
+]

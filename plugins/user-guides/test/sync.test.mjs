@@ -1,5 +1,5 @@
 // The shared files: both skills carry byte-identical copies (PLAN §2.3). kit-core.mjs joined in
-// S2; md.mjs in S7.
+// S2; md.mjs in S7; set-edit.mjs in S9 (R32).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SKILLS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'skills');
-export const SHARED = ['scripts/guide-set.mjs', 'reference/guide-set.md', 'scripts/kit-core.mjs', 'scripts/md.mjs'];
+export const SHARED = ['scripts/guide-set.mjs', 'reference/guide-set.md', 'scripts/kit-core.mjs', 'scripts/md.mjs', 'scripts/set-edit.mjs'];
 export const OPTIONAL_SHARED = [];
 
 test('wiki-guides templates/guides-kit.mjs embeds kit-core.mjs byte for byte', async () => {

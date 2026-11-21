@@ -6,6 +6,8 @@
 //   node scaffold.mjs stage   [--variant v1|v2]             stage the fixture into the cwd
 //   node scaffold.mjs answers <preset> [--base-url <url>]    write docs/user-guides/guides.json
 //   node scaffold.mjs hand-written                          add guides written by hand (adopt)
+//   node scaffold.mjs guides  [--taken] [--release 1.0]      the frozen guide set (wiki-guides);
+//                                                           --taken swaps every card for a PNG
 //   node scaffold.mjs commit  <message>                      commit what the scaffold added
 //
 // Presets: `walk` (every answer, the local app, every task), `code` (every answer, facts from the
@@ -13,8 +15,10 @@
 // `nonlocal` (every answer, a base URL that is not local). Round 3 is recorded as
 // "approve as proposed" in all three (R9).
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
+import _zlib from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -113,6 +117,77 @@ Open **Inbox**. Each waiting request has **Approve** and **Decline**.
   return ['docs/help/employee.md', 'docs/help/manager.md'];
 }
 
+const CRC = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+const crc32 = (buf) => {
+  let c = 0xffffffff;
+  for (const b of buf) c = CRC[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+};
+/** A real PNG, w × h, its pixels set by `seed` (a stand-in for a screenshot). */
+export function png(w, h, seed = 0) {
+  const zlib = _zlib;
+  const row = w * 3 + 1;
+  const raw = Buffer.alloc(row * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) raw.writeUIntBE((((x >> 4) * 16 + seed * 40) & 255) * 65536 + (((y >> 3) * 8) & 255) * 256 + ((seed * 70) & 255), y * row + 1 + x * 3, 3);
+  const chunk = (type, data) => {
+    const body = Buffer.concat([Buffer.from(type), data]);
+    const out = Buffer.alloc(body.length + 8);
+    out.writeUInt32BE(data.length, 0);
+    body.copy(out, 4);
+    out.writeUInt32BE(crc32(body), body.length + 4);
+    return out;
+  };
+  const head = Buffer.alloc(13);
+  head.writeUInt32BE(w, 0);
+  head.writeUInt32BE(h, 4);
+  head[8] = 8;
+  head[9] = 2;
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', head), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+}
+
+/** The frozen guide set (fixtures/leave-app-guides) over a staged copy; its base URL set. */
+export function copyFrozenSet(root, baseUrl = 'http://127.0.0.1:9') {
+  const from = path.join(PLUGIN, 'fixtures', 'leave-app-guides');
+  fs.cpSync(from, root, { recursive: true, filter: (p) => p !== path.join(from, 'README.md') });
+  const file = path.join(root, SET_FILE);
+  const set = gs.loadGuideSet(file);
+  set.app.baseUrl = baseUrl;
+  set.interview.answers.appBaseUrl = baseUrl;
+  gs.saveGuideSet(file, set);
+  return file;
+}
+
+/**
+ * Every card (or the shots named) swapped for a PNG, as wiki-guides leaves a set once its
+ * pictures are taken: the link rewritten, the card deleted, the shot `taken` at `release`.
+ */
+export function takeAll(root, { release = '1.0', only = null } = {}) {
+  const file = path.join(root, SET_FILE);
+  const set = gs.loadGuideSet(file);
+  set.shots.forEach((shot, n) => {
+    if (only && !only.includes(shot.id)) return;
+    const svg = shot.path;
+    const pngPath = svg.replace(/\.svg$/, '.png');
+    fs.writeFileSync(path.join(root, pngPath), png(1280, 160 + 40 * n, n + 1));
+    fs.rmSync(path.join(root, svg));
+    for (const g of set.guides.filter((g2) => shot.guides.includes(g2.id))) {
+      const f = path.join(root, g.file);
+      fs.writeFileSync(f, fs.readFileSync(f, 'utf8').split(path.basename(svg)).join(path.basename(pngPath)));
+    }
+    const fingerprint = 'sha256:' + crypto.createHash('sha256').update(`v1 ${shot.id}`).digest('hex');
+    gs.moveShot(set, shot.id, 'taken', { by: 'wiki-guides', path: pngPath, takenAt: '2026-11-01T10:00:00.000Z', release, fingerprint });
+  });
+  set.publish = { ...set.publish, release };
+  gs.saveGuideSet(file, set);
+  const readme = path.join(path.dirname(file), 'README.md');
+  fs.writeFileSync(readme, gs.updateIndex(fs.readFileSync(readme, 'utf8'), set, path.posix.join(path.posix.dirname(SET_FILE), 'README.md')));
+  return set;
+}
+
 export function commit(root, message) {
   git(root, 'add', '-A');
   git(root, 'commit', '-q', '-m', message);
@@ -128,9 +203,13 @@ function main(argv) {
   if (cmd === 'stage') stageInto(root, opt('--variant') || 'v1');
   else if (cmd === 'answers') writeAnswers(root, rest[0], opt('--base-url'));
   else if (cmd === 'hand-written') writeHandWritten(root);
+  else if (cmd === 'guides') {
+    copyFrozenSet(root);
+    if (rest.includes('--taken')) takeAll(root, { release: opt('--release') || '1.0' });
+  }
   else if (cmd === 'commit') commit(root, rest[0] || 'Scaffold');
   else {
-    console.error('usage: scaffold.mjs stage|answers <preset>|hand-written|commit <message>');
+    console.error('usage: scaffold.mjs stage|answers <preset>|hand-written|guides [--taken]|commit <message>');
     return 2;
   }
   return 0;

@@ -245,3 +245,33 @@ test('subset: a construct outside the converters’ Markdown subset fails with i
   writeGuides(st.dir, 'http://localhost:3000', { employeeText: GUIDE + extra, guides: [{ id: 'employee', type: 'role-guide', file: 'docs/user-guides/employee.md', title: 'Leave Planner for employees', audience: ['employee'], parent: '', order: 1, status: 'outlined' }] });
   assert.equal(checkGuides({ root: st.dir }).problems.filter((p) => p.rule === 'subset').length, 0);
 });
+
+test('set-edit in wiki-guides acts as wiki-guides: adopt, a label fix, its own shot moves only (R32)', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const os = await import('node:os');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ug-set-edit-wiki-'));
+  cleanups.push(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const script = path.join(import.meta.dirname, '..', 'skills', 'wiki-guides', 'scripts', 'set-edit.mjs');
+  const file = 'docs/help/guides.json';
+  const ops = (list, extra = []) => spawnSync('node', [script, file, ...extra], { cwd: dir, input: JSON.stringify(list), encoding: 'utf8' });
+  const adopt = ops([
+    { op: 'init', product: { name: 'Leave Planner', language: 'en-GB' } },
+    { op: 'addGuide', adopt: true, guide: { id: 'employee', type: 'role-guide', file: 'docs/help/employee.md', title: 'For employees', audience: [], parent: '', order: 1 } },
+    { op: 'addShot', adopt: true, shot: { id: 'inbox', alt: 'Inbox: a waiting request', as: 'employee', path: 'docs/help/img/inbox.png', state: '', guides: ['employee'], target: { what: 'Inbox', locator: null } } },
+  ], ['--index', 'docs/help/README.md']);
+  assert.equal(adopt.status, 0, adopt.stderr);
+  let set = loadGuideSet(path.join(dir, file));
+  assert.deepEqual([set.guides[0].status, set.shots[0].status, set.shots[0].fingerprint], ['written', 'taken', undefined]);
+  const notMine = ops([{ op: 'addGuide', guide: { id: 'manager', type: 'role-guide', file: 'docs/help/manager.md', title: 'For managers' } }]);
+  assert.equal(notMine.status, 1);
+  assert.match(notMine.stderr, /belongs to write-guides, not wiki-guides/);
+  const retake = ops([{ op: 'moveShot', id: 'inbox', to: 'retake' }]);
+  assert.equal(retake.status, 1);
+  assert.match(retake.stderr, /taken → retake belongs to write-guides, not wiki-guides/);
+  set = loadGuideSet(path.join(dir, file));
+  set.guides[0].status = 'checked';
+  fs.writeFileSync(path.join(dir, file), JSON.stringify(set, null, 2) + '\n');
+  const label = ops([{ op: 'edited', id: 'employee' }]);
+  assert.equal(label.status, 0, label.stderr);
+  assert.equal(loadGuideSet(path.join(dir, file)).guides[0].status, 'written', 'a label fix makes a checked guide written again');
+});

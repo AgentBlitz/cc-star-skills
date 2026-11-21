@@ -91,7 +91,9 @@ node scripts/user-guides/shots.mjs --pending    # placeholder, retake and blocke
 A shot that fails is reported and the rest carry on; the exit code is 1 when anything failed,
 including a shot of `guides.json` that the script has no block for.
 
-**Then look at every image** in `.user-guides/out/review/`, with Read, one by one. For each:
+**Then look at every image** in `.user-guides/out/review/`, with Read, one by one, before the
+swap, and compare it with what its guide says around it: the step that leads to it, its alt text,
+and any table of the screen's controls. For each:
 
 - **Right:** nothing to do.
 - **Wrong crop, wrong state, data that should not be there** (a test account's residue, a
@@ -99,8 +101,10 @@ including a shot of `guides.json` that the script has no block for.
 - **A label on screen differs from the guide's word for it** (one word or button name): correct
   the guide's label. That is the only text wiki-guides changes (D5); a `checked` guide becomes
   `written` again (R7).
-- **Anything bigger** (a step that no longer exists, a screen that works differently): the shot
-  is `needs-text`, handed back to write-guides (`--needs-text` below).
+- **Anything bigger** (a control the text names that the picture lacks, a step that no longer
+  exists, a screen that works differently): the shot is `needs-text`, handed back to
+  write-guides (`--needs-text` below). Check every control a table or step names for that
+  screen, not just the step's own button.
 
 ## 4. Swap them into the guides
 

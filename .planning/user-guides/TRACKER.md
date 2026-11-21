@@ -22,7 +22,7 @@
 | 6 | wiki-guides: screenshots | ✅ | wiki-guides `templates/guides-kit.mjs` (kit-core embedded, sync-tested) and `templates/shots.template.mjs`; `scripts/shots-kit.mjs` (install / check / blocks, new, R29) and `scripts/swap-shots.mjs`; `reference/screenshots.md`; `test/shots.test.mjs` (6), `test/embed-kit.mjs`; check-guides lets a `blocked` shot keep its card | `npm test` 79 (78 pass, 1 skip: `md.mjs`); all 5 fixture shots taken, review copies half size; fetch walk = browser walk = shot for all 5 (and a signed-out shot); v2: fingerprints flag exactly `settings` (R28's oracle), swap-shots retakes only it, the other 4 PNGs and entries unchanged; no sign-in value printed or stored; `claude plugin validate` passes; genericity clean | Shots 5 (frozen set). v2 flagged: 1 (`settings`). Walk-and-shot agreement: 5/5. Plan change: `shots-kit.mjs` joins the layout (R29) |
 | 7 | wiki-guides: converter (Confluence and HTML) | ✅ | `md.mjs` (both skills, sync-tested); wiki-guides `scripts/to-confluence.mjs`, `to-html.mjs`, `bundle.mjs`; `templates/test-page.md` + `test-page.png`; `reference/confluence.md`, `reference/html.md`; check-guides' `subset` rule; `test/convert.test.mjs` (13), `test/xml.mjs`, `test/golden/` | Goldens pass: storage format (4 files) and HTML (3 pages) of a synthetic two-folder set; every page well-formed (own check and xmllint). `npm test` 93/93, the `md.mjs` sync test included (no skip). Clarity: 6 guides, 0 unsupported-construct errors; a strict run stops on the 14 placeholder references; with `--allow-placeholders`, 8 storage files and 7 HTML pages, all well-formed, 1 upload batch. `claude plugin validate` passes; genericity clean | Constructs: every one in §2.5, all six heading levels, the five alerts, a duplicate heading's `-1`, cross-folder guide links, the README as the top page, and a repo file shown as text. Plan change: R30; `test-page.png` joins the layout |
 | 8 | wiki-guides: mock Confluence and the publisher | ✅ | `fixtures/mock-confluence/` (`server.mjs`, README); wiki-guides `scripts/publish-core.js`, `publish-node.mjs`, `check-page.js`, `publish-kit.mjs` (target / input / record, new, R31); `reference/chrome-publishing.md`; `bundle.mjs --only`; `pageXhtml`'s `ownImages`; `test/publish.test.mjs` (14) | All six scenarios pass (first publish, republish after v2, an edit on the wiki since, adopted pages, Cloud refused, unknown refused), plus a title used elsewhere and three other stops. In headless Chromium against the mock: inject, `setInputFiles`, test page, attach in two batches, publish, reload and inject again (nothing left to send). `check-page` catches 900 px in a 656 px column and passes at 640. `npm test` 107/107, genericity clean over 118 files; `claude plugin validate` passes | Mock learnt: the version check (409), unique titles (400), the trash frees a title, the attachment token (403), a same-named attachment (400), `/data` replaces, title-prefixed anchor ids, a context path. Plan change: `publish-kit.mjs` joins the layout (R31). Contract unchanged |
-| 9 | wiki-guides: the skill, evals, tuning (0.9.0) | ⬜ | — | — | |
+| 9 | wiki-guides: the skill, evals, tuning (0.9.0) | ✅ | wiki-guides `SKILL.md` (139 lines, model-invocable; Round 1, adopt round, three fixed stops); `reference/recording.md` (record, README section, report, adopt); `set-edit.mjs` shared (R32); `summary` gains `publish`; touch-ups to `chrome-publishing.md` and `screenshots.md`; 9 eval cases (3 format, 6 scripted) and `evals/scripted/lib/wiki.mjs`; `evals/triggers/wiki-guides.json` (20); `plugin.json` 0.9.0 | Second pass, every case 2/2 with the skill, score 1.00. Baselines: format headless-round-1 0.60, html 0.25, no-token 0.40 (mean Δ +0.58); scripted first-publish 0.50, republish-v2 0.50, adopt-pages 0.67, label-and-needs-text 0.60, cloud-refused 0.25, no-go-ahead 0.25. Trigger: held-out 8/8 queries (24/24 runs), train 12/12, precision and recall 100%. `claude plugin details`: ~455 tok always-on (wiki-guides ~250, ~3.3k on invoke). Rehearsal of `chrome-publishing.md` with Playwright MCP against the mock: PASS end to end. `npm test` 110/110; `claude plugin validate` passes; genericity clean | First pass 4 of 6 scripted cases at 1/2 (go-ahead scope, a missed removed control, a republish read as unpublished); fixed in SKILL.md and `summary`. Eval runs ≈ $8. Plan change: R32 (`set-edit.mjs` shared). Contract unchanged |
 | 10 | Checkpoint 2 · Clarity on the wiki | ⬜ | — | — | by hand, from Clarity |
 | 11 | Checkpoint 3 · release (1.0.0) | ⬜ | — | — | by hand; Kam pushes |
 | 12 | campaign-brief on the plugin: adopt, refresh, republish | ⬜ | — | — | by hand, from campaign-brief |
@@ -340,3 +340,39 @@ Runtime: fable/high (autopilot attempt 1)
 - **Deviations.** `publish-kit.mjs` joins the layout (§2.4, R31): the input and the record needed a home that never talks to a wiki. `bundle.mjs` gained `--only`, and `to-confluence.mjs`'s `pageXhtml` an `ownImages` option. Session 9's prompt now lists R28–R31 and the mock's README in its reading.
 - **Not run.** The write-guides evals (no write-guides file changed). No real wiki, no Chrome.
 - **Searches.** `sources/`: the 23 script texts and four of the upload inputs, read by name. campaign-brief: the one archived session summary, read by its path. No search started at a repo root; Clarity was not touched.
+
+### Session 9: wiki-guides: the skill, evals, tuning (21 Nov 2026) ✅
+
+Runtime: opus/high (autopilot attempt 1)
+
+- **Landed.**
+  - `skills/wiki-guides/SKILL.md` replaces S1's stub. It orchestrates only: the routes (`adopt`, `shots`), the `key=value` answers, the Never list, Round 1 with its headless form, the steps 0–8, and the three stops worded in full (No Chrome, Not Data Center, No go-ahead).
+  - `reference/recording.md` covers the record, the README's "Where these guides are published" section, the report, and the standalone adopt round (which files, their titles, the page tree).
+  - `set-edit.mjs` is now shared, and each copy acts as its own skill (R32). `guide-set.mjs summary` reports `publish`.
+  - `chrome-publishing.md` gets a full Node-host sequence and the rehearsal's wording fixes. `screenshots.md` now says to compare each picture with every control its text names.
+  - `plugin.json` is at 0.9.0.
+- **Evals** (sonnet; `bash evals/run.sh`):
+  - **format:** `wiki-guides-headless-round-1`, `-html` and `-no-token`, 1.00 in both passes.
+  - **scripted:** `wiki-guides-first-publish` (shots from placeholders, a Read of each PNG before the swap, the test page made and removed, then 3 pages and 5 images under the mock's top page, recorded), `-republish-v2` (exactly `settings.png` replaced, R28's count; the top page and every guide page at their next version with the 1.1 banner), `-adopt-pages` (R21: registered as they are, hand-made pages 1010–1012 updated in place), `-label-and-needs-text` (against v2: **New request** fixed in the guide, which goes back to `written`; `settings` becomes `needs-text`, keeps its card, and its text is left alone), `-cloud-refused` and `-no-go-ahead` (no write request reaches the mock).
+  - **Pass 1:** 4 of 6 scripted cases passed only 1 of 2 runs. In two runs `go-ahead=yes` was not read as covering `needs.adopted`. One run missed the removed checkbox. One read the summary as "never published". Fixes: SKILL.md's go-ahead scope, a per-control check, the resume rule, and `summary` › `publish`.
+  - **Pass 2:** every case 2 of 2 with the skill. Without it, the model wrote straight to the "Cloud" mock and published without asking.
+- **Trigger tuning.** `run_loop.py` ran with one worker, 3 runs a query and a 0.4 holdout, through a temporary command in the repo root, with the plugin not installed and the shim off PATH. Held-out 8/8 queries (24/24 runs), train 12/12, so the description was kept. Afterwards `git status` showed nothing left behind.
+- **Rehearsal** (a subagent with the Playwright MCP tools, against the mock). The first attempt stopped when the mock process died (not the agent's doing). The second passed end to end:
+  - detect gave `data-center`;
+  - the test page was made, checked ok and removed;
+  - plan, attach (one batch of 5) and publish all worked;
+  - `record` succeeded;
+  - `check-page` answered ok on all four pages (column 656, widest image 640);
+  - after a fresh input, the final `plan` showed everything `skip`.
+
+  The whole `publish-core.js` (24,583 bytes) went through `browser_evaluate` intact (verified by hash on the first attempt). I checked the mock's `/__mock/state` and a page screenshot myself.
+- **Small choices.**
+  - **`go-ahead=yes`** gives all three go-aheads, `needs.adopted` included, but only when the user typed it. It never covers `needs.edited`.
+  - **The Node host** serves any wiki on this machine. Every other wiki goes through Chrome only, and a `-p` run stops there.
+  - **Eval stops are fixed text,** so the no-token graders can safely require that the final message names no credential.
+  - **`run.sh` exports `USER_GUIDES_PLAYWRIGHT_CORE`** (the dev copy), because the user cache is empty and a headless run never installs Playwright.
+  - **The mock runs in the runner's process,** so its scripts are called asynchronously.
+- **Deviations.** `set-edit.mjs` joins wiki-guides' layout (§2.4, R32). `guide-set.mjs`'s `summary` gained `publish`: an eval showed the gap, and the contract is unchanged.
+- **Not run.** No real wiki and no Chrome. The write-guides evals were not rerun: only `set-edit.mjs`'s actor line and `summary` changed for write-guides, and `npm test` covers both.
+- **Searches.** None outside this repo; campaign-brief and Clarity were not touched.
+

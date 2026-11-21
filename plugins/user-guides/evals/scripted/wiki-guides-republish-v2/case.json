@@ -1,0 +1,19 @@
+{
+  "name": "wiki-guides-republish-v2",
+  "description": "Republish after v2 (scripted; R14): a set published at 1.0 and refreshed for 1.1 (settings marked retake). A headless /user-guides:wiki-guides release=1.1 go-ahead=yes retakes only settings, reads it back, swaps it in, and republishes: exactly settings.png is replaced, and the top page and every guide page reach their next version with the 1.1 banner.",
+  "prompt": "/user-guides:wiki-guides release=1.1 go-ahead=yes",
+  "model": "sonnet",
+  "max_turns": 120,
+  "timeout_seconds": 2400,
+  "allowed_tools": ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill"],
+  "runs": 2,
+  "baseline_runs": 1,
+  "scaffold": "scaffold.mjs",
+  "graders": [
+    { "type": "regex", "name": "edited-copy-ran", "target": "trace", "pattern": "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/wiki-guides", "arm": "with-only" },
+    { "type": "script", "name": "reads-the-png-before-swap", "module": "graders/read-before-swap.mjs" },
+    { "type": "script", "name": "only-r14-images-and-next-versions", "module": "graders/republished.mjs" },
+    { "type": "tool_used", "name": "never-starts-or-resets", "tool": "Bash", "input_match": "node server\\.mjs|node reset\\.mjs|npm (start|run)", "min": 0, "max": 0 },
+    { "type": "regex", "name": "canary-never-appears", "target": "trace", "pattern": "LEAVEAPP-CANARY-", "match": "not_contains" }
+  ]
+}

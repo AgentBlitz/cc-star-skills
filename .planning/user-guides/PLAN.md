@@ -165,7 +165,7 @@ plugins/user-guides/
     scripts/    guide-set.mjs kit-core.mjs md.mjs to-confluence.mjs to-html.mjs swap-shots.mjs
                 shots-kit.mjs (S6, R29) bundle.mjs publish-kit.mjs (S8, R31: the input and the
                 record) publish-core.js (page or Node) publish-node.mjs (localhost only)
-                check-page.js
+                check-page.js set-edit.mjs (S9, R32: shared with write-guides)
   fixtures/leave-app/                server-rendered, dependency-free; 3 roles; v1 and v2 (the
                                      change table in its README, R14); a CLAUDE.md and a
                                      git-ignored private/ whose canary staging generates (R13)
@@ -381,6 +381,50 @@ No dependency and no app code. An adopted set may keep its files where they are,
   - **`bundle.mjs --only a.png,b.png`** batches just the images a plan lists. The limit stays 9,000,000 raw bytes: the worked example's batches were far smaller, so nothing shows whether Chrome counts raw or base64 size. `chrome-publishing.md` gives `--limit 6000000` as the fallback, and S10 finds out.
   - **The mock** (`fixtures/mock-confluence/server.mjs`, also `startMock()`): seeds `empty` and `adopted` (the Leave Planner guides as hand-made pages, for S9's adopt eval), `--context`, `--mode cloud|unknown`, `--width`. `/__mock/state` gives graders the pages, attachments and every write request; `/__mock/edit`, `/__mock/page` and `/__mock/race` play the colleague. In `cloud` and `unknown` modes its REST calls still work, so "no write request" proves that the publisher refused.
   - **For S9.** `publish-core.js` is about 25 KB as `javascript_tool` text, passed again after every reload: the rehearsal should confirm that this size goes through. S8 ran it in headless Chromium with `page.evaluate(text)`; `javascript_tool` allows `await` at the top level (the worked example used it), which `page.evaluate` does not.
+
+- **R32. wiki-guides as built** (S9). Facts S10–S12 build on:
+  - **`set-edit.mjs` is shared** (byte-identical in both skills, sync-tested, added to the
+    layout). Each copy acts as the skill whose `scripts/` folder holds it, so wiki-guides' adopt
+    (`addGuide`/`addShot` with `adopt`) and its label fix (`edited`) go through the contract's own
+    owner checks; a write-guides move (e.g. `taken → retake`) is refused.
+  - **`guide-set.mjs summary` gains `publish`** (release; Confluence base URL, space, top page id
+    and page count; HTML folder; `null` if never published). The first eval pass showed a
+    republish run reading the summary as "never published". The contract is unchanged.
+  - **The answers** are `key=value` arguments: `destination`, `guides`, `under` (the page's
+    address), `release`, `go-ahead=yes`; adopt adds `adoptFiles`, `adoptTitles`, `adoptTree`. A
+    set already published settles destination, page and guides, so a republish asks only for
+    the release. Headless with any unsettled: print Round 1 and stop.
+  - **`go-ahead=yes`** counts only when the user typed it, and gives the three go-aheads (test
+    page, real pages, removing the test page) in advance, including `needs.adopted` and
+    `needs.foreignImages`. It never covers `needs.edited` or a stop. Without it, a headless run
+    plans (reads only), prints the plan and the question, and stops.
+  - **Where the wiki is decides the host:** a wiki on this machine (the mock) goes through
+    `publish-node.mjs`; any other wiki only through Claude in Chrome. Without Chrome (any `-p`
+    run), the skill stops with a fixed message that names no credential and offers HTML. The
+    skill's three stops (No Chrome, Not Data Center, No go-ahead) are worded in SKILL.md.
+  - **The check on the Node host** is `publish-kit.mjs input` again after `record`, then `plan`:
+    every page `skip`. Planned from the old input, pages just made read as `adopted`. In Chrome
+    the same final check follows `check-page.js` (`chrome-publishing.md` § 7).
+  - **The record** (`recording.md`): `publish-kit.mjs record`, `publish.html.outDir` via
+    `set-edit`, and a `## Where these guides are published` section at the end of the README
+    index (after the list, so it is never published).
+  - **The evals** (C8): three eval-format cases (`-headless-round-1`, `-html`, `-no-token`) and
+    six scripted (`-first-publish`, `-republish-v2`, `-adopt-pages`, `-label-and-needs-text`,
+    `-cloud-refused`, `-no-go-ahead`). The scripted cases share `evals/scripted/lib/wiki.mjs`.
+    It runs the mock **in the runner's process**, so the operator's own scripts are called
+    asynchronously (a synchronous child deadlocks the mock). `cleanup` captures the mock's
+    pages, bodies and writes into `vars.final` before closing it, for the graders. The
+    scaffold's `takeAll` writes real PNGs (1280 px wide). `run.sh` exports
+    `USER_GUIDES_PLAYWRIGHT_CORE` to this repo's dev copy, because a headless run never installs
+    Playwright and the user cache is empty.
+  - **The Chrome rehearsal** (Playwright MCP against the mock) passed end to end. It confirmed
+    that the whole `publish-core.js` (24,583 bytes) goes through as script text. With a tool
+    that takes a function, the text is wrapped as a function body with an explicit `return`.
+    Playwright MCP's `browser_file_upload` reads only under its allowed roots (this repo), so
+    files were copied there first. Claude in Chrome's own limits are for S10 to find. Its
+    wording fixes went into `chrome-publishing.md`: absolute upload paths; section 3 again
+    before `removeTest`; the test page checked at `test.version`; the report saved as
+    `JSON.stringify` text; the final `plan` check.
 
 **Session shape**
 - **R18. Adopt mode** (write-guides, §2.2 step 7, amended into the approved plan for S12) had no session. S2 builds it: its round goes in `interview.md` and its steps in `refresh.md`. S3 evaluates it.

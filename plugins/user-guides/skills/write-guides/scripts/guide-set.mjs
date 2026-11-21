@@ -642,6 +642,18 @@ export function summary(set) {
       start: app.start ? 'set' : null,
       reset: app.reset ? 'set' : null,
     },
+    // where the set was published last, so a republish knows its answers (null: never)
+    publish: summaryOfPublish(set.publish),
+  };
+}
+
+function summaryOfPublish(pub) {
+  if (!pub || !Object.keys(pub).length) return null;
+  const c = pub.confluence;
+  return {
+    release: pub.release ?? null,
+    confluence: c ? { baseUrl: c.baseUrl ?? null, space: c.space ?? null, topPageId: c.topPageId ?? null, pages: Object.keys(c.pages || {}).length } : null,
+    html: pub.html ? { outDir: pub.html.outDir ?? null } : null,
   };
 }
 

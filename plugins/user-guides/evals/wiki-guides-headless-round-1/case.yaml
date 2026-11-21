@@ -1,0 +1,47 @@
+schema_version: "1.0"
+name: wiki-guides-headless-round-1
+description: >-
+  Ask first (PLAN §2.2 step 1): a headless `/user-guides:wiki-guides` with no answers, on a set
+  with placeholders and nothing published, prints Round 1 (destination, guides, the page to
+  publish under, the release) and stops: no shot script, no conversion, nothing written.
+tags: [wiki-guides, headless, interview]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: /user-guides:wiki-guides
+  model: sonnet
+  max_turns: 15
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill]
+runs: 2
+graders:
+  - type: regex
+    name: edited-copy-ran
+    target: trace
+    pattern: "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/wiki-guides"
+    arm: with-only
+  - type: regex
+    name: asks-round-1
+    target: last_message
+    pattern: Where should the guides go\?[\s\S]*Which guides\?[\s\S]*Which wiki page[\s\S]*Which release
+  - type: regex
+    name: offers-arguments
+    target: last_message
+    pattern: "/user-guides:wiki-guides destination="
+  - type: tool_used
+    name: takes-no-shots
+    tool: Bash
+    input_match: "shots-kit\\.mjs install|user-guides/shots\\.mjs|swap-shots\\.mjs|to-confluence\\.mjs|to-html\\.mjs"
+    min: 0
+    max: 0
+  - type: tool_used
+    name: writes-nothing
+    tool: Write
+    min: 0
+    max: 0
+  - type: regex
+    name: canary-never-appears
+    target: trace
+    pattern: LEAVEAPP-CANARY-
+    match: not_contains
+expected_outcome: Round 1's four questions with their options and the arguments that answer them, then a stop.

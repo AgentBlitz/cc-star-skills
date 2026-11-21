@@ -29,6 +29,11 @@ mkdir -p "$here/evals/results"
 mkdir -p "$plugin/.eval-bin" && cp "$plugin/evals/bin/git" "$plugin/.eval-bin/git"
 export PATH="$plugin/.eval-bin:$PATH"
 unset CLAUDECODE || true
+# The shot cases need Playwright, and a headless run never installs it: point D10's second
+# lookup at this repo's dev copy (the staged plugin has no node_modules), unless one is set.
+if [ -z "${USER_GUIDES_PLAYWRIGHT_CORE:-}" ] && [ -f "$here/node_modules/playwright-core/package.json" ]; then
+  export USER_GUIDES_PLAYWRIGHT_CORE="$here/node_modules/playwright-core"
+fi
 
 status=0
 if [ "$mode" = format ] || [ "$mode" = all ]; then

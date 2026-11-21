@@ -1,0 +1,20 @@
+{
+  "name": "wiki-guides-no-go-ahead",
+  "description": "No go-ahead, headless (scripted; D7): every answer but the go-ahead, and a Data Center wiki (the empty mock). AskUserQuestion is not offered in -p runs, so /user-guides:wiki-guides plans (reads only), asks for the go-ahead as plain text and stops; the grader checks that nothing was published.",
+  "prompt": "/user-guides:wiki-guides destination=confluence guides=all under={{under}} release=1.0",
+  "model": "sonnet",
+  "max_turns": 60,
+  "timeout_seconds": 1200,
+  "allowed_tools": ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill"],
+  "runs": 2,
+  "baseline_runs": 1,
+  "scaffold": "scaffold.mjs",
+  "graders": [
+    { "type": "regex", "name": "edited-copy-ran", "target": "trace", "pattern": "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/wiki-guides", "arm": "with-only" },
+    { "type": "tool_used", "name": "planned-first", "tool": "Bash", "input_match": "publish-node\\.mjs plan", "arm": "with-only" },
+    { "type": "script", "name": "nothing-written", "module": "graders/nothing-written.mjs" },
+    { "type": "regex", "name": "asks-for-the-go-ahead", "target": "last_message", "pattern": "go-ahead", "flags": "i" },
+    { "type": "regex", "name": "names-the-test-page", "target": "last_message", "pattern": "test page", "flags": "i" },
+    { "type": "regex", "name": "never-asks-for-a-token", "target": "last_message", "pattern": "token|password|API key|credential", "flags": "i", "match": "not_contains" }
+  ]
+}

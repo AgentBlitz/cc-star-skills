@@ -254,3 +254,12 @@ test('the CLI validates and reports', async () => {
   assert.match(r.stderr, /schemaVersion must be 1/);
   fs.rmSync(dir, { recursive: true });
 });
+
+test('summary says where the set was published last, so a republish knows its answers', () => {
+  const set = gs.createGuideSet({ name: 'Leave Planner' });
+  assert.equal(gs.summary(set).publish, null, 'never published');
+  set.publish = { release: '1.0', confluence: { baseUrl: 'http://127.0.0.1:9', space: 'DOCS', topPageId: '1001', pages: { a: { pageId: '2', version: 1 }, b: { pageId: '3', version: 1 } } } };
+  assert.deepEqual(gs.summary(set).publish, { release: '1.0', confluence: { baseUrl: 'http://127.0.0.1:9', space: 'DOCS', topPageId: '1001', pages: 2 }, html: null });
+  set.publish = { release: '1.1', html: { outDir: 'site/guides' } };
+  assert.deepEqual(gs.summary(set).publish, { release: '1.1', confluence: null, html: { outDir: 'site/guides' } });
+});

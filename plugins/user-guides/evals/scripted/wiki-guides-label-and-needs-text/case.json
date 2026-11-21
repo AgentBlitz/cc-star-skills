@@ -1,0 +1,20 @@
+{
+  "name": "wiki-guides-label-and-needs-text",
+  "description": "Shots only, against v2 (scripted; D5, R7): /user-guides:wiki-guides shots release=1.1 takes the five shots and reads each back; the renamed button (**Request leave** → **New request**) is a wrong label, fixed in the guide; the removed checkbox is bigger than a label, so settings becomes needs-text and its text is left for write-guides. Nothing is published.",
+  "prompt": "/user-guides:wiki-guides shots release=1.1",
+  "model": "sonnet",
+  "max_turns": 120,
+  "timeout_seconds": 2400,
+  "allowed_tools": ["Read", "Glob", "Grep", "Bash", "Write", "Edit", "Skill"],
+  "runs": 2,
+  "baseline_runs": 1,
+  "scaffold": "scaffold.mjs",
+  "graders": [
+    { "type": "regex", "name": "edited-copy-ran", "target": "trace", "pattern": "user-guides-eval\\.[A-Za-z0-9]+/plugin/skills/wiki-guides", "arm": "with-only" },
+    { "type": "script", "name": "reads-every-png-before-swap", "module": "graders/read-before-swap.mjs" },
+    { "type": "script", "name": "label-fixed-feature-handed-back", "module": "graders/label-and-needs-text.mjs" },
+    { "type": "tool_used", "name": "publishes-nothing", "tool": "Bash", "input_match": "publish-node\\.mjs|to-confluence\\.mjs|to-html\\.mjs", "min": 0, "max": 0 },
+    { "type": "tool_used", "name": "never-starts-or-resets", "tool": "Bash", "input_match": "node server\\.mjs|node reset\\.mjs|npm (start|run)", "min": 0, "max": 0 },
+    { "type": "regex", "name": "canary-never-appears", "target": "trace", "pattern": "LEAVEAPP-CANARY-", "match": "not_contains" }
+  ]
+}
