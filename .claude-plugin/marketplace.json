@@ -30,7 +30,7 @@
     {
       "name": "user-guides",
       "source": "./plugins/user-guides",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "license": "MIT",
       "description": "Write a web app's end-user guides from a walk of the running app as each role, then screenshot them and publish them to Confluence Data Center or self-contained HTML; after a release, refresh and republish only what changed (write-guides, wiki-guides).",
       "author": { "name": "Kam Star" }

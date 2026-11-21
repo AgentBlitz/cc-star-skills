@@ -91,6 +91,19 @@ test('slugs and anchors are GitHub’s, with -1 for duplicates; bold paths split
   assert.deepEqual([...anchors('# A\n## Notes\n```\n## Not a heading\n```\n## Notes\n')], ['a', 'notes', 'notes-1']);
   assert.deepEqual(labelsIn('Settings → Notifications'), ['Settings', 'Notifications']);
   assert.deepEqual(labelsIn('Save settings.'), ['Save settings']);
+  // A bold label that wraps a line is one label, with single spaces, so its notChecked claim matches.
+  assert.deepEqual(labelsIn('Reset to the\n  starter templates'), ['Reset to the starter templates']);
+});
+
+test('a scheme with nothing after it stays text, and set-edit answers --help', async () => {
+  const { parse } = await import('../skills/write-guides/scripts/md.mjs');
+  const doc = parse("Each brand has a box for the lobby's https:// address, which the brief prints.\n");
+  assert.deepEqual(doc.errors, []);
+  assert.ok(!JSON.stringify(doc.blocks).includes('"link"'), 'no link is made of a bare scheme');
+  assert.ok(JSON.stringify(parse('See https://example.com/start.\n').blocks).includes('https://example.com/start'));
+  const help = runScript(process.cwd(), 'set-edit.mjs', ['--help']);
+  assert.equal(help.status, 0);
+  assert.match(help.stderr, /usage: set-edit\.mjs/);
 });
 
 test('a walked set that follows the rules passes, and every walked screen is covered', async () => {

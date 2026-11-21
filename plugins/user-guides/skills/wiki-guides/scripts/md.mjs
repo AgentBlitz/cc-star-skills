@@ -478,9 +478,10 @@ function inline(src, from, to, st) {
     }
 
     // bare web addresses (GitHub links them)
-    if ((c === 'h' || c === 'H') && /^https?:\/\//i.test(src.slice(i, i + 8)) && (i === 0 || /[\s(*_~]/.test(src[i - 1]))) {
-      let m = src.slice(i, to).match(/^https?:\/\/[^\s<]+/i)[0];
-      m = trimUrl(m);
+    // A scheme with nothing after it ("the https:// address") stays text.
+    const bare = (c === 'h' || c === 'H') && (i === 0 || /[\s(*_~]/.test(src[i - 1])) ? src.slice(i, to).match(/^https?:\/\/[^\s<]+/i) : null;
+    if (bare) {
+      let m = trimUrl(bare[0]);
       flush();
       out.push({ type: 'link', href: m, children: [{ type: 'text', text: m }], line: st.lineAt(i) });
       i += m.length;

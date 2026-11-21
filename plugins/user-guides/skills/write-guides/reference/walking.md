@@ -89,6 +89,11 @@ await walk.close();
   crawl's screen at the same path, so a dialog opened by a click never replaces the screen
   under it. Dumping the same name again replaces it.
 - Keep the script: a refresh runs it again after the next release.
+- **Data a crawl needs comes first.** A crawl is a fresh walk: it sets the previous outline
+  aside and drops every dump. So a script that only *sets up data* the crawl should find (an
+  example record made, a request sent and approved) runs **before** the crawl, records no dump,
+  and is named `scene.mjs`; scripts that dump dialogs and states run **after** it. A refresh
+  keeps that order: `scene.mjs`, then the crawl, then the other scripts.
 
 ## 4. Locators and screens for pictures
 

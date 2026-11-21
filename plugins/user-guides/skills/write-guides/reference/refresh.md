@@ -6,8 +6,9 @@
 has changed. Walk again, bring the text up to date, and mark for retaking every picture whose
 region changed.
 
-1. **Preflight and walk again**, exactly as the first time (`walking.md`):
-   `walk-lib.mjs crawl`, then every walk script kept in `.user-guides/walk/`
+1. **Preflight and walk again**, exactly as the first time (`walking.md`): a kept
+   `.user-guides/walk/scene.mjs` first (it sets up the data), then `walk-lib.mjs crawl`, then
+   every other walk script kept in `.user-guides/walk/`
    (`USER_GUIDES_SCRIPTS=$S node .user-guides/walk/<name>.mjs`). The crawl keeps
    the walk before as `outline.previous.json`.
 2. **What changed:** `node $S/walk-lib.mjs diff` lists, per role, the screens added, removed

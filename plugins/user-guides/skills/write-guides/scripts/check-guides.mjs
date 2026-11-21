@@ -81,7 +81,7 @@ function corpusFor(walkDir, outline, roles) {
 export function labelsIn(bold) {
   return bold
     .split(/\s*(?:→|->|›|>)\s*/)
-    .map((s) => s.trim().replace(/^["“'‘]|["”'’]$/g, '').replace(/[.:,;]$/, '').trim())
+    .map((s) => s.replace(/\s+/g, ' ').trim().replace(/^["“'‘]|["”'’]$/g, '').replace(/[.:,;]$/, '').trim())
     .filter(Boolean);
 }
 
@@ -123,7 +123,14 @@ export function checkGuides({ root = '.', setFile = DEFAULT_SET, walkDir, record
     }
     const md = fs.readFileSync(abs(g.file), 'utf8');
     texts.set(g.id, md);
-    if (g.status !== 'outlined') for (const e of parse(md, { file: g.file }).errors) add(g.file, e.line, 'subset', e.message);
+    if (g.status !== 'outlined') {
+      try {
+        for (const e of parse(md, { file: g.file }).errors) add(g.file, e.line, 'subset', e.message);
+      } catch (err) {
+        // A parser failure names the guide, so the other guides are still checked.
+        add(g.file, 0, 'subset', `the Markdown could not be read (${err.message})`);
+      }
+    }
     const lines = md.split('\n');
     const shown = new Set();
     let fence = false;

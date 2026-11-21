@@ -107,9 +107,10 @@ function main(argv) {
   const [file, ...rest] = argv;
   let index = null;
   for (let i = 0; i < rest.length; i++) if (rest[i] === '--index') index = rest[++i];
-  if (!file) {
+  if (!file || file === '--help' || file === '-h') {
     console.error('usage: set-edit.mjs <guides.json> [--index <README.md>] < operations.json');
-    return 2;
+    console.error('operations: init, set, addGuide, moveGuide, edited, addShot, moveShot, updateShot, retakeIfChanged, push, drop (see the head of this file)');
+    return file ? 0 : 2;
   }
   let ops;
   try {
