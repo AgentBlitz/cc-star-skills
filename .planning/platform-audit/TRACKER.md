@@ -1,0 +1,55 @@
+# platform-audit — Tracker
+
+> The last action of every session is to (1) confirm its verification gate passed, (2) update the row below, and (3) surface the next session's kickoff prompt. If a gate fails, mark the row ⛔, record the blocker here, and **stop** — do not start the next session. If you need a decision the plan doesn't settle and cannot ask for it, mark the row ⛔ with `Needs decision: <question — options>` and **stop**.
+
+`PLAN.md` is authoritative.
+
+> **By hand:** Sessions 8, 9 and 10. Under autopilot, each sets ⛔ `Needs decision: run Session N interactively …` at once (PLAN §4, D12).
+>
+> **Deadline:** run Session 1 **before about 14 Dec 2026**. It copies a transcript that Claude Code deletes about 30 days after its last change, which was 15 Nov 2026.
+>
+> In the table below, the status emoji appear only in the Status column: autopilot counts any row containing one.
+
+## Status board
+
+| # | Session | Status | Key artifacts | Verification | Notes |
+|---|---|---|---|---|---|
+| 1 | Sources and skeleton | ⬜ | | | Run before about 14 Dec 2026 |
+| 2 | The bundle extractor | ⬜ | | | |
+| 3 | The fixture and the downloader | ⬜ | | | |
+| 4 | The in-page probe | ⬜ | | | |
+| 5 | Report tooling | ⬜ | | | |
+| 6 | The skill text | ⬜ | | | Version 0.9.0 |
+| 7 | Evals, triggers and a rehearsal | ⬜ | | | No paid runs (D17) |
+| 8 | Trial run in Kam's Chrome | ⬜ | | | By hand |
+| 9 | Review and fixes | ⬜ | | | By hand |
+| 10 | Release 1.0.0 | ⬜ | | | By hand; push on Kam's go-ahead |
+
+Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
+
+## Open items / blockers
+
+- [ ] **Run Session 1 before about 14 Dec 2026**, while the 13 Nov audit's transcript still exists.
+- [ ] **Kam's time** for the by-hand Sessions 8, 9 and 10.
+- [ ] **Chrome with Claude in Chrome connected** for Session 8, able to open the fixture on `http://127.0.0.1:<port>`.
+- [ ] **The trial repo** `/Users/kstar/_PRJ/platform-audit-trial`, which Session 8 makes. It is outside this repo and can be deleted after the release.
+- [ ] **The go-ahead to push** `main` and `audit--v1.0.0` to `origin` and `GITLAB` (Session 10).
+- [ ] **The paid evals**: none run in this roadmap (D17). After the release, Kam may run `bash plugins/audit/evals/run.sh`.
+
+## Review notes
+
+### Trial findings (written by Session 8, read by Session 9)
+
+(none yet)
+
+### Kam's notes on the trial report (read by Session 9)
+
+(none yet)
+
+### After 1.0
+
+(none yet)
+
+## Session log
+
+(none yet — Session 1 is next)
