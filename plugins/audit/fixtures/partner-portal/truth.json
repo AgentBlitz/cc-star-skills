@@ -1,0 +1,99 @@
+{
+  "product": "Partner Portal",
+  "role": "partner",
+  "privateTerms": ["Dana Example", "dana@example.com", "P-104233", "REF-7Q2X"],
+  "shell": {
+    "menu": {
+      "Sales": ["Orders", "Customers"],
+      "Finance": ["Payouts"],
+      "Reports": ["Sales weekly", "Sales daily"],
+      "Settings": ["Profile"]
+    },
+    "hiddenMenu": {
+      "Reports": ["Finance"],
+      "Admin": ["Users", "Audit log", "Settings"]
+    },
+    "chips": ["Available balance", "Pending balance"],
+    "account": ["Language", "English", "Deutsch", "Referral link", "Copy", "Log out"],
+    "profile": ["Display name", "Email", "Partner ID"]
+  },
+  "routes": [
+    { "path": "/login", "screen": "Sign in", "menu": null, "visible": true, "expected": ["✅"] },
+    { "path": "/orders", "screen": "Orders", "menu": "Sales › Orders", "visible": true, "expected": ["✅"] },
+    { "path": "/orders/:orderId", "screen": "Order details", "menu": null, "visible": true, "expected": ["✅"] },
+    { "path": "/payouts", "screen": "Payouts", "menu": "Finance › Payouts", "visible": true, "expected": ["📄"] },
+    { "path": "/customers", "screen": "Customers", "menu": "Sales › Customers", "visible": true, "expected": ["✅"] },
+    { "path": "/customers/:customerId", "screen": "Customer details", "menu": null, "visible": true, "expected": ["✅"] },
+    { "path": "/reports/sales-weekly", "screen": "Sales weekly", "menu": "Reports › Sales weekly", "visible": true, "expected": ["✅"] },
+    { "path": "/reports/sales-daily", "screen": "Sales daily", "menu": "Reports › Sales daily", "visible": true, "expected": ["✅"] },
+    { "path": "/settings/profile", "screen": "Profile", "menu": "Settings › Profile", "visible": true, "expected": ["✅"] },
+    { "path": "/reports/finance", "screen": "Finance report", "menu": "Reports › Finance", "visible": false, "expected": ["⛔", "🔒"] },
+    { "path": "/admin/users", "screen": "Users", "menu": "Admin › Users", "visible": false, "expected": ["⛔", "🔒"] },
+    { "path": "/admin/audit-log", "screen": "Audit log", "menu": "Admin › Audit log", "visible": false, "expected": ["⛔", "🔒"] },
+    { "path": "/admin/settings", "screen": "Admin settings", "menu": "Admin › Settings", "visible": false, "expected": ["⛔", "🔒"] }
+  ],
+  "operations": {
+    "query": ["Shell", "Orders", "OrderDetails", "Payouts", "Customers", "CustomerDetails", "SalesReport", "Profile", "FinanceReport", "AdminUsers", "AuditLog", "AdminSettings"],
+    "mutation": ["RequestPayout", "SendVoucher", "ImportCustomers", "UpdateProfile", "UpdateUserRole", "UpdateAdminSettings"],
+    "subscription": ["OrderUpdates"],
+    "fragment": ["OrderFields"]
+  },
+  "endpoints": ["POST /api/graphql", "GET /api/export/orders.csv", "GET /api/export/customers-template.csv", "POST /api/upload"],
+  "screens": {
+    "Sign in": {
+      "filters": [], "columns": [], "actions": ["Sign in as demo partner"], "fields": []
+    },
+    "Orders": {
+      "filters": ["Status", "Date range", "Search", "Amount from", "Amount to"],
+      "columns": ["Order", "Date", "Customer", "Status", "Items", "Amount"],
+      "actions": ["Clear filters", "Columns", "Export CSV", "Rows per page", "Sort ascending", "Sort descending", "Hide column", "Previous page", "Next page"],
+      "fields": [],
+      "datePresets": ["Today", "Last 7 days", "Last 30 days", "This month"],
+      "rowsPerPage": [10, 25, 50]
+    },
+    "Order details": {
+      "filters": [], "columns": ["Product", "Quantity", "Unit price", "Total"], "actions": ["Back to orders"], "fields": [],
+      "panels": ["Summary", "Line items", "Timeline"]
+    },
+    "Payouts": {
+      "filters": [], "columns": ["Requested", "Amount", "Method", "Status"], "actions": ["Request payout"],
+      "fields": [],
+      "dialogs": { "Request payout": { "fields": ["Amount", "Method", "Note"], "actions": ["Submit", "Cancel"] } },
+      "empty": "No payouts yet"
+    },
+    "Customers": {
+      "filters": ["Search", "Tier"],
+      "columns": ["Name", "Email", "Tier", "Orders", "Last order"],
+      "actions": ["Send voucher", "Import customers"],
+      "fields": [],
+      "dialogs": {
+        "Send voucher": { "fields": ["Voucher value", "Message"], "actions": ["Send", "Cancel"] },
+        "Import customers": {
+          "steps": ["Upload file", "Map columns", "Review"],
+          "fields": ["File"], "actions": ["Download template", "Next", "Back", "Import", "Cancel"],
+          "accepts": "CSV or XLSX, up to 2 MB"
+        }
+      }
+    },
+    "Customer details": {
+      "filters": [], "columns": ["Order", "Date", "Status", "Amount"], "actions": ["Back to customers"], "fields": [],
+      "panels": ["Contact", "Recent orders"]
+    },
+    "Sales weekly": {
+      "filters": [], "columns": ["Week", "Orders", "Revenue", "Average order"], "actions": [], "fields": [],
+      "tabs": ["Weekly", "Daily"]
+    },
+    "Sales daily": {
+      "filters": [], "columns": ["Day", "Orders", "Revenue", "Average order"], "actions": [], "fields": [],
+      "tabs": ["Weekly", "Daily"]
+    },
+    "Profile": {
+      "filters": [], "columns": [], "actions": ["Save"],
+      "fields": ["Display name", "Email", "Phone", "Company", "Email me about new orders"]
+    },
+    "Finance report": { "filters": [], "columns": [], "actions": [], "fields": [] },
+    "Users": { "filters": [], "columns": [], "actions": [], "fields": [] },
+    "Audit log": { "filters": [], "columns": [], "actions": [], "fields": [] },
+    "Admin settings": { "filters": [], "columns": [], "actions": [], "fields": [] }
+  }
+}

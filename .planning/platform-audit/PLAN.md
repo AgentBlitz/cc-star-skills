@@ -346,6 +346,13 @@ S2 refined the shape above, as the session allows, so that every item records th
 - **Redaction:** every value except file names, chunk refs and hashes goes through `redactText`, which
   turns each run of more than 24 random-looking characters into `[redacted]`.
 
+**The shape of `manifest.json`** (S3): `{ version: 1, client, origin, started, finished, delayMs, files:
+[{ url, file, status, bytes, type, sha256, from }], skipped: [{ url, reason, from }], failed: [{ url,
+status|reason, from }], sourceMaps: [{ file, url }], stopped: null | { url, status, reason } }`. Files are
+saved by URL path (`_hosts/<host>/…` for an allowed host). `--delay` counts from the end of the previous
+file. Exit codes: 0 done, 1 some files failed, 2 usage, 3 stopped (401, 403, 429, a redirect, or an HTML
+page).
+
 **What `check-audit.mjs` checks:**
 - `routes`: every inventory route appears in the report in backticks.
 - `private`: no private term appears, matched without regard to case or spacing.
