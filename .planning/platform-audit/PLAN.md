@@ -428,6 +428,7 @@ It prints `Partner Portal fixture on http://127.0.0.1:<port>`.
 - **The shell:**
   - a sidebar menu with collapsible groups;
   - balance chips in the top bar;
+  - a Help link to another host, opening a new tab (added in S4, so the click guard has an external link to refuse);
   - an Account section: Language (EN / DE), Log out, and a Referral link with Copy;
   - a profile block.
 - **Visible screens (about 10):**

@@ -41,7 +41,7 @@ must never contain: **Dana Example**, `dana@example.com`, partner id `P-104233` 
 ## What's in it
 
 - **Shell:** a sidebar menu with collapsible groups (Sales, Finance, Reports, Settings), balance chips in
-  the top bar, and an Account menu with the profile block, Language (English / Deutsch), the Referral
+  the top bar, a Help link to another host (opening a new tab), and an Account menu with the profile block, Language (English / Deutsch), the Referral
   link with Copy, and Log out.
 - **Screens:** Orders (status, date-range, search and amount filters; Columns; Export CSV; rows per page;
   column header menus) → Order details (three panels); Payouts (empty, with a Request payout dialog);
