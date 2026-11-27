@@ -190,3 +190,42 @@ test('the scorer puts a sample missing a screen below the threshold, and a wrong
   assert.deepEqual(wrong.routes.filter((x) => !x.ok).map((x) => x.path), ['/payouts']);
   assert.equal(node(SCORE, [sample(CLEAN), '--min-items', '2']).status, 2);
 });
+
+test('the scorer finds blocks loosely: singular for plural, and the parent › child path (S8 finding 1)', () => {
+  const clean = fs.readFileSync(sample(CLEAN), 'utf8');
+  // the trial's headings: "Order detail", "Customer detail", and "Admin › Settings" for "Admin settings"
+  const renamed = clean
+    .replace('### 5.3 Sales › Orders › Order details', '### 5.3 Sales › Orders › Order detail')
+    .replace('### 5.5 Sales › Customers › Customer details', '### 5.5 Customer detail');
+  assert.notEqual(renamed, clean);
+  const r = scoreReport(renamed, TRUTH);
+  assert.equal(r.itemScore, 1, JSON.stringify(r.screens.filter((s) => !s.block || s.missing.length)));
+  const block = (name) => r.screens.find((s) => s.screen === name).block;
+  for (const s of ['Order details', 'Customer details', 'Admin settings']) assert.ok(block(s), s);
+  // a heading that names another screen is still not a match
+  const gone = scoreReport(clean.replace(/### 5\.3 Sales › Orders › Order details\n[\s\S]*?(?=### 5\.4 )/, ''), TRUTH);
+  assert.equal(gone.screens.find((s) => s.screen === 'Order details').block, false);
+});
+
+test('a sign-in page the walk never saw is 🚪, not 🔒, and its block is then not scored (S8 findings 2, 3)', () => {
+  const clean = fs.readFileSync(sample(CLEAN), 'utf8');
+  const unseen = clean
+    .replace('| 1 | `/login` | Sign in | ✅ |', '| 1 | `/login` | Sign in (already signed in) | 🚪 |')
+    .replace(/### 5\.1 Sign in\n[\s\S]*?(?=### 5\.2 )/, '');
+  assert.notEqual(unseen, clean);
+  const r = scoreReport(unseen, TRUTH);
+  assert.equal(r.routeScore, 1, JSON.stringify(r.routes.filter((x) => !x.ok)));
+  assert.equal(r.itemScore, 1);
+  assert.ok(!r.screens.some((s) => s.screen === 'Sign in'), 'an optional screen with no block is left out');
+
+  const locked = scoreReport(unseen.replace('| Sign in (already signed in) | 🚪 |', '| Sign in (already signed in) | 🔒 |'), TRUTH);
+  assert.deepEqual(locked.routes.filter((x) => !x.ok).map((x) => x.path), ['/login']);
+  // a sign-in block that is there is still scored
+  assert.ok(scoreReport(clean, TRUTH).screens.some((s) => s.screen === 'Sign in' && s.block));
+});
+
+test('check-audit wants 🚪 in the route status key', () => {
+  const text = fs.readFileSync(sample(CLEAN), 'utf8').replace('🚪 public page, not opened (already signed in) · ', '');
+  const { findings } = checkReport(text, { file: sample(CLEAN) });
+  assert.deepEqual(findings.map((f) => `${f.check}: ${f.what}`), ['keys: the route status key lacks 🚪']);
+});

@@ -105,7 +105,7 @@ Key: ✅ met · ⚠️ partial · ❌ missing · ❓ can't tell
 <!-- SECTION routes: every route the inventory found, each in backticks, with one status from the key. -->
 
 Status key: ✅ seen on screen · 📄 opened, but empty for this account · 🔗 detail page, no data to open ·
-⛔ tried and blocked · 🔒 not shown to this role (from code)
+🚪 public page, not opened (already signed in) · ⛔ tried and blocked · 🔒 not shown to this role (from code)
 
 | # | Route | Screen | Status |
 |---|---|---|---|

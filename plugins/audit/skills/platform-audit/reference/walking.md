@@ -50,8 +50,11 @@ reason to move by the menu.
 One page load, before the interview. Until `pace` is answered, wait 20 s after it.
 
 1. `tabs_context_mcp`, then a new tab, then `navigate` to the URL. Wait, then paste the probe.
-2. **`signin` is not null:** the tab is on a sign-in page. Ask the user to sign in and wait
-   (`ground-rules.md` › Sign-in). When they are in, paste the probe again.
+2. **`signin` is not null:** the tab is on a sign-in page. Run `screen()` once and note its
+   heading, buttons and links in `progress.md` (its route gets ✅ and a short block). Then ask
+   the user to sign in and wait (`ground-rules.md` › Sign-in). When they are in, paste the probe
+   again. If the tab opened already signed in, the sign-in page is 🚪 (`writing.md` › Route
+   statuses): never load it to see it.
 3. Read `recon()`, then `nav()`, then `await __auditProbe.peek()`. If `peek()` fails or finds no
    files (scripts served from another host, or not cached), carry on; the interview has wording
    for that.

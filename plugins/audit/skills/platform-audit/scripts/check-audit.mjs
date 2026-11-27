@@ -38,7 +38,7 @@ export const SUMMARY_PARTS = [
   ['Limits of this audit', /^\*\*Limits of this audit\b/i],
   ['Suggested next steps', /^\*\*Suggested next steps\b/i],
 ];
-const ROUTE_STATUSES = ['✅', '📄', '🔗', '⛔', '🔒'];
+const ROUTE_STATUSES = ['✅', '📄', '🔗', '🚪', '⛔', '🔒'];
 const CAPABILITY_STATUSES = ['✅', '🔒', '👁', '⚠️', '❌'];
 const MARKERS = [
   ['TODO', /\bTODO\b/],

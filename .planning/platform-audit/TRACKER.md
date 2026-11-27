@@ -22,7 +22,7 @@
 | 6 | The skill text | ✅ | `SKILL.md` (117 lines); `reference/{interview,ground-rules,code-inventory,walking,writing,checking}.md`; `test/skill-lint.test.mjs` (12 tests); `inventory.mjs join`; plugin 0.9.0 | `npm test` 87/87 (12 new); `claude plugin validate` passes (icon warning only); genericity clean (plugin 69 files, `--added`) | Contracts (Claude Code 2.1.332 docs): `argument-hint` and `allowed-tools` are honoured; `allowed-tools` grants for the invoking turn and restricts nothing; the docs don't say it takes MCP names, though `mcp__claude-in-chrome__*` fits the permission-rule form; `${CLAUDE_SKILL_DIR}` works in plugin skills. **For S7/S8 to watch:** (1) the in-page fallback has run only in a stand-in page (vm): run it once on the fixture with `--forbid-assets`, to see that `javascript_tool` takes the 69 KB core and an `await (async…)()` snippet; (2) whether Chrome calls still prompt with this `allowed-tools`; (3) the probe can't press a row link, so detail pages go through `find` + a `computer` click; (4) headless, `folder` and `role` take defaults, so the five-answer command is complete |
 | 7 | Evals, triggers and a rehearsal | ✅ | `evals/platform-audit-{headless-round-1,no-chrome,check}/` (case.yaml + scaffold.sh); `evals/lib/scaffold.mjs`; `evals/triggers/platform-audit.json` (10 + 10); `evals/run.sh` (not run, D17); `test/evals-lint.test.mjs` (14 tests) | `npm test` 102/102; rehearsal report `check-audit` clean (inventory, private terms, appendix); score routes 1.0, items 0.971; fixture log 49 requests, 0 mutation / upload / download, no 429; genericity clean (plugin 79 files, `--added`) | 6 fixes: (1) probe returned a record's name as a detail page's heading → `(record title)`; (2) `peek().hidden` listed `/login` → sign-in routes left out; (3) row checkbox via `open(i,{toggle:true})` impossible (cells unlisted) → `find` + `computer`; (4) blocked page's message → from `access`; (5) chips / profile block are plain text → screenshot or `zoom`; (6) `open()` omits an empty `blocked`. **For S8 to watch:** a real paste of the 10.9 KB probe into `javascript_tool` (the rehearsal injected the file); one load per batch; whether `find` + `computer` reach the row link and checkbox; no paid evals run |
 | 8 | Trial run in Kam's Chrome | ✅ | Trial report `/Users/kstar/_PRJ/platform-audit-trial/docs/partner-portal-audit/PARTNER-PORTAL-PLATFORM-AUDIT.md` (641 lines) + `appendix-ui-labels.md`, outside this repo; work folder `.platform-audit/partner-portal/` there | `check-audit` clean (inventory, the fixture's private terms, appendix); score routes 92.3%, items 84.1% as scored (98.6% with the three headings matched), passed on D20; fixture log 54 requests: 0 mutation / upload / download, no 429, data loads ≥ 27 s apart | 12 findings (Review notes); 39 min elapsed, about 21 of them waiting on the second interview question; by hand |
-| 9 | Review and fixes | ⬜ | | | By hand |
+| 9 | Review and fixes | ✅ | `test/score-report.mjs` (loose heading match, `optional` screens, 🚪); `fixtures/partner-portal/truth.json`; `check-audit.mjs` (🚪 in the key); `templates/audit.md`; `reference/{writing,walking,code-inventory}.md`; clean sample + 9 defect copies; `test/{report-tools,fixture}.test.mjs` | `npm test` 105/105 (3 new); trial report rescored: items 100%, routes 92.3% as written (its `/login` is 🔒), and a copy with `/login` 🚪 scores 100%/100% with `check-audit` clean; rehearsal (signed-out start, Orders, `try-two`) 34 requests, 0 mutation / upload / download, no 429; validate passes; genericity clean (plugin 79 files, `--added`) | Kam: **approve as-is**, no prompts from the Chrome calls. 9 items closed, 1 (fallback in Chrome, D22) moved to After 1.0. New 🚪 status (D21). The trial report as written now fails `keys` (no 🚪), as expected |
 | 10 | Release 1.0.0 | ⬜ | | | By hand; push on Kam's go-ahead |
 
 Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
@@ -84,11 +84,14 @@ default folder.
 
 ### Kam's notes on the trial report (read by Session 9)
 
-(none yet)
+- 2026-11-27: **Approve as-is.** No notes of their own. The Chrome calls ran without permission prompts
+  (closes finding 6). On finding 2: "New status" (D21). On finding 9: "After 1.0" (D22).
 
 ### After 1.0
 
-(none yet)
+- **Prove the in-page code fallback in Chrome** (finding 9, D22, Kam's say-so in S9). Run the three
+  `code-inventory.md` snippets on a site that refuses the download (the fixture can't: `--forbid-assets`
+  also stops the page loading its own scripts), then `inventory.mjs join` and compare with a download.
 
 ## Session log
 
@@ -331,3 +334,44 @@ Runtime: opus/medium (by hand)
   The transcript showed one probe paste, no refusals and no errors.
 - **Deviation:** the gate's score line passed on D20, not on the numbers. Findings 1–3 are S9's first fixes.
 - No skill change in this session. The fixture is stopped, and the trial repo is not committed.
+
+### Session 9 — Review and fixes, by hand (2026-11-27) ✅
+
+Runtime: opus/high (by hand)
+
+- Kam's verdict: **approve as-is** (D21, D22 and the verdict are in PLAN §3). The trial report follows the
+  reference audit section for section (§1–9, Appendices A–B), and adds a "Business scope" subsection.
+- **Checklist** (from the trial findings and Kam's answers):
+  1. ✅ The scorer matched headings exactly. → `score-report.mjs` tries the exact last part first, then a
+     loose match: each word in the singular, and the last part, last two parts or whole › path joined.
+     The trial report's items went from 84.1% to 100%.
+  2. ✅ `/login` was 🔒 when already signed in. → 🚪 "public page, not opened (already signed in)" (D21) in
+     `writing.md` › Route statuses, the template's key, `check-audit`'s `ROUTE_STATUSES` and the scorer.
+     `walking.md` › Recon step 2 reads the sign-in page with `screen()` when the tab opens on it, and never
+     loads it otherwise. `code-inventory.md` points there. Truth: `/login` is `public`, expects ✅ or 🚪.
+  3. ✅ The Sign in screen had no block. → Truth marks it `optional`, and it is scored only when the report
+     has a block. When the walk does see the page, it now writes one (item 2).
+  4. ✅ (finding 6) Did the Chrome calls prompt? Kam: no prompts.
+  5. ✅ (finding 10) Are Bash calls doubled? No. Each call is one `tool_use` id, written to the transcript
+     twice: once as typed, and once after a hook added `cd <trial repo> &&` to it. Its result is likewise
+     written twice, identically. The trial ran no Write or Edit. So the calls ran once and nothing was
+     written twice.
+  6. ✅ (finding 11) Tool counts: S8's counts were transcript blocks. The real call counts are Bash 35, Read
+     18, `javascript_tool` 35, `computer` 30, `find` 4, `navigate` 3, AskUserQuestion 2.
+  7. ✅ (findings 4, 5, 7, 8) Seen working in S8; nothing to fix.
+  8. ✅ (finding 12) Elapsed time: nothing to fix. The wait was on the user's answer, not the skill.
+  9. ✅ Probe 10,903 bytes (≤ 12 KB, D18), SKILL.md untouched, interview wording untouched (still v1).
+  10. ➡ (finding 9) The in-page fallback in Chrome is moved to After 1.0, with Kam's say-so (D22).
+- **Re-runs:** `npm test` 105/105 (3 new: loose headings, 🚪 and optional Sign in, `check-audit` wants 🚪).
+  Clean sample's key gains 🚪, and `plant-defects.mjs` was rerun. The trial report, rescored: items 100%,
+  routes 92.3%, because it still says 🔒 for `/login`. As written it now fails `keys` (no 🚪), as expected.
+  A scratchpad copy with `/login` 🚪 and the new key scores 100%/100% with `check-audit` clean.
+- **Rehearsal** (D15, Playwright MCP, fixture on port 0, log `test/.out/s9-rehearsal/`). The tab opened
+  signed out on `/login`: `recon().signin` was "auth page", and `screen()` gave the heading and the one
+  button "Sign in as demo partner" (truth's item). After the demo sign-in, Orders read as before, and
+  `peek().hidden` gave the 4 hidden routes without `/login`. `try-two` opened `/reports/finance` and
+  `/admin/audit-log`, both "Access denied" (⛔). A reload, already signed in, landed on `/orders` with
+  `signin` null (→ 🚪). Log: 34 requests (8 page, 20 asset, 6 query), 0 mutation / upload / download, no
+  429. Fixture stopped, browser closed.
+- **Small choices:** the emoji is 🚪. Exact heading match is tried before the loose one, so earlier
+  reports score as before.

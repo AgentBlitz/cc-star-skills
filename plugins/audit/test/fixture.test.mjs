@@ -138,7 +138,10 @@ test('truth.json is in step with itself: every route has a screen entry and the 
   assert.equal(new Set(paths).size, paths.length);
   for (const r of TRUTH.routes) {
     assert.ok(TRUTH.screens[r.screen], `screen for ${r.path}`);
-    assert.deepEqual(r.expected, r.visible ? (r.screen === 'Payouts' ? ['📄'] : ['✅']) : ['⛔', '🔒'], r.path);
+    const visible = r.screen === 'Payouts' ? ['📄'] : r.public ? ['✅', '🚪'] : ['✅'];
+    assert.deepEqual(r.expected, r.visible ? visible : ['⛔', '🔒'], r.path);
+    // a signed-out page may go unseen (🚪), so its block is scored only when the report has one
+    assert.equal(Boolean(TRUTH.screens[r.screen].optional), Boolean(r.public), r.path);
   }
   assert.equal(Object.keys(TRUTH.screens).length, TRUTH.routes.length);
 });

@@ -6,7 +6,10 @@
 //
 // Routes: a route scores when a table row holds it in backticks with a status the truth expects.
 // Items: per screen, the share of its filters, columns, actions and form fields (dialogs' too) that the
-// screen's ### block mentions. Exit 0 at or above both thresholds, 1 below, 2 on a usage error.
+// screen's ### block mentions. A block is found by its heading's last part, or loosely (singular or
+// plural, the parent › child path joined: "Admin › Settings" for "Admin settings"). A screen truth marks
+// `optional` (a signed-out page, which may be 🚪) is scored only when it has a block.
+// Exit 0 at or above both thresholds, 1 below, 2 on a usage error.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_TRUTH = path.resolve(HERE, '..', 'fixtures', 'partner-portal', 'truth.json');
-const STATUSES = ['✅', '📄', '🔗', '⛔', '🔒'];
+const STATUSES = ['✅', '📄', '🔗', '🚪', '⛔', '🔒'];
 
 const cells = (row) => row.trim().replace(/^\|/, '').replace(/(?<!\\)\|$/, '').split(/(?<!\\)\|/).map((c) => c.trim());
 const norm = (s) => s.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -26,15 +29,27 @@ export function itemsOf(screen) {
   return [...new Set(out)];
 }
 
-/** The last part of a heading's name: no number, route, emoji or parentheses; after the last › or →. */
-function headingName(text) {
+/** A heading's name parts: no number, route, emoji or parentheses; split at › and →. */
+function headingParts(text) {
   const t = text
     .replace(/^\d+(?:\.\d+)*\.?\s*/, '')
     .replace(/`[^`]*`/g, '')
     .replace(/\([^)]*\)/g, '')
     .replace(/[\p{Extended_Pictographic}️]/gu, '')
     .trim();
-  return norm(t.split(/[›→]/).pop());
+  return t.split(/[›→]/).map(norm).filter(Boolean);
+}
+
+/** Each word in the singular, roughly: "Order details" and "Order detail" read the same. */
+const loose = (s) => norm(s).split(' ').map((w) => (w.length > 3 && /[^s]s$/.test(w) ? w.slice(0, -1) : w)).join(' ');
+
+/**
+ * The names a heading may stand for, loosely: its last part ("Sales › Orders" → orders), its last two
+ * parts joined ("Admin › Settings" → admin settings), and the whole path joined.
+ */
+function looseNames(parts) {
+  const names = [parts.at(-1), parts.slice(-2).join(' '), parts.join(' ')];
+  return [...new Set(names.filter(Boolean).map(loose))];
 }
 
 /** ### and #### blocks: { name, text } — the text runs to the next heading of the same or a higher level. */
@@ -48,8 +63,14 @@ function screenBlocks(lines) {
     .filter((h) => h.level >= 3)
     .map((h) => {
       const next = heads.find((x) => x.i > h.i && x.level <= h.level);
-      return { name: headingName(h.text), text: lines.slice(h.i, next ? next.i : lines.length).join('\n') };
+      const parts = headingParts(h.text);
+      return { name: parts.at(-1) ?? '', loose: looseNames(parts), text: lines.slice(h.i, next ? next.i : lines.length).join('\n') };
     });
+}
+
+/** The block for a truth screen: an exact match on the last part first, then a loose one. */
+function blockFor(blocks, name) {
+  return blocks.find((b) => b.name === norm(name)) ?? blocks.find((b) => b.loose.includes(loose(name)));
 }
 
 export function scoreReport(text, truth) {
@@ -63,12 +84,14 @@ export function scoreReport(text, truth) {
   });
 
   const blocks = screenBlocks(lines);
-  const screens = Object.entries(truth.screens).map(([name, s]) => {
+  const screens = Object.entries(truth.screens).flatMap(([name, s]) => {
+    const block = blockFor(blocks, name);
+    // an optional screen (a signed-out page the walk may never see, 🚪) counts only when it has a block
+    if (s.optional && !block) return [];
     const items = itemsOf(s);
-    const block = blocks.find((b) => b.name === norm(name));
     const hay = block ? norm(block.text) : '';
     const missing = items.filter((it) => !hay.includes(norm(it)));
-    return { screen: name, block: Boolean(block), items: items.length, mentioned: items.length - missing.length, missing };
+    return [{ screen: name, block: Boolean(block), items: items.length, mentioned: items.length - missing.length, missing }];
   });
 
   const totalItems = screens.reduce((n, s) => n + s.items, 0);

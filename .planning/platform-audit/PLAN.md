@@ -617,6 +617,17 @@ plugins/audit/
 - **D20. S8's score gate passes on review** (Kam, 27 Nov). The trial scored routes 92.3% and items 84.1%.
   The misses were the scorer's exact heading-name match (98.6% of items once matched) and `/login` marked 🔒
   after a manual sign-in. S9 fixes the scorer, the status key and truth (Trial findings 1–3).
+- **D21. A sixth route status, 🚪 "public page, not opened (already signed in)"** (Kam, 27 Nov, S9: "New
+  status"), for a signed-out page (sign-in, sign-up, reset) the walk never saw. The walk never loads one
+  to see it, because on some platforms that ends the session. When the tab does open on the sign-in
+  page, the walk reads it with `screen()` before the user signs in, and it gets ✅ and a short block.
+  `check-audit` wants 🚪 in the status key. Truth accepts ✅ or 🚪 for `/login`, and scores the Sign in
+  block only when the report has one. The rejected options were loading the sign-in route once, and
+  counting a hand sign-in as ✅.
+- **D22. The in-page code fallback is proved after 1.0** (Kam, 27 Nov, S9: "After 1.0"). It has run only
+  in a stand-in page (S6). It is the rare path, and S9 stays within the notes.
+- **S9 verdict** (Kam, 27 Nov): the trial report is approved as-is. The Chrome calls ran without
+  permission prompts.
 
 ### Reconciliations
 

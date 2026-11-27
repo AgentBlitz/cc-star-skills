@@ -19,7 +19,7 @@
     "profile": ["Display name", "Email", "Partner ID"]
   },
   "routes": [
-    { "path": "/login", "screen": "Sign in", "menu": null, "visible": true, "expected": ["✅"] },
+    { "path": "/login", "screen": "Sign in", "menu": null, "visible": true, "public": true, "expected": ["✅", "🚪"] },
     { "path": "/orders", "screen": "Orders", "menu": "Sales › Orders", "visible": true, "expected": ["✅"] },
     { "path": "/orders/:orderId", "screen": "Order details", "menu": null, "visible": true, "expected": ["✅"] },
     { "path": "/payouts", "screen": "Payouts", "menu": "Finance › Payouts", "visible": true, "expected": ["📄"] },
@@ -42,6 +42,7 @@
   "endpoints": ["POST /api/graphql", "GET /api/export/orders.csv", "GET /api/export/customers-template.csv", "POST /api/upload"],
   "screens": {
     "Sign in": {
+      "optional": true,
       "filters": [], "columns": [], "actions": ["Sign in as demo partner"], "fields": []
     },
     "Orders": {

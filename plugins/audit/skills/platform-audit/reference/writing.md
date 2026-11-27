@@ -64,11 +64,17 @@ One per route, in §4's table and on §7's headings:
 | ✅ seen on screen | The screen opened and showed its content |
 | 📄 opened, but empty for this account | It opened, and its table or panel had no data |
 | 🔗 detail page, no data to open | A route with a parameter, and no row to open it from |
+| 🚪 public page, not opened (already signed in) | A page for signed-out visitors (sign-in, sign-up, password reset) that the walk never saw, because the user was already signed in |
 | ⛔ tried and blocked | Loaded by address under the `hidden` answer, and refused |
-| 🔒 not shown to this role (from code) | Never visited; known from the code only |
+| 🔒 not shown to this role (from code) | Never visited; known from the code only. Not for a signed-out page (🚪) |
 
-A route that is not a screen (the sign-in page, a redirect) still gets its row, with ✅ if the
-walk passed through it or 🔒 if not, and a few words saying what it is.
+A route that is not a screen (the sign-in page, a redirect) still gets its row, and a few words
+saying what it is:
+
+- the sign-in page and the other signed-out pages: ✅ if the tab showed them during the walk
+  (the user signed in there), and then a short block with what they show; 🚪 if not. Never load
+  one to see it: on some platforms that ends the session;
+- a redirect or other route the walk passed through: ✅; one it did not: 🔒.
 
 ## Evidence tags
 

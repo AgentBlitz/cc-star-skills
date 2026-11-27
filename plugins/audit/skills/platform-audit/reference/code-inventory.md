@@ -211,7 +211,8 @@ prints, with what it is:
 - a **detail page**: its path has a parameter (`/orders/:orderId`);
 - a **hidden screen**: a screen's path that no menu item leads to;
 - **something else**: the sign-in page, a redirect, an error page. It still gets its line and,
-  later, its row in the report, because the final check wants every route accounted for.
+  later, its row in the report, because the final check wants every route accounted for
+  (`writing.md` › Route statuses: a signed-out page the walk never saw is 🚪, not 🔒).
 
 Add the tabs and sub-views a screen has as you find them. Then start
 `.platform-audit/<slug>/label-map.json`: for each namespace `labels list` prints, the heading of
