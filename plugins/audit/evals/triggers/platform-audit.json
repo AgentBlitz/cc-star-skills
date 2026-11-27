@@ -1,0 +1,82 @@
+[
+  {
+    "query": "We're about to integrate with a partner's back office at https://partners.example.com and nobody here knows everything it can do. I'm logged in already in Chrome. Can you go through it and document every screen, filter and field?",
+    "should_trigger": true
+  },
+  {
+    "query": "map every screen of this admin panel for me - https://admin.example.net - including the ones my account can't see if the code mentions them",
+    "should_trigger": true
+  },
+  {
+    "query": "I've got a list of fields we need from the vendor's portal (requirements.md in this repo). Check it has the fields we need - log into https://vendor.example.org in my browser, I'm already signed in.",
+    "should_trigger": true
+  },
+  {
+    "query": "https://app.example.com - I'm logged in. what can this thing actually do? I need a proper inventory of features before we decide whether to rebuild it",
+    "should_trigger": true
+  },
+  {
+    "query": "Due diligence on an acquisition target: they gave us a demo login to their SaaS dashboard. Write up a capability matrix of the platform as that account sees it, read-only, don't change anything.",
+    "should_trigger": true
+  },
+  {
+    "query": "Before we migrate off our old CRM I want a written record of every page, column, export and action it has. It's at https://crm.example.com and my Chrome session is signed in.",
+    "should_trigger": true
+  },
+  {
+    "query": "audit this platform: https://merchant.example.com/dashboard. read-only, slowly please, it's production and it handles real payouts",
+    "should_trigger": true
+  },
+  {
+    "query": "Our affiliate network's partner portal has loads of reports and filters and no documentation. Can you walk through it in my browser and write a report of everything on it, with the UI labels?",
+    "should_trigger": true
+  },
+  {
+    "query": "I need to know which screens and fields this back office exposes to a partner-level account versus what's in the app's JavaScript. URL is https://bo.example.com, I'm logged in as the partner.",
+    "should_trigger": true
+  },
+  {
+    "query": "can you resume the platform audit you started yesterday on the supplier portal? the progress file should still be in .platform-audit",
+    "should_trigger": true
+  },
+  {
+    "query": "Run an SEO audit of https://shop.example.com - meta tags, headings, broken links, sitemap, the lot.",
+    "should_trigger": false
+  },
+  {
+    "query": "Our landing page is slow. Run Lighthouse on https://www.example.com and tell me what's dragging the performance score down.",
+    "should_trigger": false
+  },
+  {
+    "query": "Check our web app for accessibility problems against WCAG 2.2 AA - contrast, keyboard navigation, screen reader labels.",
+    "should_trigger": false
+  },
+  {
+    "query": "We have written permission to pentest the staging admin panel. Find auth bypasses and IDOR issues in it.",
+    "should_trigger": false
+  },
+  {
+    "query": "Review the code in this PR for bugs and anything that doesn't follow our conventions.",
+    "should_trigger": false
+  },
+  {
+    "query": "Write a script that logs into a competitor's store every night and scrapes all their product prices into a CSV.",
+    "should_trigger": false
+  },
+  {
+    "query": "Write end-user guides for our leave-booking app, one per role, by clicking through it on localhost.",
+    "should_trigger": false
+  },
+  {
+    "query": "Make a two-minute product film of our dashboard for the launch page, with captions.",
+    "should_trigger": false
+  },
+  {
+    "query": "Audit this repo's codebase: dead code, outdated dependencies, missing tests, the usual tech-debt list.",
+    "should_trigger": false
+  },
+  {
+    "query": "Do a GDPR cookie audit of our marketing site - which cookies get set before consent and whether the banner is compliant.",
+    "should_trigger": false
+  }
+]

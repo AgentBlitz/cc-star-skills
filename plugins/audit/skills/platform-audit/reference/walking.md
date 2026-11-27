@@ -21,8 +21,8 @@ are masked. It never returns cell text or field values, so nothing it says is pe
 | `__auditProbe.screen(sel?)` | The main area: headings `h`, `crumbs`, `tabs`, `buttons`, `links`, `fields` (type, placeholder, required, options of a select), `toggles`, `terms` (the labels of a details list), `tables` (columns with `sortable` and a header `menu`, row count, the empty text), `empty`, `pager`, `rowControls`. `sel` scopes it to a CSS selector, such as `header` for the top bar |
 | `__auditProbe.overlays()` | Whatever is open on top: each dialog, menu, listbox or popover with its `options`, `groups`, `fields`, `toggles`, `buttons`, `links` and, for a dialog, its `notes` |
 | `__auditProbe.requests()` | The network calls since it was last asked, as `calls` by host (`path status×count`), and `n429` |
-| `await __auditProbe.peek()` | A quick reading of the cached scripts: `files` with sizes, `routes`, counts of `labels` and `ops`, lazy `chunks` it saw named, `hidden` (routes no menu item leads to) and `detail` (routes with a parameter) |
-| `__auditProbe.open(i \| text, opts?)` | Presses one control, if the guard allows it: `{"ok":1,"t":…,"blocked":[]}` or `{"refused":"<reason>","t":…}` (`ground-rules.md` › The guard in `probe.js`) |
+| `await __auditProbe.peek()` | A quick reading of the cached scripts: `files` with sizes, `routes`, counts of `labels` and `ops`, lazy `chunks` it saw named, `hidden` (routes no menu item leads to, leaving out sign-in and log-out routes) and `detail` (routes with a parameter) |
+| `__auditProbe.open(i \| text, opts?)` | Presses one control, if the guard allows it: `{"ok":1,"t":…}` (with `blocked` when a native dialog fired) or `{"refused":"<reason>","t":…}` (`ground-rules.md` › The guard in `probe.js`) |
 
 - Every control a method lists carries an index `i`. `open(i)` presses that control; `open('Columns')`
   finds one by its name, in an open overlay first. After the page redraws, an old index may
@@ -140,9 +140,10 @@ With `interact=open-forms` or `downloads`:
   its text and in the code's limits.
 - A dialog that **only confirms** is not opened at all. Its title, text and buttons are in the
   code's labels.
-- A button that is **disabled** until rows are selected: tick the first row's checkbox with
-  `open(i, {toggle: true})` only when a bulk action can't be understood otherwise, read what it
-  enables, open that action's form as above, cancel, and untick the row.
+- A button that is **disabled** until rows are selected: tick the first row's checkbox only
+  when a bulk action can't be understood otherwise. The probe doesn't list it (it sits in a table
+  cell), so find it with `find` and click its `ref` with `computer`, as for a detail link. Read
+  what it enables, open that action's form as above, cancel, and untick the row the same way.
 
 ### Exports
 
@@ -166,7 +167,8 @@ you find it, and tick it when written.
   so find it with `find` ("the first row's link in the table") and click its `ref` with
   `computer`: it is a deliberate click, so hold it against the never-click list first. Wait out
   the pace. Read the page with `screen()`: its panels, the `terms` of each details list, its tabs
-  and its actions. One record is enough; never page through records.
+  and its actions. On a page whose address holds an id, a top heading that is the record's own
+  name comes back as `(record title)`. One record is enough; never page through records.
 - **The list is empty:** the detail page can't be opened. Don't guess an id into the address.
   Mark the route 🔗, and describe the page from the code: its labels, columns and operations,
   tagged **[Code]**.
@@ -181,6 +183,11 @@ Before the first screen, read what every screen shares: `nav()` for the menu, `s
 and what they show (the kind of value, never the value), the account menu's items, the language
 list (read, never switched), help and external links (label and host only), and the profile
 block's fields. This becomes the report's "Global interface" section and the menu tree.
+
+The probe lists controls, not plain text, so balance chips, the profile block and a label such
+as "Referral link" don't come back from `screen('header')` or `overlays()`. Read their labels
+from the one screenshot, or `zoom` on the region, and match them to `labels show shell,account`
+(or whatever the shell's namespaces are). Write the label and the kind of value only.
 
 ## Hidden routes
 
@@ -200,6 +207,8 @@ walk is safely written.
   loader, then `screen()` and `requests()`.
 - **Blocked** means a permission message, a redirect to another screen or to sign-in, or the
   screen's data calls answering 401 or 403. Record what was shown, in the platform's own words.
+  `screen()` gives the page's heading ("Access denied") but not its paragraph: take the message
+  from `inventory.mjs access` › denied messages, or a zoomed screenshot.
   One try each: never reload a blocked route, and never try a variation of its address.
 - **It opened:** walk it like any other screen. Take extra care on a screen this role isn't
   shown: read, open filters, and leave its forms closed.

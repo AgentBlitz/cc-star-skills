@@ -281,6 +281,21 @@ test('screen() on Order details: panels, terms, the line items, and no record da
   await assertPrivate(from, 'Order details');
 });
 
+test('screen() on Customer details: the record\'s name as heading comes back as (record title)', async (t) => {
+  if (skip(t)) return;
+  const from = outputs.length;
+  await go('Customers');
+  await page.click('main td a'); // a deliberate row click, as the skill makes with find + computer
+  await page.waitForSelector('main h2:has-text("Contact")');
+  const name = (await page.textContent('main h1')).trim();
+  const s = await call('screen');
+  assert.match(s.path, /^\/customers\/C-#$/);
+  assert.equal(s.h[0], '1 (record title)');
+  assert.ok(s.h.includes('2 Contact'));
+  assert.ok(!outputs.slice(from).some((o) => o.includes(name)), 'the customer\'s name never comes back');
+  await assertPrivate(from, 'Customer details');
+});
+
 test('screen() on Profile reads labels, never the values', async (t) => {
   if (skip(t)) return;
   const from = outputs.length;
@@ -302,7 +317,7 @@ test('peek() reads the cached scripts and finds the hidden routes', async (t) =>
   const hidden = TRUTH.routes.filter((r) => !r.visible).map((r) => r.path);
   for (const h of hidden) assert.ok(p.hidden.includes(h), `hidden ${h}`);
   for (const r of TRUTH.routes.filter((x) => x.menu && x.visible)) assert.ok(!p.hidden.includes(r.path), `${r.path} is in the menu`);
-  assert.ok(!p.hidden.includes('/logout'), 'log-out routes are never candidates');
+  assert.ok(!p.hidden.includes('/logout') && !p.hidden.includes('/login'), 'sign-in and log-out routes are never candidates');
   assert.ok(p.detail.includes('/orders/:orderId'));
   assert.ok(p.chunks.includes('/assets/admin-8d41b6e0.js'), 'the lazy admin chunk is named');
   assert.ok(p.labels > 50 && p.ops >= 10, `labels ${p.labels}, ops ${p.ops}`);

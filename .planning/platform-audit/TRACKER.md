@@ -20,7 +20,7 @@
 | 4 | The in-page probe | ✅ | `scripts/probe.js` (10,759 bytes); `test/probe.test.mjs` (16 tests); `playwright-core@1.63.0` dev dependency; fixture Help link | `npm test` 53/53 with the cap at 12 KB (D18); privacy and guard tests pass; genericity clean (plugin 40 files, `--added`) | Blocked first on the 8 KB cap; Kam chose 12 KB, one file (D18) |
 | 5 | Report tooling | ✅ | `templates/{audit,screen,progress}.md`; `scripts/appendix.mjs`, `check-audit.mjs`; `test/score-report.mjs`; `test/samples/partner-portal-audit/` (clean report, appendix, map, 9 defects) + `plant-defects.mjs`; `test/report-tools.test.mjs` | `npm test` 75/75 (22 new); all 9 defects caught, each under its own check only; clean sample clean with no check skipped; scorer 100%/100% on it; genericity clean (plugin 62 files, `--added`) | **For S6:** `label-map.json` is `{group: heading}`, `*` suffix = prefix, heading `"shared"` = shared library; `appendix.mjs --report <file>` links back; `check-audit --appendix` also checks the appendix. The template's `<!-- SECTION` comments must all go, or `markers` fails |
 | 6 | The skill text | ✅ | `SKILL.md` (117 lines); `reference/{interview,ground-rules,code-inventory,walking,writing,checking}.md`; `test/skill-lint.test.mjs` (12 tests); `inventory.mjs join`; plugin 0.9.0 | `npm test` 87/87 (12 new); `claude plugin validate` passes (icon warning only); genericity clean (plugin 69 files, `--added`) | Contracts (Claude Code 2.1.332 docs): `argument-hint` and `allowed-tools` are honoured; `allowed-tools` grants for the invoking turn and restricts nothing; the docs don't say it takes MCP names, though `mcp__claude-in-chrome__*` fits the permission-rule form; `${CLAUDE_SKILL_DIR}` works in plugin skills. **For S7/S8 to watch:** (1) the in-page fallback has run only in a stand-in page (vm): run it once on the fixture with `--forbid-assets`, to see that `javascript_tool` takes the 69 KB core and an `await (async…)()` snippet; (2) whether Chrome calls still prompt with this `allowed-tools`; (3) the probe can't press a row link, so detail pages go through `find` + a `computer` click; (4) headless, `folder` and `role` take defaults, so the five-answer command is complete |
-| 7 | Evals, triggers and a rehearsal | ⬜ | | | No paid runs (D17) |
+| 7 | Evals, triggers and a rehearsal | ✅ | `evals/platform-audit-{headless-round-1,no-chrome,check}/` (case.yaml + scaffold.sh); `evals/lib/scaffold.mjs`; `evals/triggers/platform-audit.json` (10 + 10); `evals/run.sh` (not run, D17); `test/evals-lint.test.mjs` (14 tests) | `npm test` 102/102; rehearsal report `check-audit` clean (inventory, private terms, appendix); score routes 1.0, items 0.971; fixture log 49 requests, 0 mutation / upload / download, no 429; genericity clean (plugin 79 files, `--added`) | 6 fixes: (1) probe returned a record's name as a detail page's heading → `(record title)`; (2) `peek().hidden` listed `/login` → sign-in routes left out; (3) row checkbox via `open(i,{toggle:true})` impossible (cells unlisted) → `find` + `computer`; (4) blocked page's message → from `access`; (5) chips / profile block are plain text → screenshot or `zoom`; (6) `open()` omits an empty `blocked`. **For S8 to watch:** a real paste of the 10.9 KB probe into `javascript_tool` (the rehearsal injected the file); one load per batch; whether `find` + `computer` reach the row link and checkbox; no paid evals run |
 | 8 | Trial run in Kam's Chrome | ⬜ | | | By hand |
 | 9 | Review and fixes | ⬜ | | | By hand |
 | 10 | Release 1.0.0 | ⬜ | | | By hand; push on Kam's go-ahead |
@@ -223,3 +223,50 @@ Runtime: fable/high (autopilot attempt 1)
 - Deviations: the `claude-code-guide` step, as above. No browser was opened and no eval written.
 - Gate: `npm test` 87/87; `claude plugin validate plugins/audit` passes (the icon warning only); genericity
   clean over 69 plugin files and `--added`.
+
+### Session 7 — Evals, triggers and a rehearsal (2026-11-27) ✅
+
+Runtime: opus/medium (autopilot attempt 1)
+
+- **Evals (not run, D17).** Three eval-format cases on user-guides' pattern, each with a `scaffold.sh` over a
+  shared `evals/lib/scaffold.mjs`: `platform-audit-headless-round-1` (Round 1 printed word for word, the pace
+  note and the answering command; no Write/Edit, no Chrome ToolSearch, no `bundle.mjs`, no work folder),
+  `platform-audit-no-chrome` (says Claude in Chrome isn't connected; no other browser, fetch or file) and
+  `platform-audit-check` (the clean sample with the markers, tables, xref and summary defects planted; graders
+  name each check and the skipped ones). A 20-query trigger set (10 + 10, the near-misses as listed) and
+  `run.sh` (staged copy without `node_modules`, `--no-publish --scaffold --trust-plugin`, results to
+  `evals/results/`, a BILLED header naming D17).
+- **Evals lint** (`test/evals-lint.test.mjs`, 14 tests) goes beyond the brief in two places: it matches the
+  headless graders against the Round 1 block in `interview.md`, so the two can't drift; and it runs the check
+  scaffold and compares `check-audit`'s findings with the graders' `names-*`.
+- **Small choices.** The scaffolds use no git: the skill never runs git, and user-guides found git fails
+  inside eval runs, so no `bin/git` wrapper is needed. The command grader's host is written unescaped
+  (`app.example.com`), because the genericity test reads `app\.example\.com` as host "app".
+- **Rehearsal** (D15) at `test/.out/rehearsal/` on the fixture (port 0), with the Playwright MCP tools:
+  demo sign-in, recon, `peek()`, download (4 files) and inventory (13 routes, 154 labels, 20 operations), the
+  shell, all six menu screens and both detail pages, every filter, chooser and dialog opened and cancelled,
+  Export CSV refused by the guard, then `hidden=try-two` on `/reports/finance` and `/admin/audit-log` (both
+  "Access denied", so the other two stayed 🔒). Report, label map and appendix written; `check-audit` clean
+  on the first run; tab's sessionStorage entry removed and the browser closed; fixture stopped.
+- **Deviations in the stand-in** (harness, not skill): the probe was injected with `page.addScriptTag` from
+  the file rather than transcribed into `browser_evaluate` (same text, the sessionStorage copy still worked
+  after full loads); several local opens, and the Reports tabs, ran in one `browser_run_code_unsafe` call with
+  the pace's 5 s waits between loads, which a Claude in Chrome run must not do (one load per batch). S8 tests
+  the real paste and pacing.
+- **What broke, and what changed:**
+  1. `screen()` on Customer details returned the customer's name as the `h1`. → `probe.js`: on a page whose
+     path holds a digit, a top heading with no digit or mask becomes `(record title)`; new probe test on
+     Customer details; `walking.md` › Detail pages says so.
+  2. `peek().hidden` listed `/login`, so Round 1's count and names (and a `try-*` pick) would include the
+     sign-in page. → `probe.js` leaves out sign-in and log-out routes; the peek test asserts it; the probe
+     table in `walking.md` says so.
+  3. `ground-rules.md` and `walking.md` said to tick a row's checkbox with `open(i, {toggle: true})`, but
+     the probe never lists controls in table cells. → Both now say `find` + a `computer` click, as for row
+     links; `{toggle: true}` is kept for a listed checkbox.
+  4. On a blocked page `screen()` gives only the heading. → `walking.md` › Hidden routes: take the message
+     from `inventory.mjs access` › denied messages, or a zoomed screenshot.
+  5. Balance chips, the profile block and "Referral link" are plain text the probe doesn't return. →
+     `walking.md` › The global shell: read their labels from the screenshot or `zoom`, matched to
+     `labels show`, kind of value only.
+  6. `open()` answers `{"ok":1,"t":…}` with no `blocked` key when nothing fired. → the probe table says so.
+- Probe now 10,903 bytes (cap 12 KB, D18). `npm test` 102/102.

@@ -75,9 +75,11 @@ what it lets through still has to pass the table. A refusal answers
   `window.open` with stubs, and lists any that fired under `blocked`. A non-empty `blocked` means
   the control was not what it seemed: note it in `progress.md` › Decisions and don't press it
   again.
-- **`{toggle: true}`** has one use: ticking the first row's selection checkbox, to see which
-  bulk actions it enables, when `interact` allows opening forms. Untick it afterwards. Never use
-  it for a switch, a column chooser, "Select all" or a settings checkbox.
+- **The first row's selection checkbox** may be ticked once, to see which bulk actions it
+  enables, when `interact` allows opening forms. It sits in a table cell, so the probe doesn't
+  list it: find it with `find` and click its `ref` with `computer`, then untick it the same way.
+  `{toggle: true}` is for a selection checkbox the probe does list (outside the table). Never
+  tick a switch, a column chooser, "Select all" or a settings checkbox.
 - **A refusal is final.** Don't press the same control another way. If the guard refuses
   something harmless (a tab called "Archive", a filter called "Approved"), describe what it leads
   to from the code (`code-inventory.md`), or ask the user. The guard reads names, not intent, so

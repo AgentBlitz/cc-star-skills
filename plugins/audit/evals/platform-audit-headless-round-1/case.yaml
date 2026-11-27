@@ -1,0 +1,70 @@
+schema_version: "1.0"
+name: platform-audit-headless-round-1
+description: >-
+  A headless `/audit:platform-audit <url>` with no answers prints Round 1 (checklist, hidden,
+  interact, code), says Round 2 needs pace, offers the command that answers them, and stops before
+  any Chrome call, recon or download: nothing written (PLAN §2.3, D11).
+tags: [platform-audit, headless, interview]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: /audit:platform-audit https://app.example.com
+  model: sonnet
+  max_turns: 10
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill, ToolSearch]
+runs: 2
+graders:
+  - type: regex
+    name: edited-copy-ran
+    target: trace
+    pattern: "audit-eval\\.[A-Za-z0-9]+/plugin/skills/platform-audit"
+    arm: with-only
+  - type: regex
+    name: says-it-needs-answers
+    target: last_message
+    pattern: "platform-audit needs your answers \\(Round 1 of 2\\)"
+  - type: regex
+    name: asks-round-1
+    target: last_message
+    pattern: "list of required fields or capabilities[\\s\\S]*how should I handle them\\?[\\s\\S]*How far may I interact with screens\\?[\\s\\S]*How should I get it\\?"
+  - type: regex
+    name: names-round-2
+    target: last_message
+    pattern: "Round 2 then needs pace"
+  - type: regex
+    name: offers-the-command
+    target: last_message
+    pattern: "/audit:platform-audit https://app.example.com checklist=\\S+ hidden=\\S+ interact=\\S+ code=\\S+ pace="
+  - type: tool_used
+    name: no-chrome-tools-loaded
+    tool: ToolSearch
+    input_match: "(?i)chrome"
+    min: 0
+    max: 0
+  - type: tool_used
+    name: no-download
+    tool: Bash
+    input_match: "bundle\\.mjs|inventory\\.mjs|curl |wget "
+    min: 0
+    max: 0
+  - type: tool_used
+    name: no-fetch
+    tool: WebFetch
+    min: 0
+    max: 0
+  - type: tool_used
+    name: writes-nothing
+    tool: Write
+    min: 0
+    max: 0
+  - type: tool_used
+    name: edits-nothing
+    tool: Edit
+    min: 0
+    max: 0
+  - type: file_exists
+    name: no-work-folder
+    path: .platform-audit
+    exists: false
+expected_outcome: Round 1's four questions with their options, the pace note and the answering command, then a stop.

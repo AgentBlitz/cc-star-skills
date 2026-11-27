@@ -1,0 +1,64 @@
+schema_version: "1.0"
+name: platform-audit-check
+description: >-
+  `/audit:platform-audit check <report>` on the sample audit of the Partner Portal fixture with four
+  defects planted (markers, tables, xref, summary) runs check-audit.mjs, names each finding by its
+  check, says which checks were skipped for want of a file, and changes nothing (checking.md ›
+  Check alone, D11).
+tags: [platform-audit, check]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: /audit:platform-audit check docs/partner-portal-audit/PARTNER-PORTAL-PLATFORM-AUDIT.md
+  model: sonnet
+  max_turns: 15
+  timeout_seconds: 300
+  allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Skill]
+runs: 2
+graders:
+  - type: regex
+    name: edited-copy-ran
+    target: trace
+    pattern: "audit-eval\\.[A-Za-z0-9]+/plugin/skills/platform-audit"
+    arm: with-only
+  - type: tool_used
+    name: runs-the-checker
+    tool: Bash
+    input_match: "check-audit\\.mjs"
+    min: 1
+  - type: regex
+    name: names-markers
+    target: last_message
+    pattern: "\\bmarkers\\b"
+  - type: regex
+    name: names-tables
+    target: last_message
+    pattern: "\\btables\\b"
+  - type: regex
+    name: names-xref
+    target: last_message
+    pattern: "\\bxref\\b"
+  - type: regex
+    name: names-summary
+    target: last_message
+    pattern: "\\bsummary\\b"
+  - type: regex
+    name: says-routes-and-private-skipped
+    target: last_message
+    pattern: "(?i)skipped[\\s\\S]*(routes|private)|(routes|private)[\\s\\S]*skipped"
+  - type: tool_used
+    name: no-browser
+    tool: ToolSearch
+    min: 0
+    max: 0
+  - type: tool_used
+    name: changes-nothing
+    tool: Edit
+    min: 0
+    max: 0
+  - type: tool_used
+    name: writes-nothing
+    tool: Write
+    min: 0
+    max: 0
+expected_outcome: The four planted findings, each by its check's name with its line, the skipped checks, and no change to the report.

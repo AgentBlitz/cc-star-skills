@@ -37,7 +37,7 @@ nv=()=>navs().flatMap(items),here=()=>pth(L),N=W.__auditNet||(W.__auditNet={q:[]
 X=s=>RegExp('(^|[^\\p{L}])('+s+')(?!\\p{L})','iu'),
 GD=X('delete|remove|destroy|erase|purge|transfer|pay|refund|withdraw|approve|reject|decline|revoke|ban|suspend|deactivate|archive|reset|publish|upload|copy|clipboard|duplicate|cancel \\p{L}+|löschen|entfernen|überweisen|bezahlen|kopieren|hochladen'),
 SB=X('save|submit|confirm|ok|yes|apply changes|update|speichern|absenden|bestätigen'),FV=X('send|import|create|add|invite|finish|done|senden|importieren|erstellen'),
-LO=X('log ?out|sign ?out|abmelden'),DL=X('export\\p{L}*|download\\p{L}*|herunterladen');
+LO=X('log ?out|sign ?out|abmelden'),LA=X('log ?(in|out)|sign ?(in|out)|abmelden|anmelden|auth'),DL=X('export\\p{L}*|download\\p{L}*|herunterladen');
 if(!N.on){N.on=1;try{new PerformanceObserver(l=>N.q.push(...l.getEntries().filter(e=>/^(fetch|xmlhttprequest|beacon)$/.test(e.initiatorType)).map(e=>[e.name,e.responseStatus]))).observe({type:'resource',buffered:true})}catch(e){}}
 const guard=(e,o)=>{const n=name(e),a=e.closest('a[href]'),u=a&&U(A(a,'href')),p=e.parentElement,f=e.closest(DG+',form');
 return e.disabled||T(e,'disabled')?'disabled':M(e,'[type=file]')||q(e,'[type=file]')||p&&q(p,':scope>[type=file]')?'file input':ext(u)?'other host':a&&a.target=='_blank'?'new tab':
@@ -55,7 +55,7 @@ signin:q(D,'[type=password]')?'sign-in form':/(^|\.)(login|auth|sso|accounts?|id
 nav:()=>J({path:here(),menus:navs().map(n=>({t:lab(n),items:items(n)}))}),
 screen(sel){const s=sel?q(D,sel):q(D,'main,[role=main]')||D.body,rc={},tb=own(s,'table,[role=grid],[role=table],[role=treegrid]');
 Q(s,'td *,[role=gridcell] *,dd *').filter(e=>M(e,CL)).map(e=>{const k=M(e,'[type=checkbox]')?'checkbox':M(e,'a')?'link':name(e);rc[k]=-~rc[k]});
-return J({path:here(),title:D.title,h:own(s,'h1,h2,h3,h4,[role=heading]').map(e=>e.tagName[1]+' '+tc(e)),
+return J({path:here(),title:D.title,h:own(s,'h1,h2,h3,h4,[role=heading]').map(e=>{const l=e.tagName[1],t=tc(e);return l+' '+(l==1&&/\d/.test(here())&&!/[\d#]/.test(t)?'(record title)':t)}),
 crumbs:Q(s,':is([aria-label*=breadcrumb i],[class*=breadcrumb i]) :is(li,a):not(:has(a))').map(tc),
 tabs:own(s,'[role=tab]').map(S),buttons:own(s,B).filter(e=>!M(e,O+',[role=tab]')).map(C),links:own(s,'a[href]:not([role=tab])').map(LK),
 fields:own(s,F).map(FD),toggles:own(s,G).map(TO),terms:own(s,'dt').map(tc),
@@ -78,7 +78,7 @@ for(const m of s.matchAll(/["'`](\/[\w\-.:\/*]*)["'`]/g)){const r=m[1].replace(/
 labels+=(s.match(/defaultMessage\s*:|\b(t|\$t|i18n\.t|translate)\(\s*["'`][\w.-]+["'`]|\$localize`/g)||[]).length;ops+=(s.match(/\b(query|mutation|subscription)\s+[A-Z]\w*\s*[({]/g)||[]).length;
 for(const m of s.matchAll(/import\(\s*["'`]([^"'`]+\.m?js)["'`]/g))ch.add(new URL(m[1],u).pathname)}
 const np=new Set(nv().map(x=>x.path)),rs=[...rt].sort(),pr=r=>/[:*[]/.test(r);
-return J({files,n:rs.length,routes:rs.slice(0,150),labels,ops,chunks:[...ch].filter(c=>!files.some(f=>f.path==c)),hidden:rs.filter(r=>!pr(r)&&!np.has(r)&&!LO.test(r.replace(/\W/g,' '))),detail:rs.filter(pr)})},
+return J({files,n:rs.length,routes:rs.slice(0,150),labels,ops,chunks:[...ch].filter(c=>!files.some(f=>f.path==c)),hidden:rs.filter(r=>!pr(r)&&!np.has(r)&&!LA.test(r.replace(/\W/g,' '))),detail:rs.filter(pr)})},
 open(x,o={}){const e=typeof x=='number'?R[x]:find(x+''),t=e&&name(e),r=!e||!e.isConnected?'not found':guard(e,o);if(r)return J({refused:r,t});
 const b=[],v={};for(const k of['alert','confirm','prompt','open']){v[k]=W[k];W[k]=()=>{b.push(k);return k=='confirm'&&false}}
 try{e.click()}finally{Object.assign(W,v)}return J({ok:1,t,blocked:b})}};
