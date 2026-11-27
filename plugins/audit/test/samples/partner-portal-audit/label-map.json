@@ -1,0 +1,16 @@
+{
+  "shell": "Navigation, layout and app-wide messages",
+  "nav": "Navigation, layout and app-wide messages",
+  "account": "Navigation, layout and app-wide messages",
+  "errors": "Navigation, layout and app-wide messages",
+  "order*": "Sales › Orders and Order details",
+  "customers": "Sales › Customers, vouchers and import",
+  "customerDetails": "Sales › Customers, vouchers and import",
+  "voucher": "Sales › Customers, vouchers and import",
+  "import": "Sales › Customers, vouchers and import",
+  "payouts": "Finance › Payouts",
+  "reports": "Reports › Sales weekly, Sales daily and Finance",
+  "profile": "Settings › Profile",
+  "admin": "Hidden → Admin (Users, Audit log, Settings)",
+  "common": "shared"
+}

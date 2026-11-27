@@ -18,7 +18,7 @@
 | 2 | The bundle extractor | ✅ | `scripts/inventory-core.js` (classic script, no eval/Node APIs); `scripts/inventory.mjs` (CLI of §2.6); 8 style fixtures in `test/bundles/` with `expected.json`; `test/inventory.test.mjs` | `npm test` 24/24 (7 genericity + 17 inventory); every `expected.json` matched with exact route and label counts; `noise` 0 routes, 0 labels, 0 unkeyed; genericity clean (plugin 24 files, `--added`) | Found: vite-react 8 routes, 5 labels, 4 ops, 1 column set, 3 rules, 2 enums, 4 limits, key redacted; formatjs-compiled 7 labels (vars, placeholder, plural as ICU); webpack-i18next 8 labels, 7 endpoints, 3 chunks; vue 7 routes with names; angular 7 routes, 3 `$localize` labels; next 6 routes; gql-ast 5 ops (4 AST, 1 persisted). **For S3:** routes are found from route-constant objects (3+ `key:"/path"` in one object), `path:` props (relative ones joined through `children:`), `to`/`href`/`redirect` props and `navigate(`/`push(`/`navigateByUrl(` calls with a literal. A minified call such as `n("/x")` is *not* found, so put the fixture's hidden admin routes in the route object or in `path:` props. Chunk discovery can reuse `AuditInventory.build(files).chunks` (`{ref, file}`, webpack chunk maps included). **For S6:** `inventory-core.js` is 69 KB, heavy to paste in-page |
 | 3 | The fixture and the downloader | ✅ | `fixtures/partner-portal/` (server, SPA in 3 hashed chunks, `config.js`, `truth.json`, README); `scripts/bundle.mjs`; `test/portal.mjs`, `fixture.test.mjs`, `bundle.test.mjs` | `npm test` 37/37 (8 fixture + 5 bundle new); inventory over the download = exactly the 13 `truth.json` routes (4 hidden), all 20 operations, German labels; genericity clean (plugin 37 files, `--added`) | **For S4:** the SPA has only been `node --check`ed and HTTP-tested, so expect small DOM bugs on first drive. A full load costs 2 data requests (Shell + screen), in-app nav 1. Roles: account `menu` with `menuitemradio`, status `listbox` multiselectable, date range popover `dialog`, columns popover `dialog`, column header `menu`. **For S5/S9:** the inventory finds 2 of 4 endpoints (misses `href:"/api/export/…"` GET links) |
 | 4 | The in-page probe | ✅ | `scripts/probe.js` (10,759 bytes); `test/probe.test.mjs` (16 tests); `playwright-core@1.63.0` dev dependency; fixture Help link | `npm test` 53/53 with the cap at 12 KB (D18); privacy and guard tests pass; genericity clean (plugin 40 files, `--added`) | Blocked first on the 8 KB cap; Kam chose 12 KB, one file (D18) |
-| 5 | Report tooling | ⬜ | | | |
+| 5 | Report tooling | ✅ | `templates/{audit,screen,progress}.md`; `scripts/appendix.mjs`, `check-audit.mjs`; `test/score-report.mjs`; `test/samples/partner-portal-audit/` (clean report, appendix, map, 9 defects) + `plant-defects.mjs`; `test/report-tools.test.mjs` | `npm test` 75/75 (22 new); all 9 defects caught, each under its own check only; clean sample clean with no check skipped; scorer 100%/100% on it; genericity clean (plugin 62 files, `--added`) | **For S6:** `label-map.json` is `{group: heading}`, `*` suffix = prefix, heading `"shared"` = shared library; `appendix.mjs --report <file>` links back; `check-audit --appendix` also checks the appendix. The template's `<!-- SECTION` comments must all go, or `markers` fails |
 | 6 | The skill text | ⬜ | | | Version 0.9.0 |
 | 7 | Evals, triggers and a rehearsal | ⬜ | | | No paid runs (D17) |
 | 8 | Trial run in Kam's Chrome | ⬜ | | | By hand |
@@ -158,3 +158,21 @@ file (PLAN §3 D18; the split `peek.js` was rejected). The cap is updated in PLA
 prompts 4 and 9, and in the size test (`<= 12288`). `probe.js` is unchanged at 10,759 bytes, so about
 1.5 KB is left for S9's fixes. Gate re-run: `npm test` 53/53, genericity clean over the plugin (40 files)
 and `--added`.
+
+### Session 5 — Report tooling (2026-11-27) ✅
+
+Runtime: sonnet/medium (autopilot attempt 1)
+
+- Landed: the three templates, `appendix.mjs`, `check-audit.mjs` (routes, private, markers, tables, xref,
+  screens, keys, links, summary; `--json`; exit 0/1/2), the dev scorer, a hand-written clean audit of the
+  fixture with its generated appendix, nine planted-defect copies (written by `test/samples/plant-defects.mjs`),
+  and `test/report-tools.test.mjs` (22 tests).
+- Gate: `npm test` 75/75; each defect is caught under its own check and no other; the clean sample is clean with
+  every check run; genericity clean over 62 plugin files and `--added`.
+- Small choices: `label-map.json` is flat `{group: heading}` with `*` prefix keys and a `"shared"` heading;
+  sections follow map order, then Other, shared library, ids without text; groups and labels sorted. The
+  `private` finding prints only a term's first two characters and length. `In progress`, TODO, TBD and FIXME
+  match case-sensitively. The sample's appendix is built from `fixtures/partner-portal/public/`, so the test
+  needs no server; tests also fail if the committed appendix or defect copies go stale.
+- Deviation: `appendix.mjs` gained an optional `--report <file>` (a link back to the report), and
+  `check-audit --appendix` also checks the appendix with private, markers, tables and links. PLAN §2.6 updated.
