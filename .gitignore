@@ -3,6 +3,7 @@ node_modules/
 
 # autopilot's per-run logs (costs, session ids): local only
 .planning/*/autopilot/
+.planning/archive/*/autopilot/
 
 # showcase plugin: generated output, caches, sign-ins
 **/showcase/out/
