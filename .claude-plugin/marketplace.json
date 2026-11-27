@@ -1,6 +1,6 @@
 {
   "name": "cc-star-skills",
-  "description": "Kam Star's Claude Code plugins: multi-session build planning (roadmap/calibrate-roadmap/session/wrapup/handoff/autopilot/archive-roadmap), an embedded-AI-copilot build wizard, narrated product films and tours for any web app (showcase), and user guides written from a walk of the app, then illustrated and published to Confluence or HTML (user-guides).",
+  "description": "Kam Star's Claude Code plugins: multi-session build planning (roadmap/calibrate-roadmap/session/wrapup/handoff/autopilot/archive-roadmap), an embedded-AI-copilot build wizard, narrated product films and tours for any web app (showcase), user guides written from a walk of the app, then illustrated and published to Confluence or HTML (user-guides), and read-only audits of a web platform from the user's side, mapping every screen, field and feature (audit).",
   "owner": { "name": "Kam Star", "email": "kam@kamstar.net" },
   "plugins": [
     {
@@ -33,6 +33,14 @@
       "version": "1.0.1",
       "license": "MIT",
       "description": "Write a web app's end-user guides from a walk of the running app as each role, then screenshot them and publish them to Confluence Data Center or self-contained HTML; after a release, refresh and republish only what changed (write-guides, wiki-guides).",
+      "author": { "name": "Kam Star" }
+    },
+    {
+      "name": "audit",
+      "source": "./plugins/audit",
+      "version": "1.0.0",
+      "license": "MIT",
+      "description": "Audit a web platform from the user's side: walk the signed-in app read-only and slowly in your own Chrome, read its public JavaScript as text for what the screens can't show, and write a report of every screen, field and feature, with an appendix of UI labels (platform-audit).",
       "author": { "name": "Kam Star" }
     }
   ]

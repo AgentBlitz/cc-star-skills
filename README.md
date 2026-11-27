@@ -9,6 +9,7 @@ marketplace only registers the catalogue; you enable the plugins you want.
 | `copilot` | A wizard (`/build-copilot`) that embeds a tool-calling AI copilot into a web app. |
 | `showcase` | A wizard (`/showcase`) that makes a narrated, captioned, verified product film of any web app from one tour file, plus a self-playing live demo and an in-app guided tour. |
 | `user-guides` | Writes a web app's user guides from a walk of the running app as each role (`/user-guides:write-guides`), then screenshots them and publishes them to Confluence Data Center or HTML (`/user-guides:wiki-guides`). |
+| `audit` | Audits a web platform from the user's side (`/audit:platform-audit <url>`): walks the signed-in app read-only and slowly in your own Chrome, reads its public JavaScript for what the screens can't show, and writes a report of every screen, field and feature, with an appendix of UI labels. |
 
 ## The `planning` plugin
 
@@ -441,6 +442,54 @@ refused (the publisher speaks the Data Center REST API).
 
 No dependency and no app code. An adopted set keeps its files where they already are.
 
+## The `audit` plugin
+
+| Skill | What it does |
+|-------|--------------|
+| `/audit:platform-audit <url>` | Maps a web platform as **your** account sees it — a back office, admin panel, partner portal or SaaS product — for due diligence, a feature inventory before a rebuild or a migration, or a check that it has the fields you need. It interviews you first (a requirements list or none, whether to look for what your account can't open, how much to interact, whether to read the code, how fast to go), then walks every screen in your own signed-in Chrome and writes a report: every screen, filter, column, form and action, a capability matrix, limits and reference lists, an optional requirements check, and an appendix of every UI label. `resume` carries on an interrupted audit; `check [<report>]` re-checks a finished report. |
+
+Run it **inside the repo where the report should live** (not this marketplace). Ask for "audit
+this platform" or "map every screen of this back office" and Claude picks it; its description
+turns away SEO, performance, accessibility and security audits, code review, scraping and user
+guides.
+
+**Read-only and paced.** It works in your session, so every click is made as you: it never
+saves, submits, deletes or uploads anything in the app, presses an export only if you allow
+downloads in the interview, never types into a form's fields, and leaves a table's columns,
+sort and page size alone. A search or filter box gets a
+neutral word only when a screen can't be understood without it. After every action that loads
+server data it waits out the `pace` you chose (20, 10 or 5 seconds), and at the first sign of
+rate limiting (a 429, a "slow down" message, a challenge page) it stops, waits and goes on
+slower. It never types or reads a credential, token or cookie.
+
+**What it reads from the code.** The app's public JavaScript, downloaded into the work folder
+(or read in the page, if you choose) and read **as text** — never run. From it the skill lists
+the routes, labels and translations, API operations, column sets, validation rules, enums and
+limits the code defines, so the report can say what exists beyond what your account can open
+(marked as found in code, not seen).
+
+### Requirements
+
+- **Chrome with the Claude in Chrome extension**, signed in to the platform as the account
+  whose view you want audited. The skill never signs in for you.
+- **Node 20 or later.** The skill's scripts use Node built-ins only; installed plugins carry
+  no `node_modules`.
+
+### What it adds to your repo
+
+| Path | In git? | Holds |
+|------|---------|-------|
+| `docs/<slug>-audit/<SLUG>-PLATFORM-AUDIT.md` | yes | The report |
+| `docs/<slug>-audit/appendix-ui-labels.md` | yes | The appendix of every UI label, grouped by screen |
+| `.platform-audit/<slug>/` | no | The work folder: progress and resume point, the downloaded bundle, the inventory, notes. It ignores itself |
+
+### Evals
+
+`bash plugins/audit/evals/run.sh` runs the `claude plugin eval` cases (a headless first round,
+no Chrome, and a check), all headless; the trigger set is `evals/triggers/platform-audit.json`.
+The runs are **billed**, and none was run while the plugin was built; the plugin's own tests (`npm test` in `plugins/audit`, against a local fixture
+portal) are free.
+
 ## Install
 
 ```text
@@ -449,6 +498,7 @@ No dependency and no app code. An adopted set keeps its files where they already
 /plugin install copilot@cc-star-skills
 /plugin install showcase@cc-star-skills
 /plugin install user-guides@cc-star-skills
+/plugin install audit@cc-star-skills
 ```
 
 Each plugin installs independently — take any of them, or none (`showcase` brings
@@ -462,8 +512,9 @@ or `ssh-agent`.)
 After installing `planning`, `/roadmap`, `/calibrate-roadmap`, `/session`,
 `/wrapup`, `/handoff`, `/autopilot`, and `/archive-roadmap` are available in every project; installing
 `copilot` adds `/build-copilot`, installing `showcase` adds `/showcase` (run
-`showcase doctor --install --yes` once for Chromium), and installing `user-guides` adds
-`/user-guides:write-guides` and `/user-guides:wiki-guides`.
+`showcase doctor --install --yes` once for Chromium), installing `user-guides` adds
+`/user-guides:write-guides` and `/user-guides:wiki-guides`, and installing `audit` adds
+`/audit:platform-audit`.
 
 `showcase` installs **switched off**, so it stays out of the projects that don't use it. Turn
 it on where you want it, from that project's root:
@@ -500,6 +551,7 @@ its entry in `.claude-plugin/marketplace.json` and its own
 /plugin update copilot@cc-star-skills
 /plugin update showcase@cc-star-skills
 /plugin update user-guides@cc-star-skills
+/plugin update audit@cc-star-skills
 ```
 
 ## Layout
@@ -529,13 +581,20 @@ cc-star-skills/
     │   ├── toolkit/               # cli.ts, commands, lib, voice, host, film, runtime (src → dist), schema, fonts, fixtures, test
     │   ├── evals/                 # claude plugin eval cases + run.sh
     │   └── package.json
-    └── user-guides/
+    ├── user-guides/
+    │   ├── .claude-plugin/plugin.json
+    │   ├── skills/write-guides/   # SKILL.md, reference/, templates/, scripts/ (walk, check, contract)
+    │   ├── skills/wiki-guides/    # SKILL.md, reference/, templates/, scripts/ (shots, converters, publisher)
+    │   ├── fixtures/              # leave-app (v1/v2), its frozen guide set, mock Confluence DC
+    │   ├── test/                  # node --test for every script
+    │   ├── evals/                 # claude plugin eval cases, scripted cases, run.sh
+    │   └── package.json           # dev only: playwright-core for the tests
+    └── audit/
         ├── .claude-plugin/plugin.json
-        ├── skills/write-guides/   # SKILL.md, reference/, templates/, scripts/ (walk, check, contract)
-        ├── skills/wiki-guides/    # SKILL.md, reference/, templates/, scripts/ (shots, converters, publisher)
-        ├── fixtures/              # leave-app (v1/v2), its frozen guide set, mock Confluence DC
-        ├── test/                  # node --test for every script
-        ├── evals/                 # claude plugin eval cases, scripted cases, run.sh
+        ├── skills/platform-audit/ # SKILL.md, reference/, templates/, scripts/ (probe, inventory, bundle, appendix, check-audit)
+        ├── fixtures/partner-portal/ # a local SPA with hidden routes and its truth.json
+        ├── test/                  # node --test: bundles, samples with planted defects, scorer, genericity
+        ├── evals/                 # claude plugin eval cases, triggers, run.sh
         └── package.json           # dev only: playwright-core for the tests
 ```
 
