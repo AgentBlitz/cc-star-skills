@@ -26,8 +26,13 @@ const USAGE = `inventory.mjs — the platform-audit code inventory (reads JavaSc
   limits <inv>                       numeric limits
   enums <inv>                        enumerations
   access <inv>                       role and permission constants, rules and denied messages
+  join <parts-dir> --sums '<list>' --out <inventory.json>
+                                     the in-page fallback: joins the slices paged back from the browser
+                                     (in file-name order), checks each part's length and sum against the
+                                     list the page printed ([[part, length, sum], …]), and writes the
+                                     inventory only when every part matches and the whole is one
 
-Exit 0 on success, 2 on a usage error.`;
+Exit 0 on success, 1 when the joined parts are wrong or don't make an inventory, 2 on a usage error.`;
 
 function fail(msg) {
   process.stderr.write(`inventory.mjs: ${msg}\n(run with --help for usage)\n`);
@@ -77,6 +82,13 @@ function bundleFiles(dir) {
   };
   walk(dir);
   return out.sort((a, b) => (a.name < b.name ? -1 : 1));
+}
+
+/** The checksum the in-page fallback prints for each slice (code-inventory.md): a*31 + code unit, mod 2^32. */
+function partSum(text) {
+  let a = 0;
+  for (let i = 0; i < text.length; i++) a = (a * 31 + text.charCodeAt(i)) >>> 0;
+  return a;
 }
 
 function countLabels(inv) {
@@ -262,6 +274,50 @@ function main(argv) {
         `denied messages (${a.deniedMessages.length})`,
         ...a.deniedMessages.map((m) => `  ${m}`),
       ]);
+      return;
+    }
+    case 'join': {
+      const dir = pos[0];
+      if (!dir) fail('join needs the folder of parts');
+      if (!flags.sums) fail('join needs --sums <the list the page printed>');
+      if (!flags.out) fail('join needs --out <inventory.json>');
+      let want;
+      try { want = JSON.parse(flags.sums); } catch { fail('--sums is not JSON'); }
+      if (!Array.isArray(want) || !want.length || !want.every((w) => Array.isArray(w) && w.length === 3 && w.every(Number.isInteger))) {
+        fail('--sums must be the page\'s list: [[part, length, sum], …]');
+      }
+      let names;
+      try { names = fs.readdirSync(dir).filter((n) => !n.startsWith('.')).sort(); } catch { fail(`cannot read ${dir}`); }
+      if (!names.length) fail(`no parts in ${dir}`);
+      // The page sends compact JSON, which has no raw line breaks: any here came from saving the slice.
+      const parts = names.map((n) => fs.readFileSync(path.join(dir, n), 'utf8').replace(/[\r\n]/g, ''));
+      const lines = [];
+      let wrong = 0;
+      for (let i = 0; i < Math.max(names.length, want.length); i++) {
+        if (i >= names.length) { lines.push(`  part ${want[i][0]}: missing (${want[i][1]} chars)`); wrong++; continue; }
+        const got = `  ${names[i]}  ${parts[i].length} chars  sum ${partSum(parts[i])}`;
+        if (i >= want.length) { lines.push(`${got}  — the page has no such part`); wrong++; continue; }
+        const same = parts[i].length === want[i][1] && partSum(parts[i]) === want[i][2];
+        if (!same) wrong++;
+        lines.push(same ? got : `${got}  — WRONG: the page's part ${want[i][0]} has ${want[i][1]} chars, sum ${want[i][2]}`);
+      }
+      const text = parts.join('');
+      let why = wrong ? `${wrong} part(s) differ from the page's` : '';
+      let inv = null;
+      if (!wrong) {
+        try { inv = JSON.parse(text); } catch (e) { why = `not JSON (${e.message})`; }
+        if (inv && !(Array.isArray(inv.routes) && inv.labels && Array.isArray(inv.operations) && Array.isArray(inv.files))) {
+          inv = null;
+          why = 'JSON, but not an inventory';
+        }
+      }
+      if (!inv) {
+        print([`${names.length} parts, ${text.length} characters: ${why}`, ...lines, 'Nothing written. Page the wrong parts back again, save them exactly, and join again.']);
+        process.exit(1);
+      }
+      fs.mkdirSync(path.dirname(path.resolve(flags.out)), { recursive: true });
+      fs.writeFileSync(flags.out, JSON.stringify(inv, null, 1) + '\n');
+      print([`inventory written to ${flags.out} (${names.length} parts, ${text.length} characters, every part as the page sent it)`, ...lines, ...summaryLines(inv).map((l) => '  ' + l)]);
       return;
     }
     default:

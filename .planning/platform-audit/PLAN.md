@@ -1,6 +1,6 @@
 # platform-audit — the `audit` plugin and its first skill, `/audit:platform-audit`
 
-> **Status:** Planned 26 Nov 2026. Sessions 1–2 done (27 Nov 2026); Session 3 is next. (Session 1 had to run before about 14 Dec 2026, when the transcript it copied would be deleted.)
+> **Status:** Planned 26 Nov 2026. Sessions 1–6 done (27 Nov 2026); Session 7 is next. (Session 1 had to run before about 14 Dec 2026, when the transcript it copied would be deleted.)
 
 ## 1. Context
 
@@ -156,6 +156,12 @@ SKILL.md numbers the steps, and each step has its own reference file:
 
    Nothing is committed unless the user asks.
 
+**Frontmatter** (S6, checked against the Claude Code docs for 2.1.332):
+- `allowed-tools` grants its tools for the turn that invokes the skill and restricts nothing. It lists
+  `Read, Write, Edit, Glob, Grep, AskUserQuestion, ToolSearch`, Bash by pattern (`node`, `mkdir`, `ls`, `date`,
+  so any other command, a `curl` above all, still asks) and `mcp__claude-in-chrome__*`.
+- `$S` is `${CLAUDE_SKILL_DIR}/scripts`, which Claude Code fills in for plugin skills too.
+
 **Never** (SKILL.md's list, with the reasons in `ground-rules.md`):
 - Click, press or submit anything that saves, submits, confirms, deletes, transfers, pays, sends, approves,
   uploads, imports, logs out, switches language or settings, copies to the clipboard, or toggles a row
@@ -215,6 +221,10 @@ screens this account's menu doesn't show, how should I handle them?", with the s
   - then stop, before any Chrome call, recon or download.
 
   With every answer given but no Claude in Chrome, say so and stop. Write nothing.
+- **Headless, `folder` and `role` are not asked** (S6). An unsettled `folder` is `docs/<slug>-audit/`, and an
+  unsettled `role` is the one recon suggests, or "the signed-in account". The other five (`checklist`,
+  `hidden`, `interact`, `code`, `pace`) are never filled in, so the example command above is a complete
+  answer. A Round 1 stop also says what Round 2 needs (`pace`).
 
 ### 2.4 The report
 
@@ -304,7 +314,7 @@ All the scripts live in `skills/platform-audit/scripts/`.
 |---|---|
 | `probe.js` | Pasted whole into `javascript_tool`. Defines `window.__auditProbe` (idempotent, with a `version`) and returns `recon()`. The methods are `recon()`, `nav()`, `screen()`, `overlays()`, `requests()`, `peek()` (async) and `open(i \| text)`, and every output is a JSON string. It stores its own source in sessionStorage, so the short loader (`reinstall()` in `walking.md`) puts it back after a full page load wherever the page's CSP allows `eval`; otherwise it is pasted again. **At most 12 KB** (D18), because Claude has to type it into the tool. |
 | `inventory-core.js` | A classic script with no `import` or `export`. Sets `globalThis.AuditInventory = { build(files, opts) }`, where `files` is `[{ name, text }]`. It runs in Node (`inventory.mjs` imports it for its side effect) and, pasted into the page, as the fallback (D6). |
-| `inventory.mjs` | `build <bundle-dir> --out <inventory.json> [--origin <url>]` · `summary <inv>` · `routes <inv>` · `labels <inv> list` · `labels <inv> show <ns,ns*> [--ids]` · `labels <inv> grep <regex>` · `context <bundle-dir> <term> [--chars 300] [--max 5]` · `ops <inv> [--md <file>]` · `columns <inv>` · `limits <inv>` · `enums <inv>` · `access <inv>` |
+| `inventory.mjs` | `build <bundle-dir> --out <inventory.json> [--origin <url>]` · `summary <inv>` · `routes <inv>` · `labels <inv> list` · `labels <inv> show <ns,ns*> [--ids]` · `labels <inv> grep <regex>` · `context <bundle-dir> <term> [--chars 300] [--max 5]` · `ops <inv> [--md <file>]` · `columns <inv>` · `limits <inv>` · `enums <inv>` · `access <inv>` · `join <parts-dir> --sums '<list>' --out <inventory.json>` (S6, for the in-page fallback: joins the paged slices, checks each one's length and sum against the page's list, and writes the inventory only when all match; exit 1 otherwise) |
 | `bundle.mjs` | `fetch --origin <url> --out <dir> [--allow-host <host>]… [--delay 1500] [--max-files 40] [--max-bytes 15000000] [--no-discover] [--dry-run] <path \| url>…`. Writes the files and `manifest.json` (url, file, status, bytes, type, sha256). It refuses other hosts and anything not `.js`, `.mjs` or `.json`, and sends no cookies. On 401, 403, 429 or an HTML challenge page it stops with exit 3 and doesn't retry. Client name: `platform-audit/1.0 (public bundle reader)`. |
 | `appendix.mjs` | `<inventory.json> --map <label-map.json> --title "<Product>" --out <file> [--build <name>] [--date <YYYY-MM-DD>] [--report <file name>]` (S5 added `--report`, a link back to the report). `label-map.json` is `{ "<group>": "<heading>" }`: a key ending in `*` matches a prefix, the heading `"shared"` means the shared-library section, headings come out in map order, unmapped groups go under "Other". |
 | `check-audit.mjs` | `<report.md> [--inventory <inv.json>] [--private <terms.txt>] [--appendix <file>] [--json]`. Exits 0 when clean, 1 with findings, 2 on a usage error. `--appendix` runs `private`, `markers`, `tables` and `links` over the appendix too (S5). |
@@ -537,8 +547,8 @@ plugins/audit/
   - one tab, and never batched navigation;
   - `computer wait` in steps of at most 10 s;
   - in-app navigation (clicking the menu, as a user would) is preferred to loading URLs;
-  - `requests()` reports response statuses, so a 429 is noticed. On a 429, stop for 3–5 minutes. On a second
-    one, tell the user and ask before going on.
+  - `requests()` reports response statuses, so a 429 is noticed. On a 429, stop for 3–5 minutes, then go on
+    one pace slower (S6). On a second one, tell the user and ask before going on.
 - **D5. Privacy.**
   - The report holds structure only.
   - The probe never returns field values, cell text or query strings.
@@ -551,6 +561,11 @@ plugins/audit/
   - Nothing downloaded is ever run.
   - A refused download is never worked around. Instead `inventory-core.js` is pasted into the page and run on
     the cached copy, and its results are paged back and written to the work folder.
+  - The fallback as written in S6 (`code-inventory.md`): it reads only scripts the page has loaded; query
+    strings are stripped from every value before paging (Chrome's filter); the text comes back in
+    20,000-character ASCII slices saved under `inv-parts/`; and `inventory.mjs join` rebuilds
+    `inventory.json`, refusing any slice whose length or sum differs from the page's. `code=browser` takes
+    this path from the start and keeps no `bundle/`.
 - **D7. The work folder** is `.platform-audit/<slug>/`. It ignores itself, and a run resumes from
   `progress.md`. A markdown file is enough: one run, one reader (R3).
 - **D8. Scripts** use Node ≥ 20 built-ins only and run from the target repo's root. Downloaded files are

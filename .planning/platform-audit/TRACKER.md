@@ -19,7 +19,7 @@
 | 3 | The fixture and the downloader | ✅ | `fixtures/partner-portal/` (server, SPA in 3 hashed chunks, `config.js`, `truth.json`, README); `scripts/bundle.mjs`; `test/portal.mjs`, `fixture.test.mjs`, `bundle.test.mjs` | `npm test` 37/37 (8 fixture + 5 bundle new); inventory over the download = exactly the 13 `truth.json` routes (4 hidden), all 20 operations, German labels; genericity clean (plugin 37 files, `--added`) | **For S4:** the SPA has only been `node --check`ed and HTTP-tested, so expect small DOM bugs on first drive. A full load costs 2 data requests (Shell + screen), in-app nav 1. Roles: account `menu` with `menuitemradio`, status `listbox` multiselectable, date range popover `dialog`, columns popover `dialog`, column header `menu`. **For S5/S9:** the inventory finds 2 of 4 endpoints (misses `href:"/api/export/…"` GET links) |
 | 4 | The in-page probe | ✅ | `scripts/probe.js` (10,759 bytes); `test/probe.test.mjs` (16 tests); `playwright-core@1.63.0` dev dependency; fixture Help link | `npm test` 53/53 with the cap at 12 KB (D18); privacy and guard tests pass; genericity clean (plugin 40 files, `--added`) | Blocked first on the 8 KB cap; Kam chose 12 KB, one file (D18) |
 | 5 | Report tooling | ✅ | `templates/{audit,screen,progress}.md`; `scripts/appendix.mjs`, `check-audit.mjs`; `test/score-report.mjs`; `test/samples/partner-portal-audit/` (clean report, appendix, map, 9 defects) + `plant-defects.mjs`; `test/report-tools.test.mjs` | `npm test` 75/75 (22 new); all 9 defects caught, each under its own check only; clean sample clean with no check skipped; scorer 100%/100% on it; genericity clean (plugin 62 files, `--added`) | **For S6:** `label-map.json` is `{group: heading}`, `*` suffix = prefix, heading `"shared"` = shared library; `appendix.mjs --report <file>` links back; `check-audit --appendix` also checks the appendix. The template's `<!-- SECTION` comments must all go, or `markers` fails |
-| 6 | The skill text | ⬜ | | | Version 0.9.0 |
+| 6 | The skill text | ✅ | `SKILL.md` (117 lines); `reference/{interview,ground-rules,code-inventory,walking,writing,checking}.md`; `test/skill-lint.test.mjs` (12 tests); `inventory.mjs join`; plugin 0.9.0 | `npm test` 87/87 (12 new); `claude plugin validate` passes (icon warning only); genericity clean (plugin 69 files, `--added`) | Contracts (Claude Code 2.1.332 docs): `argument-hint` and `allowed-tools` are honoured; `allowed-tools` grants for the invoking turn and restricts nothing; the docs don't say it takes MCP names, though `mcp__claude-in-chrome__*` fits the permission-rule form; `${CLAUDE_SKILL_DIR}` works in plugin skills. **For S7/S8 to watch:** (1) the in-page fallback has run only in a stand-in page (vm): run it once on the fixture with `--forbid-assets`, to see that `javascript_tool` takes the 69 KB core and an `await (async…)()` snippet; (2) whether Chrome calls still prompt with this `allowed-tools`; (3) the probe can't press a row link, so detail pages go through `find` + a `computer` click; (4) headless, `folder` and `role` take defaults, so the five-answer command is complete |
 | 7 | Evals, triggers and a rehearsal | ⬜ | | | No paid runs (D17) |
 | 8 | Trial run in Kam's Chrome | ⬜ | | | By hand |
 | 9 | Review and fixes | ⬜ | | | By hand |
@@ -176,3 +176,50 @@ Runtime: sonnet/medium (autopilot attempt 1)
   needs no server; tests also fail if the committed appendix or defect copies go stale.
 - Deviation: `appendix.mjs` gained an optional `--report <file>` (a link back to the report), and
   `check-audit --appendix` also checks the appendix with private, markers, tables and links. PLAN §2.6 updated.
+
+### Session 6 — The skill text (2026-11-27) ✅
+
+Runtime: fable/high (autopilot attempt 1)
+
+- Landed: `SKILL.md` (frontmatter, the `$S` line, the route table, the Never list word for word, steps 0–7,
+  the headless rule) and the six reference files; `test/skill-lint.test.mjs` (12 tests); plugin 0.9.0.
+- **Contracts.** The `claude-code-guide` agent isn't offered in this run, so the current Claude Code docs
+  (the skills, plugins-reference and permissions pages) were read through a fetch agent instead, with
+  Claude Code 2.1.332 installed. Answers:
+  - frontmatter: `name`, `description`, `when_to_use`, `argument-hint`, `arguments`,
+    `disable-model-invocation`, `user-invocable`, `allowed-tools`, `disallowed-tools`, `model`, `effort`,
+    `context`, `agent`, `background`, `hooks`, `paths`, `shell`, `metadata`; unknown fields are ignored. The
+    listing cuts a description at 1,536 characters (ours is about 1,000);
+  - `allowed-tools` (a space- or comma-separated string, or a YAML list) grants the listed tools without a
+    prompt during the turn that invokes the skill, and restricts nothing. The docs don't say whether it takes
+    MCP tool names; `mcp__<server>__*` is the documented permission-rule form, so `mcp__claude-in-chrome__*`
+    is listed, and an entry that isn't honoured only means a prompt. Untested until S8;
+  - the base directory: `${CLAUDE_SKILL_DIR}` is filled in in the skill's body, for plugin skills too, with
+    the skill's own folder. SKILL.md uses it, and still says "the base directory you were given".
+- Small choices:
+  - Bash is allowed by pattern (`node`, `mkdir`, `ls`, `date`), not whole as in user-guides, so a `curl`
+    (the way round a refused download) still asks.
+  - Headless, `folder` and `role` take their defaults and are said aloud; the other five are never filled
+    in. PLAN §2.3's example command gives exactly those five, and S7's eval and rehearsal use them.
+  - A headless Round 1 stop also says what Round 2 needs (`pace`), so one command settles both.
+  - After a first 429 the walk goes on one pace slower (5 → 10 → 20 → 30 s). A 429 to the downloader counts
+    as the first.
+  - `hidden=try-two`: two routes from different menu groups, read-only kinds first; both blocked ends it.
+  - `interact=look` moves by menu, tabs and row links and opens nothing else. With `downloads`, each export
+    is pressed once and the file is never opened.
+  - `{toggle: true}` is for one thing, the first row's selection checkbox. Next in a wizard is not pressed,
+    though the guard allows it.
+  - `code=skip`: no inventory, no appendix, `check-audit` without `--inventory`.
+  - Another role gets its own slug (`<slug>-<role>`), work folder and report (D14).
+  - `private-terms.txt` is filled by reading the profile block once (the probe never returns values).
+- **Script change** (the text exposed a gap): `inventory.mjs join <parts-dir> --sums '<list>' --out <file>`.
+  The in-page fallback had no way to turn the paged slices back into `inventory.json`, and a wrongly copied
+  slice can still read as JSON. `join` checks each part's length and sum against the list the page prints
+  and writes nothing unless all match. The fallback's three page snippets live in `code-inventory.md`; the
+  lint test runs them in a vm stand-in page over the fixture's scripts and compares the joined inventory
+  with the CLI's. PLAN §2.6 and D6 updated.
+- Other PLAN updates: the status line; §2.2 (the frontmatter as written); §2.3 (headless `folder` and
+  `role`); D4 (one pace slower after a 429).
+- Deviations: the `claude-code-guide` step, as above. No browser was opened and no eval written.
+- Gate: `npm test` 87/87; `claude plugin validate plugins/audit` passes (the icon warning only); genericity
+  clean over 69 plugin files and `--added`.
