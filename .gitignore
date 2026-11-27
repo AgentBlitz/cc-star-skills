@@ -15,3 +15,9 @@ plugins/showcase/evals/results/
 .planning/user-guides/sources/
 plugins/user-guides/test/.out/
 plugins/user-guides/evals/results/
+
+# audit plugin: sources, test output, eval results, work folders
+.planning/platform-audit/sources/
+plugins/audit/test/.out/
+plugins/audit/evals/results/
+**/.platform-audit/

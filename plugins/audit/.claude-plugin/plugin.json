@@ -1,0 +1,10 @@
+{
+  "name": "audit",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Audit a web platform from the user's side. /audit:platform-audit <url> walks the signed-in platform read-only and slowly through Claude in Chrome, reads its public JavaScript as text for what the screens can't show, and writes a report of every screen, field and feature, with an appendix of UI labels.",
+  "author": { "name": "Kam Star", "email": "kam@kamstar.net" },
+  "homepage": "https://github.com/AgentBlitz/cc-star-skills",
+  "repository": "https://github.com/AgentBlitz/cc-star-skills",
+  "keywords": ["audit", "platform-audit", "due-diligence", "claude-in-chrome", "documentation", "requirements"]
+}
