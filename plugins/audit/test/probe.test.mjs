@@ -53,9 +53,9 @@ async function assertPrivate(from, where) {
   }
 }
 
-test('probe.js is at most 8 KB', () => {
+test('probe.js is at most 12 KB (D18)', () => {
   const bytes = fs.statSync(PROBE_FILE).size;
-  assert.ok(bytes <= 8192, `probe.js is ${bytes} bytes`);
+  assert.ok(bytes <= 12288, `probe.js is ${bytes} bytes`);
 });
 
 test('pasting defines window.__auditProbe and returns recon(); pasting twice is harmless', async (t) => {

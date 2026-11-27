@@ -17,7 +17,7 @@
 | 1 | Sources and skeleton | ✅ | `plugins/audit` at 0.1.0; stub `skills/platform-audit/SKILL.md`; `test/genericity.mjs` + test; 4 `.gitignore` lines | `npm test` 7/7; genericity clean (plugin 5 files, roadmap 12 files, 18-term deny-list); `sources/` untracked, 4 paths ignored; `claude plugin validate` passes (icon warning only) | `sources/`: 1 plan, 2 reference-audit files, 1 memory note, 1 interview call, 5 scratchpad files, 16 page-js, 51 browser-batch, 81 bash, final message, README, deny.txt. S2: genericity `--added` scans only `.planning/platform-audit/` |
 | 2 | The bundle extractor | ✅ | `scripts/inventory-core.js` (classic script, no eval/Node APIs); `scripts/inventory.mjs` (CLI of §2.6); 8 style fixtures in `test/bundles/` with `expected.json`; `test/inventory.test.mjs` | `npm test` 24/24 (7 genericity + 17 inventory); every `expected.json` matched with exact route and label counts; `noise` 0 routes, 0 labels, 0 unkeyed; genericity clean (plugin 24 files, `--added`) | Found: vite-react 8 routes, 5 labels, 4 ops, 1 column set, 3 rules, 2 enums, 4 limits, key redacted; formatjs-compiled 7 labels (vars, placeholder, plural as ICU); webpack-i18next 8 labels, 7 endpoints, 3 chunks; vue 7 routes with names; angular 7 routes, 3 `$localize` labels; next 6 routes; gql-ast 5 ops (4 AST, 1 persisted). **For S3:** routes are found from route-constant objects (3+ `key:"/path"` in one object), `path:` props (relative ones joined through `children:`), `to`/`href`/`redirect` props and `navigate(`/`push(`/`navigateByUrl(` calls with a literal. A minified call such as `n("/x")` is *not* found, so put the fixture's hidden admin routes in the route object or in `path:` props. Chunk discovery can reuse `AuditInventory.build(files).chunks` (`{ref, file}`, webpack chunk maps included). **For S6:** `inventory-core.js` is 69 KB, heavy to paste in-page |
 | 3 | The fixture and the downloader | ✅ | `fixtures/partner-portal/` (server, SPA in 3 hashed chunks, `config.js`, `truth.json`, README); `scripts/bundle.mjs`; `test/portal.mjs`, `fixture.test.mjs`, `bundle.test.mjs` | `npm test` 37/37 (8 fixture + 5 bundle new); inventory over the download = exactly the 13 `truth.json` routes (4 hidden), all 20 operations, German labels; genericity clean (plugin 37 files, `--added`) | **For S4:** the SPA has only been `node --check`ed and HTTP-tested, so expect small DOM bugs on first drive. A full load costs 2 data requests (Shell + screen), in-app nav 1. Roles: account `menu` with `menuitemradio`, status `listbox` multiselectable, date range popover `dialog`, columns popover `dialog`, column header `menu`. **For S5/S9:** the inventory finds 2 of 4 endpoints (misses `href:"/api/export/…"` GET links) |
-| 4 | The in-page probe | ⛔ | `scripts/probe.js` (10,759 bytes); `test/probe.test.mjs` (16 tests); `playwright-core@1.63.0` dev dependency; fixture Help link | `npm test` 52/53: every behaviour, privacy and guard test passes; **only the 8 KB size test fails**; genericity clean (plugin 40 files, `--added`) | **Needs decision: probe.js is 10.8 KB with every method and guard S4 specifies, and 8 KB cannot hold them (without `peek()` it is still 9.4 KB). Options: (a) raise the cap to 12 KB and keep one file (recommended: one paste per tab, and reinstall from sessionStorage worked even under a CSP, because DevTools-evaluated code is exempt); (b) keep 8 KB by moving `peek()` into a paste-once `peek.js` and cutting about 1.3 KB more (the row-control counts, the alert/confirm/open stub, the German danger words, the framework long tail).** |
+| 4 | The in-page probe | ✅ | `scripts/probe.js` (10,759 bytes); `test/probe.test.mjs` (16 tests); `playwright-core@1.63.0` dev dependency; fixture Help link | `npm test` 53/53 with the cap at 12 KB (D18); privacy and guard tests pass; genericity clean (plugin 40 files, `--added`) | Blocked first on the 8 KB cap; Kam chose 12 KB, one file (D18) |
 | 5 | Report tooling | ⬜ | | | |
 | 6 | The skill text | ⬜ | | | Version 0.9.0 |
 | 7 | Evals, triggers and a rehearsal | ⬜ | | | No paid runs (D17) |
@@ -30,7 +30,7 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 ## Open items / blockers
 
 - [x] **Run Session 1 before about 14 Dec 2026** (done 27 Nov 2026), while the 13 Nov audit's transcript still exists.
-- [ ] **Needs decision (S4): the probe's size cap.** 8 KB, or 12 KB, or a split `peek.js`. See row 4.
+- [x] **Needs decision (S4): the probe's size cap.** Settled 27 Nov: 12 KB, one file (PLAN D18).
 - [ ] **Kam's time** for the by-hand Sessions 8, 9 and 10.
 - [ ] **Chrome with Claude in Chrome connected** for Session 8, able to open the fixture on `http://127.0.0.1:<port>`.
 - [ ] **The trial repo** `/Users/kstar/_PRJ/platform-audit-trial`, which Session 8 makes. It is outside this repo and can be deleted after the release.
@@ -108,7 +108,7 @@ Runtime: opus/high (autopilot attempt 1)
 - Deviation: none from the session's Do list. Gap found, not fixed (S2 code, out of scope): GET links
   written as `href:"/api/export/…"` aren't listed as endpoints.
 
-### Session 4 — The in-page probe (2026-11-27) ⛔ Needs decision
+### Session 4 — The in-page probe (2026-11-27) ✅ (after a decision)
 
 Runtime: opus/high (autopilot attempt 1)
 
@@ -152,3 +152,9 @@ Runtime: opus/high (autopilot attempt 1)
 - Deviation: the fixture had no external link, so it gained a top-bar **Help** link to
   `help.example.com` (new tab), with a `shell.help` label, its German form, `truth.json` `shell.external`
   and a README line. PLAN §2.7 updated. The S3 tests still pass.
+
+**Resumed interactively (2026-11-27):** Kam settled the blocker: the cap is 12 KB and the probe stays one
+file (PLAN §3 D18; the split `peek.js` was rejected). The cap is updated in PLAN §2.6, R7 and §5 S4, in
+prompts 4 and 9, and in the size test (`<= 12288`). `probe.js` is unchanged at 10,759 bytes, so about
+1.5 KB is left for S9's fixes. Gate re-run: `npm test` 53/53, genericity clean over the plugin (40 files)
+and `--added`.

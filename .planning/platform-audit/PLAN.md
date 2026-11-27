@@ -302,7 +302,7 @@ All the scripts live in `skills/platform-audit/scripts/`.
 
 | Script | Interface |
 |---|---|
-| `probe.js` | Pasted whole into `javascript_tool`. Defines `window.__auditProbe` (idempotent, with a `version`) and returns `recon()`. The methods are `recon()`, `nav()`, `screen()`, `overlays()`, `requests()`, `peek()` (async) and `open(i \| text)`, and every output is a JSON string. It stores its own source in sessionStorage, so the short loader (`reinstall()` in `walking.md`) puts it back after a full page load wherever the page's CSP allows `eval`; otherwise it is pasted again. **At most 8 KB**, because Claude has to type it into the tool. |
+| `probe.js` | Pasted whole into `javascript_tool`. Defines `window.__auditProbe` (idempotent, with a `version`) and returns `recon()`. The methods are `recon()`, `nav()`, `screen()`, `overlays()`, `requests()`, `peek()` (async) and `open(i \| text)`, and every output is a JSON string. It stores its own source in sessionStorage, so the short loader (`reinstall()` in `walking.md`) puts it back after a full page load wherever the page's CSP allows `eval`; otherwise it is pasted again. **At most 12 KB** (D18), because Claude has to type it into the tool. |
 | `inventory-core.js` | A classic script with no `import` or `export`. Sets `globalThis.AuditInventory = { build(files, opts) }`, where `files` is `[{ name, text }]`. It runs in Node (`inventory.mjs` imports it for its side effect) and, pasted into the page, as the fallback (D6). |
 | `inventory.mjs` | `build <bundle-dir> --out <inventory.json> [--origin <url>]` · `summary <inv>` · `routes <inv>` · `labels <inv> list` · `labels <inv> show <ns,ns*> [--ids]` · `labels <inv> grep <regex>` · `context <bundle-dir> <term> [--chars 300] [--max 5]` · `ops <inv> [--md <file>]` · `columns <inv>` · `limits <inv>` · `enums <inv>` · `access <inv>` |
 | `bundle.mjs` | `fetch --origin <url> --out <dir> [--allow-host <host>]… [--delay 1500] [--max-files 40] [--max-bytes 15000000] [--no-discover] [--dry-run] <path \| url>…`. Writes the files and `manifest.json` (url, file, status, bytes, type, sha256). It refuses other hosts and anything not `.js`, `.mjs` or `.json`, and sends no cookies. On 401, 403, 429 or an HTML challenge page it stops with exit 3 and doesn't retry. Client name: `platform-audit/1.0 (public bundle reader)`. |
@@ -591,6 +591,12 @@ plugins/audit/
   - S7 writes the eval cases, the trigger set and `run.sh`, but runs none of them. No session runs
     `claude plugin eval`, `evals/run.sh` or skill-creator's description loop.
   - Kam runs `bash plugins/audit/evals/run.sh` when they choose.
+- **D18. The probe's size cap is 12 KB** (Kam, 27 Nov, answering S4's blocker).
+  - S4's probe held every method and guard at 10.8 KB, and 8 KB could not (9.4 KB even without `peek()`).
+  - It stays one file, pasted once per tab. Reinstalling from sessionStorage worked even under a CSP,
+    because code evaluated from DevTools is exempt.
+  - The rejected option was a paste-once `peek.js` plus about 1.3 KB of cuts (row-control counts, the
+    alert/confirm/open stub, the German danger words, the framework long tail).
 
 ### Reconciliations
 
@@ -610,7 +616,7 @@ plugins/audit/
 - **R6. Numbering.** The reference audit's section numbers are fixed. A requirements check inserts §2. →
   The skill numbers the later sections on, and `check-audit`'s `xref` check keeps every § reference true.
 - **R7. Probe size.** S-C's snippets were small and typed on the fly, while the probe is a single reusable
-  file. → It is capped at 8 KB and reinstalled from sessionStorage after full loads where possible. In-app
+  file. → It is capped at 12 KB (D18; first planned as 8 KB) and reinstalled from sessionStorage after full loads where possible. In-app
   navigation is preferred, so it is re-pasted rarely.
 - **R8.** S10 makes two commits, as user-guides' release did: the release commit, which the tag points to,
   then the roadmap close.
@@ -880,7 +886,7 @@ together.
 and guarded.
 
 **Do.**
-1. **`scripts/probe.js`**, as in §2.6: at most 8 KB, idempotent, with a `version`, and its source saved in
+1. **`scripts/probe.js`**, as in §2.6: at most 12 KB (D18), idempotent, with a `version`, and its source saved in
    sessionStorage for `reinstall()`. Its methods:
    - `recon()`: title, language, host, framework hints, script and stylesheet paths, a nav summary, a
      signed-in hint, and URL parameter names;
@@ -920,7 +926,7 @@ and guarded.
 **Verification gate.**
 - `npm test` is green, and the privacy assertions pass on every screen.
 - The guard refuses every case listed.
-- `probe.js` is at most 8 KB.
+- `probe.js` is at most 12 KB (D18).
 - The genericity test is clean.
 
 **Runtime:** opus / high — DOM heuristics across UI libraries plus the click guard; the tests cover only the fixture's UI

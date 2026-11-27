@@ -37,7 +37,7 @@ Kam's verdict on the trial report, measured against the reference audit, and eve
    - ask with AskUserQuestion: Approve as-is · I have notes · Re-run the trial after the fixes.
 2. **Make one numbered checklist** in the session log, from the trial findings and Kam's notes.
 3. **Fix each item** in the skill text, scripts or templates, within the earlier sessions' rules:
-   - the probe stays at most 8 KB;
+   - the probe stays at most 12 KB (D18);
    - SKILL.md stays at most about 200 lines;
    - the interview's wording changes only with a version bump in `interview.md`.
 4. **Re-run** what the fixes touch:

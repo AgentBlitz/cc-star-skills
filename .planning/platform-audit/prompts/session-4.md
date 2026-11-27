@@ -32,7 +32,7 @@ The helper Claude pastes into a page to read screens as text. It must be accurat
 
 ## Do
 1. **`plugins/audit/skills/platform-audit/scripts/probe.js`**, as in PLAN §2.6:
-   - **at most 8 KB**, idempotent, with a `version`;
+   - **at most 12 KB** (D18), idempotent, with a `version`;
    - pasting it whole defines `window.__auditProbe` and returns `recon()`;
    - it saves its own source in sessionStorage. A one-line `reinstall` loader for after a full page load works where the page's CSP allows `eval`; it fails cleanly where it doesn't, and the probe is then pasted again. Document the one-liner in a header comment.
 
@@ -69,7 +69,7 @@ The helper Claude pastes into a page to read screens as text. It must be accurat
    - no output holds a query string, a private term from a field value, or any cell text;
    - `peek()` finds the hidden routes;
    - pasting twice is harmless;
-   - the file is at most 8 KB.
+   - the file is at most 12 KB.
 
 ## Boundaries
 - The probe only reads, and it clicks only through `open()`.
@@ -80,7 +80,7 @@ The helper Claude pastes into a page to read screens as text. It must be accurat
 - `npm test` is green in `plugins/audit`.
 - The privacy assertions pass on every screen tested.
 - The guard refuses every case listed.
-- `probe.js` is at most 8 KB.
+- `probe.js` is at most 12 KB (D18).
 - `node plugins/audit/test/genericity.mjs` and `--added` are clean.
 
 ## Standing rules
@@ -95,7 +95,7 @@ The helper Claude pastes into a page to read screens as text. It must be accurat
 ## Working rules
 - **PLAN.md is authoritative.** If it and this file disagree, PLAN.md wins; log the discrepancy.
 - **Small choices:** decide them, and record them in the session-log entry. That includes the exact danger-word list and how the guard tells a form-opening button from a submitting one; S6 documents both.
-- **Shape-changing decisions** that PLAN.md doesn't settle (a dependency, a contract change, deleting data): mark the row ⛔ `Needs decision: <question — options>` and stop. If 8 KB proves too small for the methods, that is one of these.
+- **Shape-changing decisions** that PLAN.md doesn't settle (a dependency, a contract change, deleting data): mark the row ⛔ `Needs decision: <question — options>` and stop. The size cap was one of these: settled at 12 KB (D18).
 - **Before committing**, run the genericity test over the plugin and over the lines this session adds under `.planning/` (`--added`).
 - **Unattended:** wait for every long command in the foreground, or in the background with Monitor. Never end the turn to wait: a headless run that ends its turn exits. Stop any fixture you started.
 
