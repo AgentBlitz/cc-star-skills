@@ -612,6 +612,11 @@ plugins/audit/
     because code evaluated from DevTools is exempt.
   - The rejected option was a paste-once `peek.js` plus about 1.3 KB of cuts (row-control counts, the
     alert/confirm/open stub, the German danger words, the framework long tail).
+- **D19. Session 8 runs by hand now** (Kam, 27 Nov, answering S8's `Needs decision`): Chrome is open with
+  Claude in Chrome connected, and Kam runs the second terminal.
+- **D20. S8's score gate passes on review** (Kam, 27 Nov). The trial scored routes 92.3% and items 84.1%.
+  The misses were the scorer's exact heading-name match (98.6% of items once matched) and `/login` marked 🔒
+  after a manual sign-in. S9 fixes the scorer, the status key and truth (Trial findings 1–3).
 
 ### Reconciliations
 

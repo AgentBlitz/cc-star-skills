@@ -21,7 +21,7 @@
 | 5 | Report tooling | ✅ | `templates/{audit,screen,progress}.md`; `scripts/appendix.mjs`, `check-audit.mjs`; `test/score-report.mjs`; `test/samples/partner-portal-audit/` (clean report, appendix, map, 9 defects) + `plant-defects.mjs`; `test/report-tools.test.mjs` | `npm test` 75/75 (22 new); all 9 defects caught, each under its own check only; clean sample clean with no check skipped; scorer 100%/100% on it; genericity clean (plugin 62 files, `--added`) | **For S6:** `label-map.json` is `{group: heading}`, `*` suffix = prefix, heading `"shared"` = shared library; `appendix.mjs --report <file>` links back; `check-audit --appendix` also checks the appendix. The template's `<!-- SECTION` comments must all go, or `markers` fails |
 | 6 | The skill text | ✅ | `SKILL.md` (117 lines); `reference/{interview,ground-rules,code-inventory,walking,writing,checking}.md`; `test/skill-lint.test.mjs` (12 tests); `inventory.mjs join`; plugin 0.9.0 | `npm test` 87/87 (12 new); `claude plugin validate` passes (icon warning only); genericity clean (plugin 69 files, `--added`) | Contracts (Claude Code 2.1.332 docs): `argument-hint` and `allowed-tools` are honoured; `allowed-tools` grants for the invoking turn and restricts nothing; the docs don't say it takes MCP names, though `mcp__claude-in-chrome__*` fits the permission-rule form; `${CLAUDE_SKILL_DIR}` works in plugin skills. **For S7/S8 to watch:** (1) the in-page fallback has run only in a stand-in page (vm): run it once on the fixture with `--forbid-assets`, to see that `javascript_tool` takes the 69 KB core and an `await (async…)()` snippet; (2) whether Chrome calls still prompt with this `allowed-tools`; (3) the probe can't press a row link, so detail pages go through `find` + a `computer` click; (4) headless, `folder` and `role` take defaults, so the five-answer command is complete |
 | 7 | Evals, triggers and a rehearsal | ✅ | `evals/platform-audit-{headless-round-1,no-chrome,check}/` (case.yaml + scaffold.sh); `evals/lib/scaffold.mjs`; `evals/triggers/platform-audit.json` (10 + 10); `evals/run.sh` (not run, D17); `test/evals-lint.test.mjs` (14 tests) | `npm test` 102/102; rehearsal report `check-audit` clean (inventory, private terms, appendix); score routes 1.0, items 0.971; fixture log 49 requests, 0 mutation / upload / download, no 429; genericity clean (plugin 79 files, `--added`) | 6 fixes: (1) probe returned a record's name as a detail page's heading → `(record title)`; (2) `peek().hidden` listed `/login` → sign-in routes left out; (3) row checkbox via `open(i,{toggle:true})` impossible (cells unlisted) → `find` + `computer`; (4) blocked page's message → from `access`; (5) chips / profile block are plain text → screenshot or `zoom`; (6) `open()` omits an empty `blocked`. **For S8 to watch:** a real paste of the 10.9 KB probe into `javascript_tool` (the rehearsal injected the file); one load per batch; whether `find` + `computer` reach the row link and checkbox; no paid evals run |
-| 8 | Trial run in Kam's Chrome | ⛔ | | | Needs decision: run Session 8 interactively — Kam starts it in cc-star-skills with Chrome connected, then runs the skill in a second terminal (D16) |
+| 8 | Trial run in Kam's Chrome | ✅ | Trial report `/Users/kstar/_PRJ/platform-audit-trial/docs/partner-portal-audit/PARTNER-PORTAL-PLATFORM-AUDIT.md` (641 lines) + `appendix-ui-labels.md`, outside this repo; work folder `.platform-audit/partner-portal/` there | `check-audit` clean (inventory, the fixture's private terms, appendix); score routes 92.3%, items 84.1% as scored (98.6% with the three headings matched), passed on D20; fixture log 54 requests: 0 mutation / upload / download, no 429, data loads ≥ 27 s apart | 12 findings (Review notes); 39 min elapsed, about 21 of them waiting on the second interview question; by hand |
 | 9 | Review and fixes | ⬜ | | | By hand |
 | 10 | Release 1.0.0 | ⬜ | | | By hand; push on Kam's go-ahead |
 
@@ -32,8 +32,8 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 - [x] **Run Session 1 before about 14 Dec 2026** (done 27 Nov 2026), while the 13 Nov audit's transcript still exists.
 - [x] **Needs decision (S4): the probe's size cap.** Settled 27 Nov: 12 KB, one file (PLAN D18).
 - [ ] **Kam's time** for the by-hand Sessions 8, 9 and 10.
-- [ ] **Chrome with Claude in Chrome connected** for Session 8, able to open the fixture on `http://127.0.0.1:<port>`.
-- [ ] **The trial repo** `/Users/kstar/_PRJ/platform-audit-trial`, which Session 8 makes. It is outside this repo and can be deleted after the release.
+- [x] **Chrome with Claude in Chrome connected** for Session 8, able to open the fixture on `http://127.0.0.1:<port>`.
+- [x] **The trial repo** `/Users/kstar/_PRJ/platform-audit-trial`, which Session 8 makes. It is outside this repo and can be deleted after the release.
 - [ ] **The go-ahead to push** `main` and `audit--v1.0.0` to `origin` and `GITLAB` (Session 10).
 - [ ] **The paid evals**: none run in this roadmap (D17). After the release, Kam may run `bash plugins/audit/evals/run.sh`.
 
@@ -41,7 +41,46 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 
 ### Trial findings (written by Session 8, read by Session 9)
 
-(none yet)
+Run on the fixture, 2026-11-27, in a fresh session started with `--plugin-dir`. Kam signed in by hand
+first and answered: no list · try one or two · open forms, never submit · download · about 5 s · the
+default folder.
+
+**For S9 to fix (the score misses, D20):**
+1. **The scorer matches headings by exact name.** The report titled its blocks "Order detail", "Customer
+   detail" and "Admin › Settings"; truth names them "Order details", "Customer details" and "Admin
+   settings". The three blocks scored as missing, so items fell to 84.1%, although they hold every item
+   (98.6% once renamed). → `score-report.mjs` should match singular/plural forms and the parent › child
+   form, or truth should carry aliases.
+2. **`/login` was marked 🔒 ("not shown to this role").** The account was already signed in, so the skill
+   never opened the sign-in page, and the status key has nothing for "public page, not opened". So routes
+   scored 92.3%. → Give the key a status for this (or have the walk open the sign-in route once and read
+   it without acting). Truth expects ✅ only because the rehearsal clicked sign-in itself (D15). Reconcile
+   one or the other.
+3. **The Sign in screen has no block**, so its one item ("Sign in as demo partner") is missing. This is
+   the same cause as 2.
+
+**Seen working (the S6/S7 watch list):**
+4. The 11.1 KB probe went into `javascript_tool` in one paste and was never re-pasted or reinstalled.
+5. `find` + a `computer` click reached both row links (order and customer details).
+6. There were no `open()` refusals, no clicks on guarded controls and no errored tool calls. (Whether the
+   Chrome calls prompted is not visible in the transcript. Ask Kam in S9.)
+7. Pacing: after the first load, data loads were 27–55 s apart, well over the 5 s asked; no 429. The
+   hidden-screen answer "try one or two" became two tries by URL (`/reports/finance`, `/admin/audit-log`,
+   both ⛔), and the other two stayed 🔒.
+8. `check-audit` was clean, with the fixture's private terms (and with the skill's own `private-terms.txt`).
+   The skill found the profile block's terms via `find` and wrote them to its git-ignored work folder.
+9. The bundle came down through `bundle.mjs fetch` (assets in the log), not the in-page fallback. So the
+   fallback is still unproved in Chrome (S6 watch item 1).
+
+**Worth a look in S9:**
+10. Each Bash call appears twice in the transcript, once as written and once prefixed with `cd <trial
+    repo> &&`, with the same result. This is likely a hook or harness rewrite, not the skill, but confirm
+    it doesn't double any write.
+11. Tool counts: Bash 67, Read 23, `javascript_tool` 45, `computer` 37 (26 `wait`, 6 `key`, 2 `left_click`,
+    2 screenshots, 1 zoom), `find` 6, `navigate` 3, AskUserQuestion 2. The screenshots were few, so the
+    report leaned on the probe.
+12. Elapsed: 39 min. About 21 min of that was the wait on the second interview batch (pace, folder, role),
+    and the walk itself took about 8 min.
 
 ### Kam's notes on the trial report (read by Session 9)
 
@@ -278,3 +317,17 @@ Runtime: opus/medium (autopilot attempt 1)
 - Started under autopilot, so it stopped at once by design (D12): the trial needs Kam present and Chrome
   with Claude in Chrome connected. Row 8 set to ⛔ `Needs decision: run Session 8 interactively`.
   No work was done; nothing else changed.
+
+### Session 8 — Trial run in Kam's Chrome, by hand (2026-11-27) ✅
+
+Runtime: opus/medium (by hand)
+
+- Kam answered S8's `Needs decision`: run it now (D19). Preflight: `npm test` 102/102, plugin 0.9.0.
+- Made the trial repo and started the fixture on port 0 with the trial log. Kam signed in, ran
+  `/audit:platform-audit` in a second terminal, answered the interview, and it finished.
+- Checks: `check-audit` clean. The score was below both thresholds as scored (routes 92.3%, items
+  84.1%). Kam ruled it a pass on D20: the misses come from heading-name matching and an unopened sign-in
+  page, not from missing coverage (98.6% of items once the names match). The log was read-only and paced.
+  The transcript showed one probe paste, no refusals and no errors.
+- **Deviation:** the gate's score line passed on D20, not on the numbers. Findings 1–3 are S9's first fixes.
+- No skill change in this session. The fixture is stopped, and the trial repo is not committed.
