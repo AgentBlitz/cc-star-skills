@@ -1,6 +1,6 @@
 # platform-audit — the `audit` plugin and its first skill, `/audit:platform-audit`
 
-> **Status:** Planned 26 Nov 2026. Sessions 1–6 done (27 Nov 2026); Session 7 is next. (Session 1 had to run before about 14 Dec 2026, when the transcript it copied would be deleted.)
+> **Status:** Complete. Planned 26 Nov 2026; all 10 sessions done 27 Nov 2026; `audit` 1.0.0 released (tag `audit--v1.0.0`) and pushed. (Session 1 had to run before about 14 Dec 2026, when the transcript it copied would be deleted.)
 
 ## 1. Context
 

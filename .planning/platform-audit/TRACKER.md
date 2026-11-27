@@ -23,7 +23,7 @@
 | 7 | Evals, triggers and a rehearsal | ✅ | `evals/platform-audit-{headless-round-1,no-chrome,check}/` (case.yaml + scaffold.sh); `evals/lib/scaffold.mjs`; `evals/triggers/platform-audit.json` (10 + 10); `evals/run.sh` (not run, D17); `test/evals-lint.test.mjs` (14 tests) | `npm test` 102/102; rehearsal report `check-audit` clean (inventory, private terms, appendix); score routes 1.0, items 0.971; fixture log 49 requests, 0 mutation / upload / download, no 429; genericity clean (plugin 79 files, `--added`) | 6 fixes: (1) probe returned a record's name as a detail page's heading → `(record title)`; (2) `peek().hidden` listed `/login` → sign-in routes left out; (3) row checkbox via `open(i,{toggle:true})` impossible (cells unlisted) → `find` + `computer`; (4) blocked page's message → from `access`; (5) chips / profile block are plain text → screenshot or `zoom`; (6) `open()` omits an empty `blocked`. **For S8 to watch:** a real paste of the 10.9 KB probe into `javascript_tool` (the rehearsal injected the file); one load per batch; whether `find` + `computer` reach the row link and checkbox; no paid evals run |
 | 8 | Trial run in Kam's Chrome | ✅ | Trial report `/Users/kstar/_PRJ/platform-audit-trial/docs/partner-portal-audit/PARTNER-PORTAL-PLATFORM-AUDIT.md` (641 lines) + `appendix-ui-labels.md`, outside this repo; work folder `.platform-audit/partner-portal/` there | `check-audit` clean (inventory, the fixture's private terms, appendix); score routes 92.3%, items 84.1% as scored (98.6% with the three headings matched), passed on D20; fixture log 54 requests: 0 mutation / upload / download, no 429, data loads ≥ 27 s apart | 12 findings (Review notes); 39 min elapsed, about 21 of them waiting on the second interview question; by hand |
 | 9 | Review and fixes | ✅ | `test/score-report.mjs` (loose heading match, `optional` screens, 🚪); `fixtures/partner-portal/truth.json`; `check-audit.mjs` (🚪 in the key); `templates/audit.md`; `reference/{writing,walking,code-inventory}.md`; clean sample + 9 defect copies; `test/{report-tools,fixture}.test.mjs` | `npm test` 105/105 (3 new); trial report rescored: items 100%, routes 92.3% as written (its `/login` is 🔒), and a copy with `/login` 🚪 scores 100%/100% with `check-audit` clean; rehearsal (signed-out start, Orders, `try-two`) 34 requests, 0 mutation / upload / download, no 429; validate passes; genericity clean (plugin 79 files, `--added`) | Kam: **approve as-is**, no prompts from the Chrome calls. 9 items closed, 1 (fallback in Chrome, D22) moved to After 1.0. New 🚪 status (D21). The trial report as written now fails `keys` (no 🚪), as expected |
-| 10 | Release 1.0.0 | ⬜ | | | By hand; push on Kam's go-ahead |
+| 10 | Release 1.0.0 | ✅ | `audit` 1.0.0 (`plugin.json` + marketplace entry); tag `audit--v1.0.0` on release commit `d759661`; README intro, `## The audit plugin`, Install, Updating, Layout | `npm test` 105/105; `claude plugin validate` passes; `git tag -l audit--v1.0.0` prints it; both versions 1.0.0; genericity clean (plugin 79 files, `--added`) | By hand. Kam: **Push now** — `main` and the tag pushed to `origin` and `GITLAB`, and the close commit after them |
 
 Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 
@@ -31,10 +31,10 @@ Legend: ⬜ Not started · 🟡 In progress · ✅ Done · ⛔ Blocked
 
 - [x] **Run Session 1 before about 14 Dec 2026** (done 27 Nov 2026), while the 13 Nov audit's transcript still exists.
 - [x] **Needs decision (S4): the probe's size cap.** Settled 27 Nov: 12 KB, one file (PLAN D18).
-- [ ] **Kam's time** for the by-hand Sessions 8, 9 and 10.
+- [x] **Kam's time** for the by-hand Sessions 8, 9 and 10.
 - [x] **Chrome with Claude in Chrome connected** for Session 8, able to open the fixture on `http://127.0.0.1:<port>`.
 - [x] **The trial repo** `/Users/kstar/_PRJ/platform-audit-trial`, which Session 8 makes. It is outside this repo and can be deleted after the release.
-- [ ] **The go-ahead to push** `main` and `audit--v1.0.0` to `origin` and `GITLAB` (Session 10).
+- [x] **The go-ahead to push** `main` and `audit--v1.0.0` to `origin` and `GITLAB` (Session 10). Given 27 Nov 2026; both pushed.
 - [ ] **The paid evals**: none run in this roadmap (D17). After the release, Kam may run `bash plugins/audit/evals/run.sh`.
 
 ## Review notes
@@ -375,3 +375,22 @@ Runtime: opus/high (by hand)
   429. Fixture stopped, browser closed.
 - **Small choices:** the emoji is 🚪. Exact heading match is tried before the loose one, so earlier
   reports score as before.
+
+### Session 10 — Release 1.0.0, by hand (2026-11-27) ✅
+
+Runtime: opus (by hand; the profile was sonnet/high)
+
+- **README:** the intro table gains `audit`; a new `## The audit plugin` section (after `user-guides`) with
+  the skill table, read-only and paced (exports only with `interact=downloads`, the pace answer, the 429
+  stop), what it reads from the code (as text, never run), Requirements (Chrome with Claude in Chrome,
+  signed in; Node ≥ 20), What it adds to your repo (`docs/<slug>-audit/` tracked, `.platform-audit/<slug>/`
+  ignored) and Evals (`bash plugins/audit/evals/run.sh`, billed, none run, D17). Install, the "installing
+  adds" line, Updating and the Layout tree list `audit`.
+- **Manifests:** marketplace entry `audit` (`./plugins/audit`, 1.0.0, MIT, description, author) and the
+  top-level description names it; `plugin.json` 0.9.0 → 1.0.0.
+- **Checks:** `npm test` 105/105; validate passes; genericity clean (79 plugin files, `--added`).
+- **Release commit** `d759661`, then `claude plugin tag plugins/audit` → `audit--v1.0.0`.
+- **Push:** Kam chose "Push now". `main` and the tag went to `origin` and `GITLAB` (both from `b644bd9`);
+  the close commit is pushed after it.
+- **Small choices:** the marketplace edit was made as text, so the other entries keep their inline
+  `author` objects. Nothing found needing a fix, so After 1.0 is unchanged.
