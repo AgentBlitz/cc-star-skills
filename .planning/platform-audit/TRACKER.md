@@ -21,7 +21,7 @@
 | 5 | Report tooling | ✅ | `templates/{audit,screen,progress}.md`; `scripts/appendix.mjs`, `check-audit.mjs`; `test/score-report.mjs`; `test/samples/partner-portal-audit/` (clean report, appendix, map, 9 defects) + `plant-defects.mjs`; `test/report-tools.test.mjs` | `npm test` 75/75 (22 new); all 9 defects caught, each under its own check only; clean sample clean with no check skipped; scorer 100%/100% on it; genericity clean (plugin 62 files, `--added`) | **For S6:** `label-map.json` is `{group: heading}`, `*` suffix = prefix, heading `"shared"` = shared library; `appendix.mjs --report <file>` links back; `check-audit --appendix` also checks the appendix. The template's `<!-- SECTION` comments must all go, or `markers` fails |
 | 6 | The skill text | ✅ | `SKILL.md` (117 lines); `reference/{interview,ground-rules,code-inventory,walking,writing,checking}.md`; `test/skill-lint.test.mjs` (12 tests); `inventory.mjs join`; plugin 0.9.0 | `npm test` 87/87 (12 new); `claude plugin validate` passes (icon warning only); genericity clean (plugin 69 files, `--added`) | Contracts (Claude Code 2.1.332 docs): `argument-hint` and `allowed-tools` are honoured; `allowed-tools` grants for the invoking turn and restricts nothing; the docs don't say it takes MCP names, though `mcp__claude-in-chrome__*` fits the permission-rule form; `${CLAUDE_SKILL_DIR}` works in plugin skills. **For S7/S8 to watch:** (1) the in-page fallback has run only in a stand-in page (vm): run it once on the fixture with `--forbid-assets`, to see that `javascript_tool` takes the 69 KB core and an `await (async…)()` snippet; (2) whether Chrome calls still prompt with this `allowed-tools`; (3) the probe can't press a row link, so detail pages go through `find` + a `computer` click; (4) headless, `folder` and `role` take defaults, so the five-answer command is complete |
 | 7 | Evals, triggers and a rehearsal | ✅ | `evals/platform-audit-{headless-round-1,no-chrome,check}/` (case.yaml + scaffold.sh); `evals/lib/scaffold.mjs`; `evals/triggers/platform-audit.json` (10 + 10); `evals/run.sh` (not run, D17); `test/evals-lint.test.mjs` (14 tests) | `npm test` 102/102; rehearsal report `check-audit` clean (inventory, private terms, appendix); score routes 1.0, items 0.971; fixture log 49 requests, 0 mutation / upload / download, no 429; genericity clean (plugin 79 files, `--added`) | 6 fixes: (1) probe returned a record's name as a detail page's heading → `(record title)`; (2) `peek().hidden` listed `/login` → sign-in routes left out; (3) row checkbox via `open(i,{toggle:true})` impossible (cells unlisted) → `find` + `computer`; (4) blocked page's message → from `access`; (5) chips / profile block are plain text → screenshot or `zoom`; (6) `open()` omits an empty `blocked`. **For S8 to watch:** a real paste of the 10.9 KB probe into `javascript_tool` (the rehearsal injected the file); one load per batch; whether `find` + `computer` reach the row link and checkbox; no paid evals run |
-| 8 | Trial run in Kam's Chrome | ⬜ | | | By hand |
+| 8 | Trial run in Kam's Chrome | ⛔ | | | Needs decision: run Session 8 interactively — Kam starts it in cc-star-skills with Chrome connected, then runs the skill in a second terminal (D16) |
 | 9 | Review and fixes | ⬜ | | | By hand |
 | 10 | Release 1.0.0 | ⬜ | | | By hand; push on Kam's go-ahead |
 
@@ -270,3 +270,11 @@ Runtime: opus/medium (autopilot attempt 1)
      `labels show`, kind of value only.
   6. `open()` answers `{"ok":1,"t":…}` with no `blocked` key when nothing fired. → the probe table says so.
 - Probe now 10,903 bytes (cap 12 KB, D18). `npm test` 102/102.
+
+### Session 8 — Trial run in Kam's Chrome (2026-11-27) ⛔
+
+Runtime: opus/medium (autopilot attempt 1)
+
+- Started under autopilot, so it stopped at once by design (D12): the trial needs Kam present and Chrome
+  with Claude in Chrome connected. Row 8 set to ⛔ `Needs decision: run Session 8 interactively`.
+  No work was done; nothing else changed.
