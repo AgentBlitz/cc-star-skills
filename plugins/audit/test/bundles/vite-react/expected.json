@@ -1,0 +1,66 @@
+{
+  "frameworks": ["react", "mui", "data-grid", "apollo", "formatjs", "react-router"],
+  "routes": [
+    { "path": "/", "kinds": ["route-map", "path-prop"], "keys": ["home"] },
+    { "path": "/orders", "kinds": ["route-map", "path-prop"], "keys": ["orders"] },
+    { "path": "/orders/:orderId", "kinds": ["route-map", "path-prop"], "keys": ["orderDetails"] },
+    { "path": "/payouts", "kinds": ["route-map"], "keys": ["payouts"] },
+    { "path": "/customers", "kinds": ["route-map", "nav-target"] },
+    { "path": "/reports/sales", "kinds": ["route-map"], "keys": ["salesReport"] },
+    { "path": "/settings/profile", "kinds": ["path-prop"] },
+    { "path": "/admin/users", "kinds": ["path-prop"] }
+  ],
+  "counts": { "routes": 8, "labels": 5, "operations": 4 },
+  "labels": {
+    "orders": {
+      "orders.title": "Orders",
+      "orders.empty": "No orders yet",
+      "orders.count": "{count, plural, one {# order} other {# orders}}",
+      "orders.columns.amount": "Amount"
+    },
+    "payouts": { "payouts.request": "Request payout" }
+  },
+  "idsWithoutText": ["orders.export"],
+  "unkeyed": ["Partner dashboard", "Customers", "Display name", "Your name", "Shown to your customers"],
+  "columns": [[
+    { "field": "id", "header": "Order" },
+    { "field": "status", "header": "Status" },
+    { "field": "amount", "header": "Amount" },
+    { "field": "createdAt", "header": "Created" }
+  ]],
+  "operations": [
+    { "kind": "fragment", "name": "OrderFields", "on": "Order", "fields": ["id", "status", "amount", "createdAt", "customer"], "source": "document" },
+    { "kind": "query", "name": "ListOrders", "variables": ["$first: Int!", "$after: String", "$status: [OrderStatus!]"], "fields": ["orders", "viewer"], "source": "document" },
+    { "kind": "mutation", "name": "RequestPayout", "variables": ["$input: PayoutInput!"], "fields": ["requestPayout"] },
+    { "kind": "subscription", "name": "OnOrderUpdated", "variables": ["$partnerId: ID!"], "fields": ["orderUpdated"] }
+  ],
+  "endpoints": [{ "method": "POST", "path": "/graphql" }],
+  "hosts": { "api": ["https://api.example.com"], "auth": ["https://auth.example.com"] },
+  "access": {
+    "constants": ["ROLE_PARTNER", "ROLE_MANAGER", "ROLE_ADMIN"],
+    "rules": [
+      { "name": "orders", "roles": ["PARTNER", "MANAGER", "ADMIN"] },
+      { "name": "finance", "roles": ["MANAGER", "ADMIN"] },
+      { "name": "adminUsers", "roles": ["ADMIN"] }
+    ],
+    "deniedMessages": ["You do not have permission to view this page."]
+  },
+  "enums": [
+    { "name": "OrderStatus", "members": ["PENDING", "PAID", "REFUNDED", "CANCELLED"] },
+    { "name": "Role", "members": ["PARTNER", "MANAGER", "ADMIN"] }
+  ],
+  "limits": [
+    { "name": "MAX_UPLOAD_SIZE", "value": 5242880, "raw": "5*1024*1024" },
+    { "name": "EXPORT_ROW_LIMIT", "value": 10000, "raw": "1e4" },
+    { "name": "maxPageSize", "value": 100 },
+    { "name": "pageSize", "value": 25 }
+  ],
+  "config": [
+    { "key": "apiUrl", "value": "https://api.example.com/graphql" },
+    { "key": "mapsKey", "value": "[redacted]" },
+    { "key": "release", "value": "2026.11.1" }
+  ],
+  "sourceMaps": ["index-a1b2c3d4.js.map"],
+  "chunks": ["./vendor-0f1e2d3c.js", "./admin-e5f6a7b8.js"],
+  "absentText": ["AIzaFk93Lq0Zx7Rt2Mv8Np4Ws6Yb1Hc5Jd"]
+}

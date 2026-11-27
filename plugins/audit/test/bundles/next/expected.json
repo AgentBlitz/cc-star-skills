@@ -1,0 +1,13 @@
+{
+  "frameworks": ["next"],
+  "routes": [
+    { "path": "/", "kinds": ["manifest"] },
+    { "path": "/orders", "kinds": ["manifest"] },
+    { "path": "/orders/:orderId", "kinds": ["manifest"] },
+    { "path": "/docs", "kinds": ["manifest"] },
+    { "path": "/reports/payouts", "kinds": ["manifest"] },
+    { "path": "/settings/profile", "kinds": ["manifest"] }
+  ],
+  "counts": { "routes": 6, "labels": 0 },
+  "chunks": ["static/chunks/pages/orders-9c0d1e2f.js", "static/chunks/1-aa11bb22.js"]
+}

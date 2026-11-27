@@ -1,0 +1,21 @@
+{
+  "frameworks": ["vue", "vue-router", "vue-i18n"],
+  "routes": [
+    { "path": "/", "kinds": ["path-prop"], "keys": ["home"] },
+    { "path": "/orders", "keys": ["orders"] },
+    { "path": "/orders/:id", "keys": ["order-details"] },
+    { "path": "/orders/export", "keys": ["orders-export"] },
+    { "path": "/reports", "keys": [] },
+    { "path": "/reports/weekly", "keys": ["reports-weekly"] },
+    { "path": "/reports/daily", "keys": ["reports-daily"] }
+  ],
+  "counts": { "routes": 7, "labels": 7 },
+  "labels": {
+    "orders": { "orders.title": "Orders", "orders.empty": "No orders yet", "orders.details": "Order details" },
+    "reports": { "reports.weekly": "Sales weekly", "reports.daily": "Sales daily" },
+    "common": { "common.cancel": "Cancel", "common.save": "Save" }
+  },
+  "unkeyed": ["Order details", "Back to orders", "Export CSV"],
+  "absentUnkeyed": ["Orders", "Bestellungen"],
+  "chunks": ["./Orders-ab12cd34.js", "./OrdersExport-ef56ab78.js"]
+}

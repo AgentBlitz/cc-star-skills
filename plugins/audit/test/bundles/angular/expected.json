@@ -1,0 +1,20 @@
+{
+  "frameworks": ["angular", "angular-router"],
+  "absentFrameworks": ["vue", "react"],
+  "routes": [
+    { "path": "/", "kinds": ["path-prop"] },
+    { "path": "/orders", "kinds": ["path-prop", "nav-target"] },
+    { "path": "/orders/:id", "kinds": ["path-prop"] },
+    { "path": "/admin", "kinds": ["path-prop"] },
+    { "path": "/admin/users", "kinds": ["path-prop", "nav-target"] },
+    { "path": "/admin/audit-log", "kinds": ["path-prop"] },
+    { "path": "/settings", "kinds": ["path-prop"] }
+  ],
+  "counts": { "routes": 7, "labels": 3 },
+  "labels": {
+    "orders": { "orders.title": "Orders" },
+    "dashboard": { "dashboard.welcome": "Welcome back, {INTERPOLATION}!" },
+    "nav": { "nav.settings": "Settings" }
+  },
+  "unkeyed": ["Kept for seven years", "Audit log"]
+}

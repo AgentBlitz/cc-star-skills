@@ -1,0 +1,15 @@
+{
+  "routes": [],
+  "counts": {
+    "routes": 0,
+    "labels": 0,
+    "unkeyed": 0,
+    "idsWithoutText": 0,
+    "operations": 0,
+    "endpoints": 0,
+    "columns": 0,
+    "enums": 0,
+    "limits": 0,
+    "hosts": 0
+  }
+}

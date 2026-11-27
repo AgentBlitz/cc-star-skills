@@ -1,0 +1,15 @@
+{
+  "routes": [],
+  "counts": { "routes": 0, "labels": 7 },
+  "labels": {
+    "orders": {
+      "orders.title": "Bestellungen",
+      "orders.empty": "Noch keine Bestellungen",
+      "orders.count": "{count, plural, one {# Bestellung} other {# Bestellungen}}"
+    },
+    "payouts": { "payouts.request": "Auszahlung anfordern" },
+    "shell": { "shell.greeting": "Hallo {name}!" },
+    "customers": { "customers_title": "Kunden" },
+    "reports": { "reports.salesWeekly": "Umsatz pro Woche" }
+  }
+}

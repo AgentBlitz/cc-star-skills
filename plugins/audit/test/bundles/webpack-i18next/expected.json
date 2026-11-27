@@ -1,0 +1,33 @@
+{
+  "frameworks": ["react", "i18next"],
+  "routes": [{ "path": "/customers/vouchers", "kinds": ["nav-target"] }],
+  "counts": { "routes": 1, "labels": 8 },
+  "labels": {
+    "nav": { "nav.orders": "Orders", "nav.customers": "Customers", "nav.reports": "Reports" },
+    "customers": {
+      "customers.title": "Customers",
+      "customers.sendVoucher": "Send voucher",
+      "customers.import": "Import customers",
+      "customers.count": "{count} customers",
+      "customers.empty": "No customers match these filters"
+    }
+  },
+  "idsWithoutText": ["customers.filters.search"],
+  "endpoints": [
+    { "method": "GET", "path": "/api/customers" },
+    { "method": "POST", "path": "/api/customers/import" },
+    { "method": "DELETE", "path": "/api/customers/:id" },
+    { "method": "PUT", "path": "/api/customers/:customerId/tags" },
+    { "method": null, "path": "/api/export/orders.csv" },
+    { "method": "POST", "path": "/api/upload" },
+    { "method": "WS", "path": "/live" }
+  ],
+  "hosts": { "api": ["https://api.example.com"], "ws": ["wss://ws.example.com"] },
+  "limits": [
+    { "name": "maxImportRows", "value": 5000 },
+    { "name": "maxFileSizeMb", "value": 2 },
+    { "name": "timeout", "value": 15000 }
+  ],
+  "chunks": ["static/js/214.8a7b6c5d.chunk.js", "static/js/532.1e2f3a4b.chunk.js", "static/js/787.9c8d7e6f.chunk.js"],
+  "absentChunks": [".chunk.js"]
+}

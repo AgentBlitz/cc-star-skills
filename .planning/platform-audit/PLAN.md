@@ -1,6 +1,6 @@
 # platform-audit — the `audit` plugin and its first skill, `/audit:platform-audit`
 
-> **Status:** Planned 26 Nov 2026. 10 sessions, none done. Session 1 is next; run it **before about 14 Dec 2026**, because the transcript it copies is deleted after that.
+> **Status:** Planned 26 Nov 2026. Sessions 1–2 done (27 Nov 2026); Session 3 is next. (Session 1 had to run before about 14 Dec 2026, when the transcript it copied would be deleted.)
 
 ## 1. Context
 
@@ -317,18 +317,34 @@ All the scripts live in `skills/platform-audit/scripts/`.
   "frameworks": { "<name>": <signal count> },
   "routes":     [{ "path", "kinds": ["path-prop"|"route-map"|"nav-target"|"manifest"], "keys": [], "files": [] }],
   "labels":     { "<namespace>": { "<id>": "<text>" } },
+  "labelSources": { "<namespace>": ["<file>"] },
   "unkeyed":    { "<file>": ["<text>"] },
   "idsWithoutText": [],
   "columns":    [{ "file", "set": [{ "field", "header" }] }],
-  "operations": [{ "kind": "query"|"mutation"|"subscription"|"fragment", "name", "variables", "fields": [], "source": "document"|"ast"|"persisted", "file" }],
-  "endpoints":  [{ "method", "path", "file" }],
+  "operations": [{ "kind": "query"|"mutation"|"subscription"|"fragment", "name", "on"?, "variables": ["$id: ID!"], "fields": [], "source": "document"|"ast"|"persisted", "file" }],
+  "endpoints":  [{ "method"|null, "path", "file" }],
   "hosts":      { "api": [], "auth": [], "ws": [] },
-  "access":     { "constants": [], "rules": [{ "name", "roles": [], "context" }], "deniedMessages": [] },
-  "enums":      [{ "name", "members": [] }],
+  "access":     { "constants": [], "rules": [{ "name", "roles": [], "context", "file" }], "deniedMessages": [] },
+  "enums":      [{ "name", "members": [], "file" }],
   "limits":     [{ "name", "value", "raw", "file" }],
-  "config":     [{ "key", "value" }],
-  "sourceMaps": [], "chunks": [] }
+  "config":     [{ "key", "value", "file" }],
+  "sourceMaps": [{ "file", "url" }], "chunks": [{ "ref", "file" }],
+  "errors"?:    [{ "file", "error" }] }
 ```
+
+S2 refined the shape above, as the session allows, so that every item records the file it came from:
+- **Added:** `labelSources` (the files behind each namespace, for `label-map.json`); `on` on fragments; `file`
+  on rules, enums and config; `{ file, url }` source maps; `{ ref, file }` chunks, so S3 can resolve a
+  relative chunk against the file that names it; and `errors`, present only when a file couldn't be read.
+- **Values:** `variables` is a list of `"$name: Type"` strings. `method` is `null` when the code doesn't show
+  it (a bare `fetch`), and `WS` / `SSE` for sockets and event streams. `sha256` is `null` from the in-page
+  fallback, where only the CLI can hash.
+- **Labels:** when two sources give an id, the first wins in this order: formatjs descriptors; i18next,
+  vue-i18n and JSON resources in English or no stated language, and `$localize`; compiled locales; then
+  other languages. i18next's `{{x}}` is written `{x}`, so the appendix never trips `check-audit`'s `{{`
+  marker. Compiled plurals and selects come out as ICU text.
+- **Redaction:** every value except file names, chunk refs and hashes goes through `redactText`, which
+  turns each run of more than 24 random-looking characters into `[redacted]`.
 
 **What `check-audit.mjs` checks:**
 - `routes`: every inventory route appears in the report in backticks.

@@ -1,0 +1,11 @@
+{
+  "counts": { "routes": 0, "operations": 5 },
+  "operations": [
+    { "kind": "query", "name": "GetPayouts", "variables": ["$status: [PayoutStatus!]", "$first: Int!"], "fields": ["payouts", "balance"], "source": "ast" },
+    { "kind": "mutation", "name": "CancelPayout", "variables": ["$id: ID!"], "fields": ["cancelPayout"], "source": "ast" },
+    { "kind": "fragment", "name": "PayoutFields", "fields": ["id", "amount", "method", "status"], "source": "ast" },
+    { "kind": "subscription", "name": "OnPayoutChanged", "variables": [], "fields": ["payoutChanged"], "source": "ast" },
+    { "kind": "query", "name": "GetBalance", "source": "persisted" }
+  ],
+  "endpoints": [{ "method": "POST", "path": "/graphql" }]
+}
